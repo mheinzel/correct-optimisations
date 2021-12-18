@@ -1,0 +1,4 @@
+*.md
+shell.nix
+*.agda~
+*.agdai
