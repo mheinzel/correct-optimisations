@@ -41,6 +41,7 @@ lookupSingle : (i : Ref σ Γ) → Env ⌊ ([ i ]) ⌋ → ⟦ σ ⟧
 lookupSingle Top (Cons x env) = x
 lookupSingle (Pop i) env = lookupSingle i env
 
+-- TODO: necessary, or just do `eval . forget`?
 evalLive : LiveExpr Γ Δ σ → Env ⌊ Δ ⌋ → ⟦ σ ⟧
 evalLive (Val x) env = x
 evalLive (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env =
@@ -83,7 +84,6 @@ analyse-correct (Eq e e₁) env = {!!}
 analyse-correct (Let e e₁) env = {!!}
 analyse-correct (Var x) env = {!!}
 
-
 -- dead binding elimination
 dbe : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
 dbe (Val x) = Val x
@@ -95,24 +95,27 @@ dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} le₁ le₂) =
 dbe (Var Top) = Var Top
 dbe (Var (Pop i)) = dbe (Var i)
 
--- TODO show eval e = dbe (analyse e) -- that is dead-binding-elimination preserves semantics
--- probably easier to reformulate this (avoiding the let/with)
--- and tease the proof apart into two steps: analyse preserves semantics (using evalLive);
+-- TODO dead-binding-elimination preserves semantics
+correct : (e : Expr Γ σ) (env : Env Γ) →
+  eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
+correct e env =
+    eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
+  ≡⟨ {!!} ⟩  -- eval (dbe e) ≡ evalLive e
+    evalLive (proj₂ (analyse e)) (prjEnv (proj₁ (analyse e)) env)
+  ≡⟨ {!!} ⟩  -- evalLive e ≡ eval (forget e)
+    eval (forget (proj₂ (analyse e))) env
+  ≡⟨ {!!} ⟩  -- forget (analyse e) ≡ e
+    eval e env
+  ∎
+    -- TODO: what about directly: evalLive (analyse e) ≡ eval e
+  where
+    open Relation.Binary.PropositionalEquality.≡-Reasoning
+
+-- original idea:
+-- tease the proof apart into two steps: analyse preserves semantics (using evalLive);
 -- and dbe and forget both preserve semantics;
 -- and then combine these proofs (somehow) to show that dbe is semantics preserving.
 -- eval e ≡ eval (forget (dbe e))
 -- evalLive e ≡ evalLive (dbe (forget e))
 -- eval e ≡ evalLive (analyse e)
 -- analyse (dbe e)
-correct : (e : Expr Γ σ) (env : Env Γ) →
-  let (Δ , le) = analyse e in eval e env ≡ eval (dbe le) (prjEnv Δ env)
-correct (Val x) env = refl
-correct (Plus e₁ e₂) env with analyse e₁ | analyse e₂
-... | Δ₁ , le₁ | Δ₂ , le₂ = {!!}
-correct (Eq e e₁) env = {!!}
-correct (Let e₁ e₂) env with analyse e₁ | analyse e₂
-... | Δ₁ , le₁ | Drop Δ₂ , le₂ =
-  let ih = correct e₂ (Cons (eval e₁ env) env) in trans ih {!!}
-... | Δ₁ , le₁ | Keep Δ₂ , le₂ = {!!}
-correct (Var Top) (Cons x env) = refl
-correct (Var (Pop x)) (Cons _ env) = correct (Var x) env
