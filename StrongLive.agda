@@ -1,9 +1,11 @@
 -- Strong live variable analysis
 module StrongLive where
 
+open import Data.Nat
+  using (_+_ ; _≡ᵇ_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.List using (_∷_ ; [])
 open import Data.Product
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; subst)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; subst ; cong₂ ; sym)
 
 open import Lang
 open import Subset
@@ -13,12 +15,36 @@ data LiveExpr (Γ : Ctx) : (Δ : Subset Γ) → (σ : U) → Set where
   Plus : ∀ {Δ₁ Δ₂} → LiveExpr Γ Δ₁ NAT → LiveExpr Γ Δ₂ NAT → LiveExpr Γ (Δ₁ ∪ Δ₂) NAT
   Eq : ∀ {Δ₁ Δ₂} → LiveExpr Γ Δ₁ NAT → LiveExpr Γ Δ₂ NAT → LiveExpr Γ (Δ₁ ∪ Δ₂) BOOL
   Var : (i : Ref σ Γ) → LiveExpr Γ [ i ] σ
-  -- TODO: can we get rid of this?
-  Eliminated : ∀ {Δ} → LiveExpr (τ ∷ Γ) (Drop Δ) σ → LiveExpr Γ Δ σ
+  Eliminated : ∀ {Δ}
+      → (decl : Expr Γ τ)  -- just remembering this, but we don't need to analyse it further, as it's unused
+      → (body : LiveExpr (τ ∷ Γ) (Drop Δ) σ)
+      → LiveExpr Γ Δ σ
   Let : ∀ {Δ₁ Δ₂}
       → (decl : LiveExpr Γ Δ₁ σ)
       → (body : LiveExpr (σ ∷ Γ) (Keep Δ₂) τ)
       → LiveExpr Γ (Δ₁ ∪ Δ₂) τ
+
+forget : LiveExpr Γ Δ σ → Expr Γ σ
+forget (Val x) = Val x
+forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
+forget (Eq e₁ e₂) = Eq (forget e₁) (forget e₂)
+forget (Var i) = Var i
+forget (Eliminated e₁ e₂) = Let e₁ (forget e₂)
+forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
+
+-- Now let's try to define a semantics for LiveExpr...
+lookupSingle : (i : Ref σ Γ) → Env ⌊ ([ i ]) ⌋ → ⟦ σ ⟧
+lookupSingle Top (Cons x env) = x
+lookupSingle (Pop i) env = lookupSingle i env
+
+evalLive : LiveExpr Γ Δ σ → Env ⌊ Δ ⌋ → ⟦ σ ⟧
+evalLive (Val x) env = x
+evalLive (Plus {Δ₁} {Δ₂} e₁ e₂) env = evalLive e₁ (prj₁ Δ₁ Δ₂ env) + evalLive e₂ (prj₂ Δ₁ Δ₂ env)
+evalLive (Eq {Δ₁} {Δ₂} e₁ e₂) env = evalLive e₁ (prj₁ Δ₁ Δ₂ env) ≡ᵇ evalLive e₂ (prj₂ Δ₁ Δ₂ env)
+evalLive (Var i) env = lookupSingle i env
+evalLive (Eliminated _ e) env = evalLive e env
+evalLive (Let {σ} {τ} {Δ₁} {Δ₂} e₁ e₂) env =
+  evalLive e₂ (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) (prj₂ Δ₁ Δ₂ env))
 
 -- strong dead binding elimination
 analyse : Expr Γ σ → Σ[ Δ ∈ Subset Γ ] LiveExpr Γ Δ σ
@@ -27,10 +53,9 @@ analyse (Plus e₁ e₂) with analyse e₁ | analyse e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , (Plus le₁ le₂)
 analyse (Eq e₁ e₂) with analyse e₁ | analyse e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , (Eq le₁ le₂)
-analyse (Let e₁ e₂) with analyse e₁ | analyse e₂
---  | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ (pop Δ₂)) , (Let le₁ le₂)
-... | Δ₁ , le₁ | (Keep Δ₂) , le₂ = (Δ₁ ∪ Δ₂) , (Let le₁ le₂)
-... | Δ₁ , le₁ | (Drop Δ₂) , le₂ = Δ₂ , Eliminated le₂
+analyse (Let e₁ e₂) with analyse e₂
+... | (Keep Δ₂) , le₂ = (proj₁ (analyse e₁) ∪ Δ₂) , (Let (proj₂ (analyse e₁)) le₂)
+... | (Drop Δ₂) , le₂ = Δ₂ , Eliminated e₁ le₂
 analyse (Var x) = [ x ] , (Var x)
 
 restrictRef : (i : Ref σ Γ) → Ref σ ⌊ [ i ] ⌋
@@ -46,7 +71,7 @@ optimize (Val x) = Val x
 optimize (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (inj₁ Δ₁ Δ₂ (optimize e₁)) (inj₂ Δ₁ Δ₂ (optimize e₂))
 optimize (Eq {Δ₁} {Δ₂} e₁ e₂) = Eq (inj₁ Δ₁ Δ₂ (optimize e₁)) (inj₂ Δ₁ Δ₂ (optimize e₂))
 optimize {Γ} (Var i) = Var (restrictRef i)
-optimize (Eliminated e) = optimize e
+optimize (Eliminated _ e) = optimize e
 optimize {Γ} (Let {σ} {τ} {Δ₁} {Δ₂} e₁ e₂) =
   Let {_} {σ}
     (inj₁ Δ₁ Δ₂ (optimize e₁))
@@ -69,32 +94,114 @@ ex-unused-optimized = Val 2
 test-optimized : sdbe' {[]} ex-unused ≡ ex-unused-optimized
 test-optimized = refl
 
--- now, can we prove any of this?
+lemma-lookup : (Δ₁ Δ₂ : Subset Γ) (i : Ref σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) → (subset : Δ₁ ⊆ Δ₂) →
+  lookup (renameVar Δ₁ Δ₂ subset i) env ≡ lookup i (prjEnv' Δ₁ Δ₂ subset env)
+lemma-lookup (Drop Δ₁) (Drop Δ₂) i env subset = lemma-lookup Δ₁ Δ₂ i env subset
+lemma-lookup (Drop Δ₁) (Keep Δ₂) i (Cons x env) subset = lemma-lookup Δ₁ Δ₂ i env subset
+lemma-lookup (Keep Δ₁) (Keep Δ₂) Top (Cons x env) subset = refl
+lemma-lookup (Keep Δ₁) (Keep Δ₂) (Pop i) (Cons x env) subset = lemma-lookup Δ₁ Δ₂ i env subset
+
+lemma : (Δ₁ Δ₂ : Subset Γ) (e : Expr ⌊ Δ₁ ⌋ σ) (env : Env ⌊ Δ₂ ⌋) → (subset : Δ₁ ⊆ Δ₂) →
+  eval (renameExpr Δ₁ Δ₂ subset e) env ≡ eval e (prjEnv' Δ₁ Δ₂ subset env)
+lemma Δ₁ Δ₂ (Val x) env subset = refl
+lemma Δ₁ Δ₂ (Plus e₁ e₂) env subset = cong₂ _+_ (lemma Δ₁ Δ₂ e₁ env subset) (lemma Δ₁ Δ₂ e₂ env subset)
+lemma Δ₁ Δ₂ (Eq e₁ e₂) env subset =  cong₂ _≡ᵇ_ (lemma Δ₁ Δ₂ e₁ env subset) (lemma Δ₁ Δ₂ e₂ env subset)
+lemma Δ₁ Δ₂ (Let e₁ e₂) env subset = {!!} -- should be doable, just a bit messy
+lemma Δ₁ Δ₂ (Var i) env subset = lemma-lookup Δ₁ Δ₂ i env subset
+
+lemma₁ : (e : LiveExpr Γ Δ₁ σ) (env : Env ⌊ Δ₁ ∪ Δ₂ ⌋)
+  → (eval (optimize e) (prj₁ Δ₁ Δ₂ env) ≡ evalLive e (prj₁ Δ₁ Δ₂ env))
+  → eval (inj₁ Δ₁ Δ₂ (optimize e)) env ≡ evalLive e (prj₁ Δ₁ Δ₂ env)
+lemma₁ {Γ} {Δ₁} {σ} {Δ₂} e env prf = trans (lemma Δ₁ (Δ₁ ∪ Δ₂) (optimize e) env (∪sub₁ Δ₁ Δ₂)) prf
+
+lemma₂ : (e : LiveExpr Γ Δ₂ σ) (env : Env ⌊ Δ₁ ∪ Δ₂ ⌋)
+  → (eval (optimize e) (prj₂ Δ₁ Δ₂ env) ≡ evalLive e (prj₂ Δ₁ Δ₂ env))
+  → eval (inj₂ Δ₁ Δ₂ (optimize e)) env ≡ evalLive e (prj₂ Δ₁ Δ₂ env)
+lemma₂ {Γ} {Δ₂} {σ} {Δ₁} e env prf = trans (lemma Δ₂ (Δ₁ ∪ Δ₂) (optimize e) env (∪sub₂ Δ₁ Δ₂)) prf
+
+lemma-ref : (i : Ref σ Γ) (env : Env ⌊ [ i ] ⌋) →
+  lookup (restrictRef i) env ≡ lookupSingle i env
+lemma-ref Top (Cons x env) = refl
+lemma-ref (Pop i) env = lemma-ref i env
+
+optimize-correct : (analysed : LiveExpr Γ Δ σ) (env : Env ⌊ Δ ⌋) →
+   eval (optimize analysed) env ≡ evalLive analysed env
+optimize-correct (Val x) env = refl
+optimize-correct (Plus {Δ₁} {Δ₂} e₁ e₂) env =
+  cong₂ _+_
+    (lemma₁ e₁ env (optimize-correct e₁ (prj₁ Δ₁ Δ₂ env)))
+    (lemma₂ e₂ env (optimize-correct e₂ (prj₂ Δ₁ Δ₂ env)))
+optimize-correct (Eq {Δ₁} {Δ₂} e₁ e₂) env =
+  cong₂ _≡ᵇ_
+    (lemma₁ e₁ env (optimize-correct e₁ (prj₁ Δ₁ Δ₂ env)))
+    (lemma₂ e₂ env (optimize-correct e₂ (prj₂ Δ₁ Δ₂ env)))
+optimize-correct (Var i) env = lemma-ref i env
+optimize-correct (Eliminated decl e) env = optimize-correct e env
+optimize-correct {Γ} (Let {τ} {σ} {Δ₁} {Δ₂} e₁ e₂) env =
+  let h₁ = optimize-correct e₁ (prj₁ Δ₁ Δ₂ env)
+      H₁ = lemma₁ e₁ env h₁ 
+      h₂ = optimize-correct {τ ∷ Γ} {Keep Δ₂} e₂ (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) (prj₂ Δ₁ Δ₂ env))
+      -- not sure why this doesn't work?
+      H₂ = lemma₂ {τ ∷ Γ} {Keep Δ₂} {σ} {Drop Δ₁} e₂ (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) env) {!h₂!}
+  in
+    eval
+      (inj₂ (Drop Δ₁) (Keep Δ₂) (optimize e₂))
+      (Cons (eval (inj₁ Δ₁ Δ₂ (optimize e₁)) env) env)
+  ≡⟨ cong (λ x → eval (inj₂ (Drop Δ₁) (Keep Δ₂) (optimize e₂)) (Cons x env)) H₁ ⟩
+    eval
+      (inj₂ (Drop Δ₁) (Keep Δ₂) (optimize e₂))
+      (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) env)
+  ≡⟨ H₂ ⟩
+    evalLive
+      e₂
+      (prj₂ (Drop Δ₁) (Keep Δ₂) (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) env))
+  ≡⟨ refl ⟩
+    evalLive
+      e₂
+      (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) (prj₂ Δ₁ Δ₂ env))
+  ≡⟨ cong (λ x → evalLive e₂ (Cons x (prj₂ Δ₁ Δ₂ env)) ) (sym H₁) ⟩
+    evalLive
+      e₂
+      (Cons (eval (inj₁ Δ₁ Δ₂ (optimize e₁)) env) (prj₂ Δ₁ Δ₂ env))
+  ≡⟨ cong (λ v → evalLive e₂ (Cons v (prj₂ Δ₁ Δ₂ env))) H₁ ⟩
+    evalLive
+      e₂
+      (Cons (evalLive e₁ (prj₁ Δ₁ Δ₂ env)) (prj₂ Δ₁ Δ₂ env))
+  ∎
+  where
+    open Relation.Binary.PropositionalEquality.≡-Reasoning
+    
+evalLive-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
+  evalLive e (prjEnv Δ env) ≡ eval (forget e) env
+evalLive-correct (Val x) env = refl
+evalLive-correct (Plus e₁ e₂) env = {!cong₂ _+_ (evalLive-correct e₁ ?) ?!}
+-- we need: prj₁ Δ₁ Δ₂ (prjEnv (Δ₁ ∪ Δ₂) env) ≡ prjEnv Δ₁ env
+evalLive-correct (Eq e₁ e₂) env = {!!}
+evalLive-correct (Var i) env = {!!}
+evalLive-correct (Eliminated decl e) env = {!!}
+evalLive-correct (Let e₁ e₂) env = {!!}
+
+analyse-preserves : (e : Expr Γ σ) →
+  forget (proj₂ (analyse e)) ≡ e
+analyse-preserves (Val x) = refl
+analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
+analyse-preserves (Eq e₁ e₂) = cong₂ Eq (analyse-preserves e₁) (analyse-preserves e₂)
+analyse-preserves (Let e₁ e₂) with analyse e₂ | analyse-preserves e₂
+... | Drop Δ₂ , le₂ | r = cong (Let e₁) r
+... | Keep Δ₂ , le₂ | r = cong₂ Let (analyse-preserves e₁) r
+analyse-preserves (Var x) = refl
+
+-- This is what we wanted to achieve, right? Broken down into subproofs.
 opt-correct : (e : Expr Γ σ) (env : Env Γ) →
-  let liveVars , analysed = analyse e in
-   eval (optimize analysed) (prjEnv liveVars env) ≡ eval e env
-
-opt-correct (Val x) env = refl
-opt-correct (Plus e₁ e₂) env =
-  let r₁ = opt-correct e₁ env
-      r₂ = opt-correct e₂ env
-  in {!!}
-  -- missing:
-  --
-  -- eval 
-  --   (optimized e₁)
-  --   (prjEnv (liveVars e₁) env)
-  --
-  -- vs.
-  --
-  -- eval 
-  --   (renameExpr (liveVars e₁) (liveVars e₁ ∪ liveVars e₂) _ (optimized e₁))
-  --   (prjEnv (liveVars e₁ ∪ liveVars e₂) env)
-  --
-  -- with:
-  -- liveVars = proj₁ . analyse
-  -- optimized = optimize . proj₂ . analyse
-
-opt-correct (Eq e₁ e₂) env = {!!}
-opt-correct (Let e₁ e₂) env = {!!}
-opt-correct (Var x) env = {!!}
+   eval (optimize (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
+opt-correct e env =
+    eval (optimize (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
+  ≡⟨ optimize-correct (proj₂ (analyse e)) (prjEnv (proj₁ (analyse e)) env) ⟩
+    evalLive (proj₂ (analyse e)) (prjEnv (proj₁ (analyse e)) env)
+  ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩
+    eval (forget (proj₂ (analyse e))) env
+  ≡⟨ cong (λ e' → eval e' env) (analyse-preserves e) ⟩
+    eval e env
+  ∎
+  where
+    open Relation.Binary.PropositionalEquality.≡-Reasoning
