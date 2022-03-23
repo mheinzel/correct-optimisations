@@ -2,6 +2,7 @@
 module Live where
 
 open import Data.Nat using (_+_ ; _≡ᵇ_)
+open import Data.Bool renaming (true to True ; false to False)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong₂)
@@ -42,8 +43,12 @@ lookupSingle (Pop i) env = lookupSingle i env
 
 evalLive : LiveExpr Γ Δ σ → Env ⌊ Δ ⌋ → ⟦ σ ⟧
 evalLive (Val x) env = x
-evalLive (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env = (evalLive le₁ (prj₁ Δ₁ Δ₂ env)) + (evalLive le₂ (prj₂ Δ₁ Δ₂ env))
-evalLive (Eq {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env = (evalLive le₁ (prj₁ Δ₁ Δ₂ env)) ≡ᵇ (evalLive le₂ (prj₂ Δ₁ Δ₂ env))
+evalLive (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env =
+    (evalLive le₁ (prj₁ Δ₁ Δ₂ env))
+  + (evalLive le₂ (prj₂ Δ₁ Δ₂ env))
+evalLive (Eq {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env =
+     (evalLive le₁ (prj₁ Δ₁ Δ₂ env))
+  ≡ᵇ (evalLive le₂ (prj₂ Δ₁ Δ₂ env))
 evalLive (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} le₁ le₂) env = evalLive le₂ (prj₂ Δ₁ Δ₂ env)
 evalLive (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} le₁ le₂) env = evalLive le₂ (Cons (evalLive le₁ (prj₁ Δ₁ Δ₂ env)) (prj₂ Δ₁ Δ₂ env))
 evalLive (Var i) env = lookupSingle i env
@@ -51,12 +56,14 @@ evalLive (Var i) env = lookupSingle i env
 -- TODO is this generality worthwhile? It can help avoid some of the
 -- problems with composing environment projections in evalLive (and
 -- the corresponding correctness proofs)
-evalLive-sub : LiveExpr Γ Δ₁ σ → Δ₁ ⊆ Δ₂ → Env ⌊ Δ₂ ⌋ → ⟦ σ ⟧
-evalLive-sub (Val x) H env = x
-evalLive-sub (Plus le₁ le₂) H env = evalLive-sub le₁ {!!} env + evalLive-sub le₂ {!!} env
-evalLive-sub (Eq le₁ le₂) H env = {!!}
-evalLive-sub (Let le₁ le₂) H env = {!!}
-evalLive-sub (Var i) H env = {!!}
+evalLive-sub : (Δₑ : Subset Γ) → LiveExpr Γ Δ σ → Δ ⊆ Δₑ → Env ⌊ Δₑ ⌋ → ⟦ σ ⟧
+evalLive-sub _ (Val x) H env = x
+evalLive-sub {Γ} Δₑ (Plus {Δ₁} {Δ₂} le₁ le₂) H env =
+    evalLive-sub Δₑ le₁ (∪trans {Γ} Δ₁ (Δ₁ ∪ Δ₂) Δₑ (∪sub₁ Δ₁ Δ₂) H) env
+  + evalLive-sub Δₑ le₂ (∪trans {Γ} Δ₂ (Δ₁ ∪ Δ₂) Δₑ (∪sub₂ Δ₁ Δ₂) H) env
+evalLive-sub _ (Eq le₁ le₂) H env = False
+evalLive-sub _ (Let le₁ le₂) H env = {!!}
+evalLive-sub _ (Var i) H env = {!!}
 
 -- forget . analyse = id
 analyse-preserves : (e : Expr Γ σ) → forget (proj₂ (analyse e)) ≡ e
@@ -93,6 +100,10 @@ dbe (Var (Pop i)) = dbe (Var i)
 -- and tease the proof apart into two steps: analyse preserves semantics (using evalLive);
 -- and dbe and forget both preserve semantics;
 -- and then combine these proofs (somehow) to show that dbe is semantics preserving.
+-- eval e ≡ eval (forget (dbe e))
+-- evalLive e ≡ evalLive (dbe (forget e))
+-- eval e ≡ evalLive (analyse e)
+-- analyse (dbe e)
 correct : (e : Expr Γ σ) (env : Env Γ) →
   let (Δ , le) = analyse e in eval e env ≡ eval (dbe le) (prjEnv Δ env)
 correct (Val x) env = refl
