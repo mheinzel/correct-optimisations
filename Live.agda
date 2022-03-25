@@ -5,7 +5,7 @@ open import Data.Nat using (_+_ ; _≡ᵇ_)
 open import Data.Bool renaming (true to True ; false to False)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong₂)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; cong₂)
 
 open import Lang
 open import Subset
@@ -41,7 +41,6 @@ lookupSingle : (i : Ref σ Γ) → Env ⌊ ([ i ]) ⌋ → ⟦ σ ⟧
 lookupSingle Top (Cons x env) = x
 lookupSingle (Pop i) env = lookupSingle i env
 
--- TODO: necessary, or just do `eval . forget`?
 evalLive : LiveExpr Γ Δ σ → Env ⌊ Δ ⌋ → ⟦ σ ⟧
 evalLive (Val x) env = x
 evalLive (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env =
@@ -74,15 +73,17 @@ analyse-preserves (Eq e₁ e₂) = cong₂ Eq (analyse-preserves e₁) (analyse-
 analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Var x) = refl
 
--- TODO show evalLive (analyse e) = eval e (slightly harder)
-analyse-correct : (e : Expr Γ σ) (env : Env Γ) →
-  evalLive (proj₂ (analyse e)) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
-analyse-correct (Val x) env = refl
-analyse-correct (Plus e₁ e₂) env with analyse e₁ | analyse e₂
-... | Δ₁ , le₁ | Δ₂ , le₂ = {!!}
-analyse-correct (Eq e e₁) env = {!!}
-analyse-correct (Let e e₁) env = {!!}
-analyse-correct (Var x) env = {!!}
+-- TODO
+-- evalLive = eval . forget
+evalLive-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
+  evalLive e (prjEnv Δ env) ≡ eval (forget e) env
+evalLive-correct (Val x) env = refl
+evalLive-correct (Plus {Δ₁} {Δ₂} e₁ e₂) = {!!}
+  -- Here, projecting envs becomes annoying
+  -- cong₂ _+_ (evalLive-correct e₁ ?) (evalLive-correct e₂ ?)
+evalLive-correct (Eq e₁ e₂) env = {!!}
+evalLive-correct (Let e₁ e₂) env = {!!}
+evalLive-correct (Var i) env = {!!}
 
 -- dead binding elimination
 dbe : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
@@ -95,6 +96,15 @@ dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} le₁ le₂) =
 dbe (Var Top) = Var Top
 dbe (Var (Pop i)) = dbe (Var i)
 
+-- eval . dbe ≡ evalLive
+dbe-correct : (e : LiveExpr Γ Δ σ) (env : Env ⌊ Δ ⌋) →
+   eval (dbe e) env ≡ evalLive e env
+dbe-correct (Val x) env = refl
+dbe-correct (Plus e e₁) env = {!!}
+dbe-correct (Eq e e₁) env = {!!}
+dbe-correct (Let e e₁) env = {!!}
+dbe-correct (Var i) env = {!!}
+
 -- TODO dead-binding-elimination preserves semantics
 correct : (e : Expr Γ σ) (env : Env Γ) →
   eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
@@ -102,9 +112,9 @@ correct e env =
     eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
   ≡⟨ {!!} ⟩  -- eval (dbe e) ≡ evalLive e
     evalLive (proj₂ (analyse e)) (prjEnv (proj₁ (analyse e)) env)
-  ≡⟨ {!!} ⟩  -- evalLive e ≡ eval (forget e)
+  ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩  -- evalLive e ≡ eval (forget e)
     eval (forget (proj₂ (analyse e))) env
-  ≡⟨ {!!} ⟩  -- forget (analyse e) ≡ e
+  ≡⟨ cong (λ e' →  eval e' env) (analyse-preserves e) ⟩  -- forget (analyse e) ≡ e
     eval e env
   ∎
     -- TODO: what about directly: evalLive (analyse e) ≡ eval e
