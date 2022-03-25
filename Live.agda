@@ -41,29 +41,22 @@ lookupSingle : (i : Ref σ Γ) → Env ⌊ ([ i ]) ⌋ → ⟦ σ ⟧
 lookupSingle Top (Cons x env) = x
 lookupSingle (Pop i) env = lookupSingle i env
 
-evalLive : LiveExpr Γ Δ σ → Env ⌊ Δ ⌋ → ⟦ σ ⟧
-evalLive (Val x) env = x
-evalLive (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env =
-    (evalLive le₁ (prj₁ Δ₁ Δ₂ env))
-  + (evalLive le₂ (prj₂ Δ₁ Δ₂ env))
-evalLive (Eq {Δ₁ = Δ₁} {Δ₂ = Δ₂} le₁ le₂) env =
-     (evalLive le₁ (prj₁ Δ₁ Δ₂ env))
-  ≡ᵇ (evalLive le₂ (prj₂ Δ₁ Δ₂ env))
-evalLive (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} le₁ le₂) env = evalLive le₂ (prj₂ Δ₁ Δ₂ env)
-evalLive (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} le₁ le₂) env = evalLive le₂ (Cons (evalLive le₁ (prj₁ Δ₁ Δ₂ env)) (prj₂ Δ₁ Δ₂ env))
-evalLive (Var i) env = lookupSingle i env
-
 -- TODO is this generality worthwhile? It can help avoid some of the
 -- problems with composing environment projections in evalLive (and
 -- the corresponding correctness proofs)
-evalLive-sub : (Δₑ : Subset Γ) → LiveExpr Γ Δ σ → Δ ⊆ Δₑ → Env ⌊ Δₑ ⌋ → ⟦ σ ⟧
-evalLive-sub _ (Val x) H env = x
-evalLive-sub {Γ} Δₑ (Plus {Δ₁} {Δ₂} le₁ le₂) H env =
-    evalLive-sub Δₑ le₁ (∪trans {Γ} Δ₁ (Δ₁ ∪ Δ₂) Δₑ (∪sub₁ Δ₁ Δ₂) H) env
-  + evalLive-sub Δₑ le₂ (∪trans {Γ} Δ₂ (Δ₁ ∪ Δ₂) Δₑ (∪sub₂ Δ₁ Δ₂) H) env
-evalLive-sub _ (Eq le₁ le₂) H env = False
-evalLive-sub _ (Let le₁ le₂) H env = {!!}
-evalLive-sub _ (Var i) H env = {!!}
+evalLive : (Δₑ : Subset Γ) → LiveExpr Γ Δ σ → Env ⌊ Δₑ ⌋ → Δ ⊆ Δₑ → ⟦ σ ⟧
+evalLive Δᵤ (Val x) env H = x
+evalLive {Γ} Δᵤ (Plus {Δ₁} {Δ₂} le₁ le₂) env H =
+    evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
+  + evalLive Δᵤ le₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) 
+evalLive Δᵤ (Eq {Δ₁} {Δ₂} le₁ le₂) env H =
+     evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
+  ≡ᵇ evalLive Δᵤ le₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) 
+evalLive Δᵤ (Let {_} {_} {Δ₁} {Δ₂} le₁ le₂) env H =
+  evalLive (Keep Δᵤ) le₂
+    (Cons (evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ pop Δ₂) Δᵤ (∪sub₁ Δ₁ (pop Δ₂)) H)) env)
+    (⊆trans (pop Δ₂) (Δ₁ ∪ pop Δ₂) Δᵤ (∪sub₂ Δ₁ (pop Δ₂)) H)
+evalLive Δᵤ (Var i) env H = lookupSingle i (prjEnv' ([ i ]) Δᵤ H env)
 
 -- forget . analyse = id
 analyse-preserves : (e : Expr Γ σ) → forget (proj₂ (analyse e)) ≡ e
@@ -76,11 +69,12 @@ analyse-preserves (Var x) = refl
 -- TODO
 -- evalLive = eval . forget
 evalLive-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
-  evalLive e (prjEnv Δ env) ≡ eval (forget e) env
+  evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ) ≡ eval (forget e) env
 evalLive-correct (Val x) env = refl
-evalLive-correct (Plus {Δ₁} {Δ₂} e₁ e₂) = {!!}
-  -- Here, projecting envs becomes annoying
-  -- cong₂ _+_ (evalLive-correct e₁ ?) (evalLive-correct e₂ ?)
+evalLive-correct {Γ} {Δ} (Plus {Δ₁} {Δ₂} e₁ e₂) env =
+  cong₂ _+_
+    (trans (cong (λ p → evalLive (all Γ) e₁ (env-of-all env) p) (⊆unique Δ₁ (all Γ) _ _)) (evalLive-correct e₁ env))
+    (trans (cong (λ p → evalLive (all Γ) e₂ (env-of-all env) p) (⊆unique Δ₂ (all Γ) _ _)) (evalLive-correct e₂ env))
 evalLive-correct (Eq e₁ e₂) env = {!!}
 evalLive-correct (Let e₁ e₂) env = {!!}
 evalLive-correct (Var i) env = {!!}
@@ -97,21 +91,24 @@ dbe (Var Top) = Var Top
 dbe (Var (Pop i)) = dbe (Var i)
 
 -- eval . dbe ≡ evalLive
-dbe-correct : (e : LiveExpr Γ Δ σ) (env : Env ⌊ Δ ⌋) →
-   eval (dbe e) env ≡ evalLive e env
+dbe-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
+   eval (dbe e) (prjEnv Δ env) ≡ evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ)
 dbe-correct (Val x) env = refl
-dbe-correct (Plus e e₁) env = {!!}
-dbe-correct (Eq e e₁) env = {!!}
-dbe-correct (Let e e₁) env = {!!}
+dbe-correct (Plus e₁ e₂) env =
+  let H₁ = dbe-correct e₁ env
+  in
+    {!!}
+dbe-correct (Eq e₁ e₂) env = {!!}
+dbe-correct (Let e₁ e₂) env = {!!}
 dbe-correct (Var i) env = {!!}
 
 -- TODO dead-binding-elimination preserves semantics
 correct : (e : Expr Γ σ) (env : Env Γ) →
   eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
-correct e env =
+correct {Γ} e env =
     eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
   ≡⟨ {!!} ⟩  -- eval (dbe e) ≡ evalLive e
-    evalLive (proj₂ (analyse e)) (prjEnv (proj₁ (analyse e)) env)
+    evalLive (all Γ) (proj₂ (analyse e)) (env-of-all env) (subset-⊆ Γ (proj₁ (analyse e)))
   ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩  -- evalLive e ≡ eval (forget e)
     eval (forget (proj₂ (analyse e))) env
   ≡⟨ cong (λ e' →  eval e' env) (analyse-preserves e) ⟩  -- forget (analyse e) ≡ e

@@ -48,13 +48,16 @@ pop (Keep Δ) = Δ
 ⊆-of-all [] = refl
 ⊆-of-all (x ∷ Γ) = cong (λ Γ' → x ∷ Γ') (⊆-of-all Γ)
 
+env-of-all : Env Γ → Env ⌊ all Γ ⌋
+env-of-all Nil = Nil
+env-of-all (Cons x env) = Cons x (env-of-all env)
+
 -- Relating subsets and environments
 _⊆_ : Subset Γ → Subset Γ → Set
+Δ₁ ⊆ Keep Δ₂ = pop Δ₁ ⊆ Δ₂
 Empty ⊆ Empty = ⊤
 Drop Δ₁ ⊆ Drop Δ₂ = Δ₁ ⊆ Δ₂
-Drop Δ₁ ⊆ Keep Δ₂ = Δ₁ ⊆ Δ₂
 Keep Δ₁ ⊆ Drop Δ₂ = ⊥
-Keep Δ₁ ⊆ Keep Δ₂ = Δ₁ ⊆ Δ₂
 
 subset-⊆ : (Γ : Ctx) → (Δ : Subset Γ) → Δ ⊆ all Γ
 subset-⊆ Γ Empty = tt
@@ -75,19 +78,30 @@ renameExpr Δ₁ Δ₂ H (Eq e₁ e₂) = Eq (renameExpr Δ₁ Δ₂ H e₁) (re
 renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (renameExpr (Keep Δ₁) (Keep Δ₂) H e₂)
 renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
 
+⊆unique : (Δ₁ Δ₂ : Subset Γ) (H₁ H₂ : Δ₁ ⊆ Δ₂) → H₁ ≡ H₂
+⊆unique Empty Empty H₁ H₂ = refl
+⊆unique (Drop Δ₁) (Drop Δ₂) H₁ H₂ = ⊆unique Δ₁ Δ₂ H₁ H₂
+⊆unique (Drop Δ₁) (Keep Δ₂) H₁ H₂ = ⊆unique Δ₁ Δ₂ H₁ H₂
+⊆unique (Keep Δ₁) (Keep Δ₂) H₁ H₂ = ⊆unique Δ₁ Δ₂ H₁ H₂
+
+⊆refl : (Δ : Subset Γ) → Δ ⊆ Δ
+⊆refl Empty = tt
+⊆refl (Drop Δ) = ⊆refl Δ
+⊆refl (Keep Δ) = ⊆refl Δ
+
+⊆trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → (Δ₁ ⊆ Δ₂) → (Δ₂ ⊆ Δ₃) → Δ₁ ⊆ Δ₃
+⊆trans Empty Empty Empty Δ₁⊆Δ₂ Δ₂⊆Δ₃ = tt
+⊆trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+
 ∪sym : (Δ₁ Δ₂ : Subset Γ) → (Δ₁ ∪ Δ₂) ≡ (Δ₂ ∪ Δ₁)
 ∪sym Empty Empty = refl
 ∪sym (Drop x) (Drop y) = cong Drop (∪sym x y)
 ∪sym (Drop x) (Keep y) = cong Keep (∪sym x y)
 ∪sym (Keep x) (Drop y) = cong Keep (∪sym x y)
 ∪sym (Keep x) (Keep y) = cong Keep (∪sym x y)
-
-∪trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → (Δ₁ ⊆ Δ₂) → (Δ₂ ⊆ Δ₃) → Δ₁ ⊆ Δ₃
-∪trans Empty Empty Empty Δ₁⊆Δ₂ Δ₂⊆Δ₃ = tt
-∪trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ∪trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
-∪trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ∪trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
-∪trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ∪trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
-∪trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ∪trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
 
 ∪sub₁ : (Δ₁ Δ₂ : Subset Γ) → Δ₁ ⊆ (Δ₁ ∪ Δ₂)
 ∪sub₁ Empty Empty = tt
