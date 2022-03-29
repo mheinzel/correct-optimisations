@@ -130,7 +130,7 @@ prjEnv (Drop Δ) (Cons x env) = prjEnv Δ env
 prjEnv (Keep Δ) (Cons x env) = Cons x (prjEnv Δ env)
 
 -- More general version
-prjEnv' : (Δ₁ Δ₂ : Subset Γ) → Δ₁ ⊆ Δ₂ → Env ⌊ Δ₂ ⌋ → Env ⌊ Δ₁ ⌋
+prjEnv' : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Env ⌊ Δ₂ ⌋ → Env ⌊ Δ₁ ⌋
 prjEnv' Empty Empty prf env = env
 prjEnv' (Drop Δ₁) (Drop Δ₂) prf env = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv' Δ₁ Δ₂ prf env

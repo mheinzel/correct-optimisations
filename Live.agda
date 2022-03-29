@@ -37,14 +37,15 @@ analyse (Let e₁ e₂) with analyse e₁ | analyse e₂
 analyse (Var x) = [ x ] , (Var x)
 
 -- Now let's try to define a semantics for LiveExpr...
-lookupSingle : (i : Ref σ Γ) → Env ⌊ ([ i ]) ⌋ → ⟦ σ ⟧
-lookupSingle Top (Cons x env) = x
-lookupSingle (Pop i) env = lookupSingle i env
+lookup-sub : (Δ : Subset Γ) (i : Ref σ Γ) → Env ⌊ Δ ⌋ → .([ i ] ⊆ Δ) → ⟦ σ ⟧
+lookup-sub (Keep Δ) Top (Cons x env) p = x
+lookup-sub (Keep Δ) (Pop i) (Cons x env) p = lookup-sub Δ i env p
+lookup-sub (Drop Δ) (Pop i) env p = lookup-sub Δ i env p
 
 -- TODO is this generality worthwhile? It can help avoid some of the
 -- problems with composing environment projections in evalLive (and
 -- the corresponding correctness proofs)
-evalLive : (Δₑ : Subset Γ) → LiveExpr Γ Δ σ → Env ⌊ Δₑ ⌋ → Δ ⊆ Δₑ → ⟦ σ ⟧
+evalLive : (Δₑ : Subset Γ) → LiveExpr Γ Δ σ → Env ⌊ Δₑ ⌋ → .(Δ ⊆ Δₑ) → ⟦ σ ⟧
 evalLive Δᵤ (Val x) env H = x
 evalLive {Γ} Δᵤ (Plus {Δ₁} {Δ₂} le₁ le₂) env H =
     evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
@@ -56,7 +57,7 @@ evalLive Δᵤ (Let {_} {_} {Δ₁} {Δ₂} le₁ le₂) env H =
   evalLive (Keep Δᵤ) le₂
     (Cons (evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ pop Δ₂) Δᵤ (∪sub₁ Δ₁ (pop Δ₂)) H)) env)
     (⊆trans (pop Δ₂) (Δ₁ ∪ pop Δ₂) Δᵤ (∪sub₂ Δ₁ (pop Δ₂)) H)
-evalLive Δᵤ (Var i) env H = lookupSingle i (prjEnv' ([ i ]) Δᵤ H env)
+evalLive Δᵤ (Var i) env H = lookup-sub Δᵤ i env H
 
 -- forget . analyse = id
 analyse-preserves : (e : Expr Γ σ) → forget (proj₂ (analyse e)) ≡ e
@@ -68,16 +69,25 @@ analyse-preserves (Var x) = refl
 
 -- TODO
 -- evalLive = eval . forget
+-- TODO: generalize (all Γ)?
 evalLive-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
   evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ) ≡ eval (forget e) env
 evalLive-correct (Val x) env = refl
-evalLive-correct {Γ} {Δ} (Plus {Δ₁} {Δ₂} e₁ e₂) env =
-  cong₂ _+_
-    (trans (cong (λ p → evalLive (all Γ) e₁ (env-of-all env) p) (⊆unique Δ₁ (all Γ) _ _)) (evalLive-correct e₁ env))
-    (trans (cong (λ p → evalLive (all Γ) e₂ (env-of-all env) p) (⊆unique Δ₂ (all Γ) _ _)) (evalLive-correct e₂ env))
-evalLive-correct (Eq e₁ e₂) env = {!!}
-evalLive-correct (Let e₁ e₂) env = {!!}
-evalLive-correct (Var i) env = {!!}
+evalLive-correct (Plus e₁ e₂) env =
+  cong₂ _+_ (evalLive-correct e₁ env) (evalLive-correct e₂ env)
+evalLive-correct (Eq e₁ e₂) env =
+  cong₂ _≡ᵇ_ (evalLive-correct e₁ env) (evalLive-correct e₂ env)
+evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Δ₂} e₁ e₂) env =
+  let H₁ = evalLive-correct e₁ env
+      H₂ = evalLive-correct e₂ (Cons (evalLive (all Γ) e₁ (env-of-all env) (subset-⊆ Γ Δ₁)) env)
+  in
+    trans H₂ (cong (λ x → eval (forget e₂) (Cons x env)) H₁)
+evalLive-correct (Var i) env = lookup-sub-correct i env
+  where
+    lookup-sub-correct : (i : Ref σ Γ) (env : Env Γ) →
+      lookup-sub (all Γ) i (env-of-all env) (subset-⊆ Γ [ i ]) ≡ lookup i env
+    lookup-sub-correct Top (Cons x env) = refl
+    lookup-sub-correct (Pop i) (Cons x env) = lookup-sub-correct i env
 
 -- dead binding elimination
 dbe : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
@@ -91,8 +101,10 @@ dbe (Var Top) = Var Top
 dbe (Var (Pop i)) = dbe (Var i)
 
 -- eval . dbe ≡ evalLive
+-- TODO: parametrize over (all Γ)
 dbe-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
    eval (dbe e) (prjEnv Δ env) ≡ evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ)
+-- eval (dbe e) (prjEnv Δ env) ≡ evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ)
 dbe-correct (Val x) env = refl
 dbe-correct (Plus e₁ e₂) env =
   let H₁ = dbe-correct e₁ env
@@ -107,7 +119,7 @@ correct : (e : Expr Γ σ) (env : Env Γ) →
   eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
 correct {Γ} e env =
     eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
-  ≡⟨ {!!} ⟩  -- eval (dbe e) ≡ evalLive e
+  ≡⟨ dbe-correct (proj₂ (analyse e)) env ⟩  -- eval (dbe e) ≡ evalLive e
     evalLive (all Γ) (proj₂ (analyse e)) (env-of-all env) (subset-⊆ Γ (proj₁ (analyse e)))
   ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩  -- evalLive e ≡ eval (forget e)
     eval (forget (proj₂ (analyse e))) env
