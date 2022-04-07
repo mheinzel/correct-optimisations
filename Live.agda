@@ -45,7 +45,7 @@ lookup-sub (Drop Δ) (Pop i) env p = lookup-sub Δ i env p
 -- TODO is this generality worthwhile? It can help avoid some of the
 -- problems with composing environment projections in evalLive (and
 -- the corresponding correctness proofs)
-evalLive : (Δₑ : Subset Γ) → LiveExpr Γ Δ σ → Env ⌊ Δₑ ⌋ → .(Δ ⊆ Δₑ) → ⟦ σ ⟧
+evalLive : (Δᵤ : Subset Γ) → LiveExpr Γ Δ τ → Env ⌊ Δᵤ ⌋ → .(Δ ⊆ Δᵤ) → ⟦ τ ⟧
 evalLive Δᵤ (Val x) env H = x
 evalLive {Γ} Δᵤ (Plus {Δ₁} {Δ₂} le₁ le₂) env H =
     evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
@@ -101,12 +101,10 @@ dbe (Var Top) = Var Top
 dbe (Var (Pop i)) = dbe (Var i)
 
 -- eval . dbe ≡ evalLive
--- TODO: parametrize over (all Γ)
 dbe-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
    eval (dbe e) (prjEnv Δ env) ≡ evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ)
--- eval (dbe e) (prjEnv Δ env) ≡ evalLive (all Γ) e (env-of-all env) (subset-⊆ Γ Δ)
 dbe-correct (Val x) env = refl
-dbe-correct (Plus e₁ e₂) env =
+dbe-correct (Plus {Δ₁} {Δ₂} e₁ e₂) env =
   let H₁ = dbe-correct e₁ env
   in
     {!!}
@@ -114,11 +112,38 @@ dbe-correct (Eq e₁ e₂) env = {!!}
 dbe-correct (Let e₁ e₂) env = {!!}
 dbe-correct (Var i) env = {!!}
 
+-- eval . dbe ≡ evalLive
+-- parametrized over (all Γ)
+dbe-correct' : {Δₑ : Subset Γ} (e : LiveExpr Γ Δₑ σ) (Δ Δᵤ : Subset Γ) → .(Hₑ : Δₑ ⊆ Δ) → .(Hᵤ : Δ ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
+   eval (renameExpr Δₑ Δ Hₑ (dbe e)) (prjEnv' Δ Δᵤ Hᵤ env) ≡ evalLive Δᵤ e env (⊆trans Δₑ Δ Δᵤ Hₑ Hᵤ)
+dbe-correct' (Val x) Δ Δᵤ Hₑ Hᵤ env = refl
+dbe-correct' (Plus {Δ₁} {Δ₂} e₁ e₂) Δ Δᵤ Hₑ Hᵤ env
+  rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δ (∪sub₁ Δ₁ Δ₂) Hₑ (dbe e₁)
+  rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δ (∪sub₂ Δ₁ Δ₂) Hₑ (dbe e₂) =
+  let H₁ = dbe-correct' e₁ Δ Δᵤ (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δ (∪sub₁ Δ₁ Δ₂) Hₑ) Hᵤ env
+      H₂ = dbe-correct' e₂ Δ Δᵤ (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δ (∪sub₂ Δ₁ Δ₂) Hₑ) Hᵤ env
+  in
+    cong₂ _+_ H₁ H₂
+dbe-correct' (Eq e₁ e₂) Δ Δᵤ Hₑ Hᵤ env = {!!}
+dbe-correct' {Γ} (Let {σ} {τ} {Δ₁} {Drop Δ₂} e₁ e₂) Δ Δᵤ Hₑ Hᵤ env
+  rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δ (∪sub₂ Δ₁ Δ₂) Hₑ (dbe e₂) =
+  let H₂ = dbe-correct' {σ ∷ Γ} {τ} {Drop Δ₂} e₂ (Drop Δ) (Drop Δᵤ) {!!} Hᵤ env
+  in {!!}
+dbe-correct' (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δ Δᵤ Hₑ Hᵤ env = {!!}
+  -- let H₁ = dbe-correct' e₁ Δ Δᵤ (⊆trans Δ₁ (Δ₁ ∪ pop Δ₂) Δ (∪sub₁ Δ₁ (pop Δ₂)) Hₑ) Hᵤ env
+  --     H₂ = dbe-correct' e₂ (Keep Δ) (Keep Δᵤ) {!⊆trans ∪sub₂!} Hᵤ (Cons (evalLive Δᵤ e₁ env {!∪sub₁ ⊆trans!}) env)
+  -- in
+dbe-correct' (Var i) Δ Δᵤ Hₑ Hᵤ env = {!!}
+
 -- TODO dead-binding-elimination preserves semantics
+-- TODO: try using a let in the proof
 correct : (e : Expr Γ σ) (env : Env Γ) →
   eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
 correct {Γ} e env =
     eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
+  -- ≡⟨ {!!} ⟩  -- minor stuff
+  --   eval (dbe (proj₂ (analyse e))) (prjEnv' (proj₁ (analyse e)) (all Γ) (subset-⊆ Γ (proj₁ (analyse e))) (env-of-all env))
+  -- ≡⟨ dbe-correct (proj₂ (analyse e)) (all Γ) (subset-⊆ Γ (proj₁ (analyse e))) (env-of-all env) ⟩  -- eval (dbe e) ≡ evalLive e
   ≡⟨ dbe-correct (proj₂ (analyse e)) env ⟩  -- eval (dbe e) ≡ evalLive e
     evalLive (all Γ) (proj₂ (analyse e)) (env-of-all env) (subset-⊆ Γ (proj₁ (analyse e)))
   ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩  -- evalLive e ≡ eval (forget e)

@@ -3,7 +3,7 @@ module Subset where
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Unit
 open import Data.Empty
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 
 open import Lang
 
@@ -64,20 +64,6 @@ subset-⊆ Γ Empty = tt
 subset-⊆ (x ∷ Γ) (Drop Δ) = subset-⊆ Γ Δ
 subset-⊆ (x ∷ Γ) (Keep Δ) = subset-⊆ Γ Δ
 
--- Renamings / weakenings
-renameVar : (Δ₁ Δ₂ : Subset Γ) → Δ₁ ⊆ Δ₂ → Ref σ ⌊ Δ₁ ⌋ → Ref σ ⌊ Δ₂ ⌋
-renameVar (Drop Δ₁) (Drop Δ₂) H i = renameVar Δ₁ Δ₂ H i
-renameVar (Drop Δ₁) (Keep Δ₂) H i = Pop (renameVar Δ₁ Δ₂ H i)
-renameVar (Keep Δ₁) (Keep Δ₂) H Top = Top
-renameVar (Keep Δ₁) (Keep Δ₂) H (Pop i) = Pop (renameVar Δ₁ Δ₂ H i)
-
-renameExpr : (Δ₁ Δ₂ : Subset Γ) → Δ₁ ⊆ Δ₂ → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₂ ⌋ σ
-renameExpr Δ₁ Δ₂ H (Val x) = Val x
-renameExpr Δ₁ Δ₂ H (Plus e₁ e₂) = Plus (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
-renameExpr Δ₁ Δ₂ H (Eq e₁ e₂) = Eq (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
-renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (renameExpr (Keep Δ₁) (Keep Δ₂) H e₂)
-renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
-
 ⊆unique : (Δ₁ Δ₂ : Subset Γ) (H₁ H₂ : Δ₁ ⊆ Δ₂) → H₁ ≡ H₂
 ⊆unique Empty Empty H₁ H₂ = refl
 ⊆unique (Drop Δ₁) (Drop Δ₂) H₁ H₂ = ⊆unique Δ₁ Δ₂ H₁ H₂
@@ -117,6 +103,42 @@ renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
 ∪sub₂ (Keep Δ₁) (Drop Δ₂) = ∪sub₂ Δ₁ Δ₂
 ∪sub₂ (Keep Δ₁) (Keep Δ₂) = ∪sub₂ Δ₁ Δ₂
 
+-- Renamings / weakenings
+renameVar : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Ref σ ⌊ Δ₁ ⌋ → Ref σ ⌊ Δ₂ ⌋
+renameVar (Drop Δ₁) (Drop Δ₂) H i = renameVar Δ₁ Δ₂ H i
+renameVar (Drop Δ₁) (Keep Δ₂) H i = Pop (renameVar Δ₁ Δ₂ H i)
+renameVar (Keep Δ₁) (Keep Δ₂) H Top = Top
+renameVar (Keep Δ₁) (Keep Δ₂) H (Pop i) = Pop (renameVar Δ₁ Δ₂ H i)
+
+renameVar-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (i : Ref σ ⌊ Δ₁ ⌋) →
+  renameVar Δ₂ Δ₃ H₂₃ (renameVar Δ₁ Δ₂ H₁₂ i) ≡ renameVar Δ₁ Δ₃ (⊆trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) i
+renameVar-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) H₁₂ H₂₃ i = renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i
+renameVar-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) H₁₂ H₂₃ i = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i)
+renameVar-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ i = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i)
+renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ Top = refl
+renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Pop i) = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i)
+
+-- TODO: Δ₁ Δ₂ implicit?
+renameExpr : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₂ ⌋ σ
+renameExpr Δ₁ Δ₂ H (Val x) = Val x
+renameExpr Δ₁ Δ₂ H (Plus e₁ e₂) = Plus (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
+renameExpr Δ₁ Δ₂ H (Eq e₁ e₂) = Eq (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
+renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (renameExpr (Keep Δ₁) (Keep Δ₂) H e₂)
+renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
+
+renameExpr-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (e : Expr ⌊ Δ₁ ⌋ σ) →
+  renameExpr Δ₂ Δ₃ H₂₃ (renameExpr Δ₁ Δ₂ H₁₂ e) ≡ renameExpr Δ₁ Δ₃ (⊆trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) e
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Val x) =
+  refl
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Plus e₁ e₂) =
+  cong₂ Plus (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₂)
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Eq e₁ e₂) =
+  cong₂ Eq (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₂)
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Let e₁ e₂) =
+  cong₂ Let (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ e₂)
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Var x) =
+  cong Var (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
+
 inj₁ : (Δ₁ Δ₂ : Subset Γ) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₁ ∪ Δ₂ ⌋ σ
 inj₁ Δ₁ Δ₂ = renameExpr Δ₁ (Δ₁ ∪ Δ₂) (∪sub₁ Δ₁ Δ₂)
 
@@ -135,7 +157,6 @@ prjEnv' Empty Empty prf env = env
 prjEnv' (Drop Δ₁) (Drop Δ₂) prf env = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Keep Δ₁) (Keep Δ₂) prf (Cons x env) = Cons x (prjEnv' Δ₁ Δ₂ prf env)
-
 
 -- TODO what is the expected behaviour and use of this?
 sub₁ : (Δ₁ Δ₂ : Subset Γ) → Subset ⌊ Δ₁ ∪ Δ₂ ⌋
