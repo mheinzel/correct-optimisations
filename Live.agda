@@ -189,3 +189,7 @@ optimize-correct {Γ} e env =
   ≡⟨ cong (λ e →  eval e env) (analyse-preserves e) ⟩  -- forget . analyse ≡ id
     eval e env
   ∎
+
+fix-optimize : Expr Γ σ → Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ
+fix-optimize e with optimize e
+... | Δ , e' = {!!}

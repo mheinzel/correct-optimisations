@@ -50,6 +50,14 @@ eval (Plus e₁ e₂) env = eval e₁ env + eval e₂ env
 eval (Let e body) env = eval body (Cons (eval e env) env)
 eval (Var x) env = lookup x env 
 
+-- number of Let constructors
+num-bindings : Expr Γ σ → Nat
+num-bindings (Val x) = Zero
+num-bindings (Plus e₁ e₂) = num-bindings e₁ + num-bindings e₂
+num-bindings (Eq e₁ e₂) = num-bindings e₁ + num-bindings e₂
+num-bindings (Let e₁ e₂) = Succ (num-bindings e₁ + num-bindings e₂)
+num-bindings (Var x) = Zero
+
 -- Examples
 
 -- let x = 1 in let y = x in 2
@@ -69,3 +77,6 @@ test-ex-unused env = refl
 
 test-ex-unused-2 : (env : Env Γ) (n : Nat) → eval ex-unused-2 (Cons n env) ≡ Succ n
 test-ex-unused-2 env n = refl
+
+count-ex-unused-2 : num-bindings (ex-unused-2 {Γ}) ≡ 3
+count-ex-unused-2 = refl
