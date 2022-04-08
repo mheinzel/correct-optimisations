@@ -1,5 +1,6 @@
 module Subset where
 
+open import Data.Nat using (_+_ ; _≡ᵇ_)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Unit
 open import Data.Empty
@@ -172,3 +173,28 @@ prj₁ Δ₁ Δ₂ = prjEnv' Δ₁ (Δ₁ ∪ Δ₂) (∪sub₁ Δ₁ Δ₂)
 
 prj₂ : (Δ₁ Δ₂ : Subset Γ) → Env ⌊ Δ₁ ∪ Δ₂ ⌋ → Env ⌊ Δ₂ ⌋
 prj₂ Δ₁ Δ₂ = prjEnv' Δ₂ (Δ₁ ∪ Δ₂) (∪sub₂ Δ₁ Δ₂)
+
+renameVar-preserves : (Δ₁ Δ₂ : Subset Γ) → .(H : Δ₁ ⊆ Δ₂) → (i : Ref σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) →
+  lookup (renameVar Δ₁ Δ₂ H i) env ≡ lookup i (prjEnv' Δ₁ Δ₂ H env)
+renameVar-preserves (Drop Δ₁) (Drop Δ₂) H i env = renameVar-preserves Δ₁ Δ₂ H i env
+renameVar-preserves (Drop Δ₁) (Keep Δ₂) H i (Cons x env) = renameVar-preserves Δ₁ Δ₂ H i env
+renameVar-preserves (Keep Δ₁) (Keep Δ₂) H Top (Cons x env) = refl
+renameVar-preserves (Keep Δ₁) (Keep Δ₂) H (Pop i) (Cons x env) = renameVar-preserves Δ₁ Δ₂ H i env
+
+renameExpr-preserves : (Δ₁ Δ₂ : Subset Γ) → .(H : Δ₁ ⊆ Δ₂) → (e : Expr ⌊ Δ₁ ⌋ σ) (env : Env ⌊ Δ₂ ⌋) →
+  eval (renameExpr Δ₁ Δ₂ H e) env ≡ eval e (prjEnv' Δ₁ Δ₂ H env)
+renameExpr-preserves Δ₁ Δ₂ H (Val x) env = refl
+renameExpr-preserves Δ₁ Δ₂ H (Plus e₁ e₂) env =
+  cong₂ _+_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
+renameExpr-preserves Δ₁ Δ₂ H (Eq e₁ e₂) env =
+  cong₂ _≡ᵇ_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
+renameExpr-preserves Δ₁ Δ₂ H (Let e₁ e₂) env =
+  eval (renameExpr (Keep Δ₁) (Keep Δ₂) _ e₂) (Cons (eval (renameExpr Δ₁ Δ₂ _ e₁) env) env)
+  ≡⟨ renameExpr-preserves (Keep Δ₁) (Keep Δ₂ ) _ e₂ (Cons (eval (renameExpr Δ₁ Δ₂ H e₁) env) env) ⟩
+  eval e₂ (prjEnv' (Keep Δ₁) (Keep Δ₂) _ (Cons (eval (renameExpr Δ₁ Δ₂ _ e₁) env) env))
+  ≡⟨ cong (λ x → eval e₂ (Cons x (prjEnv' Δ₁ Δ₂ _ env))) (renameExpr-preserves Δ₁ Δ₂ H e₁ env) ⟩
+  eval e₂ (Cons (eval e₁ (prjEnv' Δ₁ Δ₂ _ env)) (prjEnv' Δ₁ Δ₂ _ env))
+  ∎
+  where
+    open Relation.Binary.PropositionalEquality.≡-Reasoning
+renameExpr-preserves Δ₁ Δ₂ H (Var x) env = renameVar-preserves Δ₁ Δ₂ H x env
