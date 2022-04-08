@@ -53,10 +53,13 @@ evalLive {Γ} Δᵤ (Plus {Δ₁} {Δ₂} le₁ le₂) env H =
 evalLive Δᵤ (Eq {Δ₁} {Δ₂} le₁ le₂) env H =
      evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
   ≡ᵇ evalLive Δᵤ le₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) 
-evalLive Δᵤ (Let {_} {_} {Δ₁} {Δ₂} le₁ le₂) env H =
+evalLive {Γ} Δᵤ (Let {σ} {τ} {Δ₁} {Drop Δ₂} le₁ le₂) env H =
+  evalLive {σ ∷ Γ} (Drop Δᵤ) le₂ env
+    (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
+evalLive Δᵤ (Let {_} {_} {Δ₁} {Keep Δ₂} le₁ le₂) env H =
   evalLive (Keep Δᵤ) le₂
-    (Cons (evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ pop Δ₂) Δᵤ (∪sub₁ Δ₁ (pop Δ₂)) H)) env)
-    (⊆trans (pop Δ₂) (Δ₁ ∪ pop Δ₂) Δᵤ (∪sub₂ Δ₁ (pop Δ₂)) H)
+    (Cons (evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H)) env)
+    (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
 evalLive Δᵤ (Var i) env H = lookup-sub Δᵤ i env H
 
 -- forget . analyse = id
@@ -81,7 +84,7 @@ evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Δ₂} e₁ e₂) env =
   let H₁ = evalLive-correct e₁ env
       H₂ = evalLive-correct e₂ (Cons (evalLive (all Γ) e₁ (env-of-all env) (subset-⊆ Γ Δ₁)) env)
   in
-    trans H₂ (cong (λ x → eval (forget e₂) (Cons x env)) H₁)
+    {!!} -- trans H₂ (cong (λ x → eval (forget e₂) (Cons x env)) H₁)
 evalLive-correct (Var i) env = lookup-sub-correct i env
   where
     lookup-sub-correct : (i : Ref σ Γ) (env : Env Γ) →
