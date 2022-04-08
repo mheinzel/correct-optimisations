@@ -106,8 +106,7 @@ dbe (Eq {Δ₁} {Δ₂} le₁ le₂) = Eq ((inj₁ Δ₁ Δ₂ (dbe le₁))) ((i
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} le₁ le₂) = inj₂ Δ₁ Δ₂ (dbe le₂)
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} le₁ le₂) =
   Let (inj₁ Δ₁ Δ₂ (dbe le₁)) (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (∪sub₂ Δ₁ Δ₂) (dbe le₂))
-dbe (Var Top) = Var Top
-dbe (Var (Pop i)) = dbe (Var i)
+dbe (Var i) = Var (restrictedRef i)
 
 -- eval . dbe ≡ evalLive
 dbe-correct : (e : LiveExpr Γ Δ σ) (Δᵤ : Subset Γ) → .(H : Δ ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
@@ -167,7 +166,13 @@ dbe-correct {Γ} {Δ} (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δᵤ H env =
   ∎
   where
     open Relation.Binary.PropositionalEquality.≡-Reasoning
-dbe-correct (Var i) Δᵤ H env = {!!}
+dbe-correct (Var i) Δᵤ H env = lemma-lookup-sub i Δᵤ H env
+  where
+    lemma-lookup-sub : (i : Ref σ Γ) (Δᵤ : Subset Γ) → .(H : [ i ] ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
+      lookup (renameVar [ i ] Δᵤ H (restrictedRef i)) env ≡ lookup-sub Δᵤ i env H
+    lemma-lookup-sub Top (Keep Δᵤ) H (Cons x env) = refl
+    lemma-lookup-sub (Pop i) (Drop Δᵤ) H env = lemma-lookup-sub i Δᵤ H env
+    lemma-lookup-sub (Pop i) (Keep Δᵤ) H (Cons x env) = lemma-lookup-sub i Δᵤ H env
 
 -- TODO dead-binding-elimination preserves semantics
 correct : (e : Expr Γ σ) (env : Env Γ) →

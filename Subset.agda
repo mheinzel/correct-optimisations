@@ -45,6 +45,10 @@ pop (Keep Δ) = Δ
 ⌊ Drop Δ ⌋             = ⌊ Δ ⌋
 ⌊ Keep {τ = τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 
+restrictedRef : (i : Ref σ Γ) → Ref σ ⌊ [ i ] ⌋
+restrictedRef Top = Top
+restrictedRef (Pop i) = restrictedRef i
+
 ⊆-of-all : (Γ : Ctx) → ⌊ all Γ ⌋ ≡ Γ
 ⊆-of-all [] = refl
 ⊆-of-all (x ∷ Γ) = cong (λ Γ' → x ∷ Γ') (⊆-of-all Γ)
