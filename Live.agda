@@ -6,6 +6,7 @@ open import Data.Bool renaming (true to True ; false to False)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; cong₂ ; sym)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Lang
 open import Subset
@@ -20,9 +21,9 @@ data LiveExpr (Γ : Ctx) : (Δ : Subset Γ) → (σ : U) → Set where
 -- forget the information about variable usage
 forget : LiveExpr Γ Δ σ → Expr Γ σ
 forget (Val x) = Val x
-forget (Plus le₁ le₂) = Plus (forget le₁) (forget le₂)
-forget (Eq le₁ le₂) = Eq (forget le₁) (forget le₂)
-forget (Let le₁ le₂) = Let (forget le₁) (forget le₂)
+forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
+forget (Eq e₁ e₂) = Eq (forget e₁) (forget e₂)
+forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
 forget (Var i) = Var i
 
 -- decide which variables are used or not
@@ -44,18 +45,18 @@ lookup-sub (Drop Δ) (Pop i) env p = lookup-sub Δ i env p
 
 evalLive : (Δᵤ : Subset Γ) → LiveExpr Γ Δ τ → Env ⌊ Δᵤ ⌋ → .(Δ ⊆ Δᵤ) → ⟦ τ ⟧
 evalLive Δᵤ (Val x) env H = x
-evalLive {Γ} Δᵤ (Plus {Δ₁} {Δ₂} le₁ le₂) env H =
-    evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
-  + evalLive Δᵤ le₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) 
-evalLive Δᵤ (Eq {Δ₁} {Δ₂} le₁ le₂) env H =
-     evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) 
-  ≡ᵇ evalLive Δᵤ le₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) 
-evalLive {Γ} Δᵤ (Let {σ} {τ} {Δ₁} {Drop Δ₂} le₁ le₂) env H =
-  evalLive {σ ∷ Γ} (Drop Δᵤ) le₂ env
+evalLive Δᵤ (Plus {Δ₁} {Δ₂} e₁ e₂) env H =
+    evalLive Δᵤ e₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H)
+  + evalLive Δᵤ e₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
+evalLive Δᵤ (Eq {Δ₁} {Δ₂} e₁ e₂) env H =
+     evalLive Δᵤ e₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H)
+  ≡ᵇ evalLive Δᵤ e₂ env (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
+evalLive {Γ} Δᵤ (Let {σ} {τ} {Δ₁} {Drop Δ₂} e₁ e₂) env H =
+  evalLive {σ ∷ Γ} (Drop Δᵤ) e₂ env
     (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
-evalLive Δᵤ (Let {_} {_} {Δ₁} {Keep Δ₂} le₁ le₂) env H =
-  evalLive (Keep Δᵤ) le₂
-    (Cons (evalLive Δᵤ le₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H)) env)
+evalLive Δᵤ (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) env H =
+  evalLive (Keep Δᵤ) e₂
+    (Cons (evalLive Δᵤ e₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H)) env)
     (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
 evalLive Δᵤ (Var i) env H = lookup-sub Δᵤ i env H
 
@@ -79,17 +80,15 @@ evalLive-correct (Eq {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H =
   cong₂ _≡ᵇ_
     (evalLive-correct e₁ Δᵤ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H))
     (evalLive-correct e₂ Δᵤ env ( ⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H))
-evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ env H =
+evalLive-correct (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ env H =
   evalLive-correct e₂ (Drop Δᵤ) (Cons (eval (forget e₁) env) env) _
-evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δᵤ env H =
-  evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ env) _) (prjEnv Δᵤ env)) _
+evalLive-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ env H =
+    evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ env) _) (prjEnv Δᵤ env)) _
   ≡⟨ evalLive-correct e₂ (Keep Δᵤ) (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ env) _) env) _ ⟩
-  eval (forget e₂) (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ env) _) env)
+    eval (forget e₂) (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ env) _) env)
   ≡⟨ cong (λ x → eval (forget e₂) (Cons x env)) (evalLive-correct e₁ Δᵤ env _) ⟩
-  eval (forget e₂) (Cons (eval (forget e₁) env) env)
+    eval (forget e₂) (Cons (eval (forget e₁) env) env)
   ∎
-  where
-    open Relation.Binary.PropositionalEquality.≡-Reasoning
 evalLive-correct (Var i) Δᵤ env H = lookup-sub-correct i Δᵤ env H
   where
     lookup-sub-correct : (i : Ref σ Γ) (Δᵤ : Subset Γ) (env : Env Γ) → .(H : [ i ] ⊆ Δᵤ) →
@@ -101,71 +100,64 @@ evalLive-correct (Var i) Δᵤ env H = lookup-sub-correct i Δᵤ env H
 -- dead binding elimination
 dbe : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
 dbe (Val x) = Val x
-dbe (Plus {Δ₁} {Δ₂} le₁ le₂) = Plus (inj₁ Δ₁ Δ₂ (dbe le₁)) (inj₂ Δ₁ Δ₂ (dbe le₂))
-dbe (Eq {Δ₁} {Δ₂} le₁ le₂) = Eq ((inj₁ Δ₁ Δ₂ (dbe le₁))) ((inj₂ Δ₁ Δ₂ (dbe le₂)))
-dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} le₁ le₂) = inj₂ Δ₁ Δ₂ (dbe le₂)
-dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} le₁ le₂) =
-  Let (inj₁ Δ₁ Δ₂ (dbe le₁)) (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (∪sub₂ Δ₁ Δ₂) (dbe le₂))
+dbe (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (inj₁ Δ₁ Δ₂ (dbe e₁)) (inj₂ Δ₁ Δ₂ (dbe e₂))
+dbe (Eq {Δ₁} {Δ₂} e₁ e₂) = Eq ((inj₁ Δ₁ Δ₂ (dbe e₁))) ((inj₂ Δ₁ Δ₂ (dbe e₂)))
+dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) = inj₂ Δ₁ Δ₂ (dbe e₂)
+dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
+  Let
+    (inj₁ Δ₁ Δ₂ (dbe e₁))
+    (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (∪sub₂ Δ₁ Δ₂) (dbe e₂))
 dbe (Var i) = Var (restrictedRef i)
 
 -- eval . dbe ≡ evalLive
 dbe-correct : (e : LiveExpr Γ Δ σ) (Δᵤ : Subset Γ) → .(H : Δ ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
    eval (renameExpr Δ Δᵤ H (dbe e)) env ≡ evalLive Δᵤ e env H
 dbe-correct (Val x) Δᵤ H env = refl
-dbe-correct {Γ} {Δ} (Plus {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
+dbe-correct (Plus {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
   rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H (dbe e₁)
   rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H (dbe e₂) =
-  let H₁ = dbe-correct e₁ Δᵤ (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) env
-      H₂ = dbe-correct e₂ Δᵤ (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) env
-  in
-    cong₂ _+_ H₁ H₂
+  cong₂ _+_
+    (dbe-correct e₁ Δᵤ _ env)
+    (dbe-correct e₂ Δᵤ _ env)
 dbe-correct (Eq {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
   rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H (dbe e₁)
   rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H (dbe e₂) =
-  let H₁ = dbe-correct e₁ Δᵤ (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H) env
-      H₂ = dbe-correct e₂ Δᵤ (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) env
-  in
-    cong₂ _≡ᵇ_ H₁ H₂
-dbe-correct {Γ} {Δ} (Let {σ} {τ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env =
-  eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₂ Δ₁ Δ₂ (dbe e₂))) env
+  cong₂ _≡ᵇ_
+    (dbe-correct e₁ Δᵤ _ env)
+    (dbe-correct e₂ Δᵤ _ env)
+dbe-correct {Γ} (Let {σ} {τ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env =
+    eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₂ Δ₁ Δ₂ (dbe e₂))) env
   ≡⟨ cong (λ e → eval e env) (renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
-  eval (renameExpr Δ₂ Δᵤ _ (dbe e₂)) env
+    eval (renameExpr Δ₂ Δᵤ _ (dbe e₂)) env
   ≡⟨ renameExpr-preserves Δ₂ Δᵤ _ (dbe e₂) env ⟩
-  eval (dbe e₂) (prjEnv' Δ₂ Δᵤ _ env)
+    eval (dbe e₂) (prjEnv' Δ₂ Δᵤ _ env)
   ≡⟨ sym (renameExpr-preserves (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂) env) ⟩
-  eval (renameExpr (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂)) env
+    eval (renameExpr (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂)) env
   ≡⟨ dbe-correct {σ ∷ Γ} {Drop Δ₂} e₂ (Drop Δᵤ) _ env ⟩
-  evalLive (Drop Δᵤ) e₂ env _
+    evalLive (Drop Δᵤ) e₂ env _
   ∎
-  where
-    open Relation.Binary.PropositionalEquality.≡-Reasoning
-dbe-correct {Γ} {Δ} (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δᵤ H env =
-  -- I would like to do the following, but it fails because Hₑ is irrelevant,
-  -- but ⊆trans doesn't use it as an irrelevant argument.
-  -- let helper = ⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δ (∪sub₂ Δ₁ Δ₂) H
-  eval
-    (renameExpr (Keep (Δ₁ ∪ Δ₂)) (Keep Δᵤ) _ (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) _ (dbe e₂)))
-    (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₁ Δ₁ Δ₂ (dbe e₁))) env) env)
+dbe-correct (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δᵤ H env =
+    eval
+      (renameExpr (Keep (Δ₁ ∪ Δ₂)) (Keep Δᵤ) _ (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) _ (dbe e₂)))
+      (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₁ Δ₁ Δ₂ (dbe e₁))) env) env)
   ≡⟨ cong (λ e → eval e _)
       (renameExpr-trans (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (Keep Δᵤ) (∪sub₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
-  eval
-    (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
-    (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₁ Δ₁ Δ₂ (dbe e₁))) env) env)
+    eval
+      (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
+      (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₁ Δ₁ Δ₂ (dbe e₁))) env) env)
   ≡⟨ cong (λ e → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) (dbe e₂)) (Cons (eval e env) env))
       (renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H (dbe e₁)) ⟩
-  eval
-    (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
-    (Cons (eval (renameExpr Δ₁ Δᵤ _ (dbe e₁)) env) env)
+    eval
+      (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
+      (Cons (eval (renameExpr Δ₁ Δᵤ _ (dbe e₁)) env) env)
   ≡⟨ cong (λ x → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) (dbe e₂)) (Cons x env))
       (dbe-correct e₁ Δᵤ _ env) ⟩
-  eval
-    (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
-    (Cons (evalLive Δᵤ e₁ env _) env)
+    eval
+      (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
+      (Cons (evalLive Δᵤ e₁ env _) env)
   ≡⟨ dbe-correct e₂ (Keep Δᵤ) _ (Cons (evalLive Δᵤ e₁ env _) env) ⟩
-  evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ env _) env) _
+    evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ env _) env) _
   ∎
-  where
-    open Relation.Binary.PropositionalEquality.≡-Reasoning
 dbe-correct (Var i) Δᵤ H env = lemma-lookup-sub i Δᵤ H env
   where
     lemma-lookup-sub : (i : Ref σ Γ) (Δᵤ : Subset Γ) → .(H : [ i ] ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
@@ -181,16 +173,14 @@ correct {Γ} e env =
   let Δ , e' = analyse e
   in
     eval (dbe e') (prjEnv Δ env)
-  ≡⟨ cong (eval (dbe e')) (prjEnv≡prjEnv' Δ env) ⟩  -- minor stuff
-    eval (dbe e') (prjEnv' Δ (all Γ) (subset-⊆ Γ Δ) (prjEnv (all Γ) env))
-  ≡⟨ sym (renameExpr-preserves Δ (all Γ) (subset-⊆ Γ Δ) (dbe e') (prjEnv (all Γ) env)) ⟩
-    eval (renameExpr Δ (all Γ) (subset-⊆ Γ Δ) (dbe e')) (prjEnv (all Γ) env)
-  ≡⟨ dbe-correct e' (all Γ) (subset-⊆ Γ Δ) (prjEnv (all Γ) env) ⟩  -- eval (dbe e) ≡ evalLive e
-    evalLive (all Γ) e' (prjEnv (all Γ) env) (subset-⊆ Γ Δ)
-  ≡⟨ evalLive-correct e' (all Γ) env (subset-⊆ Γ Δ) ⟩  -- evalLive e ≡ eval (forget e)
+  ≡⟨ cong (eval (dbe e')) (prjEnv≡prjEnv' Δ env) ⟩
+    eval (dbe e') (prjEnv' Δ (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env))
+  ≡⟨ sym (renameExpr-preserves Δ (all Γ) (⊆-of-all Γ Δ) (dbe e') (prjEnv (all Γ) env)) ⟩
+    eval (renameExpr Δ (all Γ) (⊆-of-all Γ Δ) (dbe e')) (prjEnv (all Γ) env)
+  ≡⟨ dbe-correct e' (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env) ⟩  -- eval (dbe e) ≡ evalLive e
+    evalLive (all Γ) e' (prjEnv (all Γ) env) (⊆-of-all Γ Δ)
+  ≡⟨ evalLive-correct e' (all Γ) env (⊆-of-all Γ Δ) ⟩  -- evalLive e ≡ eval (forget e)
     eval (forget e') env
   ≡⟨ cong (λ e' →  eval e' env) (analyse-preserves e) ⟩  -- forget (analyse e) ≡ e
     eval e env
   ∎
-  where
-    open Relation.Binary.PropositionalEquality.≡-Reasoning

@@ -49,13 +49,9 @@ restrictedRef : (i : Ref σ Γ) → Ref σ ⌊ [ i ] ⌋
 restrictedRef Top = Top
 restrictedRef (Pop i) = restrictedRef i
 
-⊆-of-all : (Γ : Ctx) → ⌊ all Γ ⌋ ≡ Γ
-⊆-of-all [] = refl
-⊆-of-all (x ∷ Γ) = cong (λ Γ' → x ∷ Γ') (⊆-of-all Γ)
-
-env-of-all : Env Γ → Env ⌊ all Γ ⌋
-env-of-all Nil = Nil
-env-of-all (Cons x env) = Cons x (env-of-all env)
+⌊allΓ⌋≡Γ : (Γ : Ctx) → ⌊ all Γ ⌋ ≡ Γ
+⌊allΓ⌋≡Γ [] = refl
+⌊allΓ⌋≡Γ (x ∷ Γ) = cong (λ Γ' → x ∷ Γ') (⌊allΓ⌋≡Γ Γ)
 
 -- Relating subsets and environments
 _⊆_ : Subset Γ → Subset Γ → Set
@@ -64,10 +60,10 @@ Empty ⊆ Empty = ⊤
 Drop Δ₁ ⊆ Drop Δ₂ = Δ₁ ⊆ Δ₂
 Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 
-subset-⊆ : (Γ : Ctx) → (Δ : Subset Γ) → Δ ⊆ all Γ
-subset-⊆ Γ Empty = tt
-subset-⊆ (x ∷ Γ) (Drop Δ) = subset-⊆ Γ Δ
-subset-⊆ (x ∷ Γ) (Keep Δ) = subset-⊆ Γ Δ
+⊆-of-all : (Γ : Ctx) → (Δ : Subset Γ) → Δ ⊆ all Γ
+⊆-of-all Γ Empty = tt
+⊆-of-all (x ∷ Γ) (Drop Δ) = ⊆-of-all Γ Δ
+⊆-of-all (x ∷ Γ) (Keep Δ) = ⊆-of-all Γ Δ
 
 ⊆unique : (Δ₁ Δ₂ : Subset Γ) (H₁ H₂ : Δ₁ ⊆ Δ₂) → H₁ ≡ H₂
 ⊆unique Empty Empty H₁ H₂ = refl
@@ -164,7 +160,7 @@ prjEnv' (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Keep Δ₁) (Keep Δ₂) prf (Cons x env) = Cons x (prjEnv' Δ₁ Δ₂ prf env)
 
 prjEnv≡prjEnv' : (Δ : Subset Γ) (env : Env Γ) →
-  prjEnv Δ env ≡ prjEnv' Δ (all Γ) (subset-⊆ Γ Δ) (prjEnv (all Γ) env)
+  prjEnv Δ env ≡ prjEnv' Δ (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env)
 prjEnv≡prjEnv' {[]} Empty Nil = refl
 prjEnv≡prjEnv' {τ ∷ Γ} (Drop Δ) (Cons x env) = prjEnv≡prjEnv' Δ env
 prjEnv≡prjEnv' {τ ∷ Γ} (Keep Δ) (Cons x env) = cong (Cons x) (prjEnv≡prjEnv' Δ env)
@@ -177,7 +173,7 @@ sub₁ (Drop Δ₁) (Keep Δ₂) = Drop (sub₁ Δ₁ Δ₂) -- why not: Drop (s
 sub₁ (Keep Δ₁) (Drop Δ₂) = Keep (sub₁ Δ₁ Δ₂) -- not sure why this is not symmetric
 sub₁ (Keep Δ₁) (Keep Δ₂) = Keep (sub₁ Δ₁ Δ₂)
 
--- TODO finish these? Or use alternative def using ⊆?
+-- TODO: only used in StrongLive, remove at some point
 prj₁ : ∀ (Δ₁ Δ₂ : Subset Γ) → Env ⌊ Δ₁ ∪ Δ₂ ⌋ → Env ⌊ Δ₁ ⌋
 prj₁ Δ₁ Δ₂ = prjEnv' Δ₁ (Δ₁ ∪ Δ₂) (∪sub₁ Δ₁ Δ₂)
 

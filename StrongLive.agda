@@ -83,7 +83,7 @@ sdbe e with analyse e
 
 
 liftRename : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Expr Γ σ
-liftRename {Γ} {σ} Δ e = subst (λ Γ' → Expr Γ' σ) (⊆-of-all Γ) (renameExpr Δ (all Γ) (subset-⊆ Γ Δ) e)
+liftRename {Γ} {σ} Δ e = subst (λ Γ' → Expr Γ' σ) (⌊allΓ⌋≡Γ Γ) (renameExpr Δ (all Γ) (⊆-of-all Γ Δ) e)
 
 sdbe' : Expr Γ σ → Expr Γ σ
 sdbe' e = let liveVars , analysed = analyse e in liftRename liveVars (optimize analysed)
