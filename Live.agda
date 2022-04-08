@@ -80,11 +80,26 @@ evalLive-correct (Plus e₁ e₂) env =
   cong₂ _+_ (evalLive-correct e₁ env) (evalLive-correct e₂ env)
 evalLive-correct (Eq e₁ e₂) env =
   cong₂ _≡ᵇ_ (evalLive-correct e₁ env) (evalLive-correct e₂ env)
-evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Δ₂} e₁ e₂) env =
-  let H₁ = evalLive-correct e₁ env
-      H₂ = evalLive-correct e₂ (Cons (evalLive (all Γ) e₁ (env-of-all env) (subset-⊆ Γ Δ₁)) env)
+evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Drop Δ₂} e₁ e₂) env =
+  let H = ?
   in
-    {!!} -- trans H₂ (cong (λ x → eval (forget e₂) (Cons x env)) H₁)
+  evalLive (Drop (all Γ)) e₂ (env-of-all env) _
+  ≡⟨ {!!} ⟩
+  evalLive (Keep (all Γ)) e₂ (Cons (eval (forget e₁) env) (env-of-all env)) _
+  ≡⟨ evalLive-correct e₂ (Cons (eval (forget e₁) env) env) ⟩
+  eval (forget e₂) (Cons (eval (forget e₁) env) env)
+  ∎
+  where
+    open Relation.Binary.PropositionalEquality.≡-Reasoning
+evalLive-correct {Γ} (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) env =
+  evalLive (Keep (all Γ)) e₂ (Cons (evalLive (all Γ) e₁ (env-of-all env) _) (env-of-all env)) _
+  ≡⟨ evalLive-correct e₂ (Cons (evalLive (all Γ) e₁ (env-of-all env) (subset-⊆ Γ Δ₁)) env) ⟩
+  eval (forget e₂) (Cons (evalLive (all Γ) e₁ (env-of-all env) _) env)
+  ≡⟨ cong (λ x → eval (forget e₂) (Cons x env)) (evalLive-correct e₁ env) ⟩
+  eval (forget e₂) (Cons (eval (forget e₁) env) env)
+  ∎
+  where
+    open Relation.Binary.PropositionalEquality.≡-Reasoning
 evalLive-correct (Var i) env = lookup-sub-correct i env
   where
     lookup-sub-correct : (i : Ref σ Γ) (env : Env Γ) →
