@@ -166,21 +166,26 @@ dbe-correct (Var i) Δᵤ H env = lemma-lookup-sub i Δᵤ H env
     lemma-lookup-sub (Pop i) (Drop Δᵤ) H env = lemma-lookup-sub i Δᵤ H env
     lemma-lookup-sub (Pop i) (Keep Δᵤ) H (Cons x env) = lemma-lookup-sub i Δᵤ H env
 
-correct : (e : Expr Γ σ) (env : Env Γ) →
-  let Δ , e' = analyse e
-  in eval (dbe e') (prjEnv Δ env) ≡ eval e env
-correct {Γ} e env =
-  let Δ , e' = analyse e
+optimize : Expr Γ σ → Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ
+optimize e with analyse e
+... | Δ , e' = Δ , dbe e'
+
+optimize-correct : (e : Expr Γ σ) (env : Env Γ) →
+  let Δ , e' = optimize e
+  in eval e' (prjEnv Δ env) ≡ eval e env
+optimize-correct {Γ} e env =
+  let Δ , le = analyse e
+      e' = dbe le
   in
-    eval (dbe e') (prjEnv Δ env)
-  ≡⟨ cong (eval (dbe e')) (prjEnv≡prjEnv' Δ env) ⟩
-    eval (dbe e') (prjEnv' Δ (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env))
-  ≡⟨ sym (renameExpr-preserves Δ (all Γ) (⊆-of-all Γ Δ) (dbe e') (prjEnv (all Γ) env)) ⟩
-    eval (renameExpr Δ (all Γ) (⊆-of-all Γ Δ) (dbe e')) (prjEnv (all Γ) env)
-  ≡⟨ dbe-correct e' (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env) ⟩  -- eval (dbe e) ≡ evalLive e
-    evalLive (all Γ) e' (prjEnv (all Γ) env) (⊆-of-all Γ Δ)
-  ≡⟨ evalLive-correct e' (all Γ) env (⊆-of-all Γ Δ) ⟩  -- evalLive e ≡ eval (forget e)
-    eval (forget e') env
-  ≡⟨ cong (λ e' →  eval e' env) (analyse-preserves e) ⟩  -- forget (analyse e) ≡ e
+    eval e' (prjEnv Δ env)
+  ≡⟨ cong (eval e') (prjEnv≡prjEnv' Δ env) ⟩
+    eval e' (prjEnv' Δ (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env))
+  ≡⟨ sym (renameExpr-preserves Δ (all Γ) (⊆-of-all Γ Δ) e' (prjEnv (all Γ) env)) ⟩
+    eval (renameExpr Δ (all Γ) (⊆-of-all Γ Δ) e') (prjEnv (all Γ) env)
+  ≡⟨ dbe-correct le (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env) ⟩  -- eval . dbe ≡ evalLive
+    evalLive (all Γ) le (prjEnv (all Γ) env) (⊆-of-all Γ Δ)
+  ≡⟨ evalLive-correct le (all Γ) env (⊆-of-all Γ Δ) ⟩  -- evalLive ≡ eval . forget
+    eval (forget le) env
+  ≡⟨ cong (λ e →  eval e env) (analyse-preserves e) ⟩  -- forget . analyse ≡ id
     eval e env
   ∎
