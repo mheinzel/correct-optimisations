@@ -164,19 +164,21 @@ dbe-correct {Γ} {Δ} (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δᵤ H env =
 dbe-correct (Var i) Δᵤ H env = {!!}
 
 -- TODO dead-binding-elimination preserves semantics
--- TODO: try using a let in the proof
 correct : (e : Expr Γ σ) (env : Env Γ) →
-  eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env) ≡ eval e env
+  let Δ , e' = analyse e
+  in eval (dbe e') (prjEnv Δ env) ≡ eval e env
 correct {Γ} e env =
-    eval (dbe (proj₂ (analyse e))) (prjEnv (proj₁ (analyse e)) env)
+  let Δ , e' = analyse e
+  in
+    eval (dbe e') (prjEnv Δ env)
   ≡⟨ {!!} ⟩  -- minor stuff
-    eval (dbe (proj₂ (analyse e))) (prjEnv' (proj₁ (analyse e)) (all Γ) (subset-⊆ Γ (proj₁ (analyse e))) (env-of-all env))
-  ≡⟨ sym (renameExpr-preserves (proj₁ (analyse e)) (all Γ) {!!} (dbe (proj₂ (analyse e))) (env-of-all env)) ⟩  -- minor stuff
-    eval (renameExpr (proj₁ (analyse e)) (all Γ) (subset-⊆ Γ (proj₁ (analyse e))) (dbe (proj₂ (analyse e)))) (env-of-all env)
-  ≡⟨ dbe-correct (proj₂ (analyse e)) (all Γ) (subset-⊆ Γ (proj₁ (analyse e))) (env-of-all env) ⟩  -- eval (dbe e) ≡ evalLive e
-    evalLive (all Γ) (proj₂ (analyse e)) (env-of-all env) (subset-⊆ Γ (proj₁ (analyse e)))
-  ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩  -- evalLive e ≡ eval (forget e)
-    eval (forget (proj₂ (analyse e))) env
+    eval (dbe e') (prjEnv' Δ (all Γ) (subset-⊆ Γ Δ) (env-of-all env))
+  ≡⟨ sym (renameExpr-preserves Δ (all Γ) (subset-⊆ Γ Δ) (dbe e') (env-of-all env)) ⟩
+    eval (renameExpr Δ (all Γ) (subset-⊆ Γ Δ) (dbe e')) (env-of-all env)
+  ≡⟨ dbe-correct e' (all Γ) (subset-⊆ Γ Δ) (env-of-all env) ⟩  -- eval (dbe e) ≡ evalLive e
+    evalLive (all Γ) e' (env-of-all env) (subset-⊆ Γ Δ)
+  ≡⟨ evalLive-correct e' env ⟩  -- evalLive e ≡ eval (forget e)
+    eval (forget e') env
   ≡⟨ cong (λ e' →  eval e' env) (analyse-preserves e) ⟩  -- forget (analyse e) ≡ e
     eval e env
   ∎
