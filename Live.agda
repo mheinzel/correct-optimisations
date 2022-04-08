@@ -174,7 +174,6 @@ dbe-correct (Var i) Δᵤ H env = lemma-lookup-sub i Δᵤ H env
     lemma-lookup-sub (Pop i) (Drop Δᵤ) H env = lemma-lookup-sub i Δᵤ H env
     lemma-lookup-sub (Pop i) (Keep Δᵤ) H (Cons x env) = lemma-lookup-sub i Δᵤ H env
 
--- TODO dead-binding-elimination preserves semantics
 correct : (e : Expr Γ σ) (env : Env Γ) →
   let Δ , e' = analyse e
   in eval (dbe e') (prjEnv Δ env) ≡ eval e env
@@ -182,7 +181,7 @@ correct {Γ} e env =
   let Δ , e' = analyse e
   in
     eval (dbe e') (prjEnv Δ env)
-  ≡⟨ {!!} ⟩  -- minor stuff
+  ≡⟨ cong (eval (dbe e')) (prjEnv≡prjEnv' Δ env) ⟩  -- minor stuff
     eval (dbe e') (prjEnv' Δ (all Γ) (subset-⊆ Γ Δ) (prjEnv (all Γ) env))
   ≡⟨ sym (renameExpr-preserves Δ (all Γ) (subset-⊆ Γ Δ) (dbe e') (prjEnv (all Γ) env)) ⟩
     eval (renameExpr Δ (all Γ) (subset-⊆ Γ Δ) (dbe e')) (prjEnv (all Γ) env)
@@ -193,15 +192,5 @@ correct {Γ} e env =
   ≡⟨ cong (λ e' →  eval e' env) (analyse-preserves e) ⟩  -- forget (analyse e) ≡ e
     eval e env
   ∎
-    -- TODO: what about directly: evalLive (analyse e) ≡ eval e
   where
     open Relation.Binary.PropositionalEquality.≡-Reasoning
-
--- original idea:
--- tease the proof apart into two steps: analyse preserves semantics (using evalLive);
--- and dbe and forget both preserve semantics;
--- and then combine these proofs (somehow) to show that dbe is semantics preserving.
--- eval e ≡ eval (forget (dbe e))
--- evalLive e ≡ evalLive (dbe (forget e))
--- eval e ≡ evalLive (analyse e)
--- analyse (dbe e)

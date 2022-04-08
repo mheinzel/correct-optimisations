@@ -163,6 +163,12 @@ prjEnv' (Drop Δ₁) (Drop Δ₂) prf env = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Keep Δ₁) (Keep Δ₂) prf (Cons x env) = Cons x (prjEnv' Δ₁ Δ₂ prf env)
 
+prjEnv≡prjEnv' : (Δ : Subset Γ) (env : Env Γ) →
+  prjEnv Δ env ≡ prjEnv' Δ (all Γ) (subset-⊆ Γ Δ) (prjEnv (all Γ) env)
+prjEnv≡prjEnv' {[]} Empty Nil = refl
+prjEnv≡prjEnv' {τ ∷ Γ} (Drop Δ) (Cons x env) = prjEnv≡prjEnv' Δ env
+prjEnv≡prjEnv' {τ ∷ Γ} (Keep Δ) (Cons x env) = cong (Cons x) (prjEnv≡prjEnv' Δ env)
+
 -- TODO what is the expected behaviour and use of this?
 sub₁ : (Δ₁ Δ₂ : Subset Γ) → Subset ⌊ Δ₁ ∪ Δ₂ ⌋
 sub₁ Empty Empty = Empty
