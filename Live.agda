@@ -38,6 +38,14 @@ analyse (Let e₁ e₂) with analyse e₁ | analyse e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ (pop Δ₂)) , (Let le₁ le₂)
 analyse (Var x) = [ x ] , (Var x)
 
+-- forget . analyse = id
+analyse-preserves : (e : Expr Γ σ) → forget (proj₂ (analyse e)) ≡ e
+analyse-preserves (Val x) = refl
+analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
+analyse-preserves (Eq e₁ e₂) = cong₂ Eq (analyse-preserves e₁) (analyse-preserves e₂)
+analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analyse-preserves e₂)
+analyse-preserves (Var x) = refl
+
 -- Now let's try to define a semantics for LiveExpr...
 lookup-sub : (Δ : Subset Γ) (i : Ref σ Γ) → Env ⌊ Δ ⌋ → .([ i ] ⊆ Δ) → ⟦ σ ⟧
 lookup-sub (Keep Δ) Top (Cons x env) p = x
@@ -60,14 +68,6 @@ evalLive Δᵤ (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) env H =
     (Cons (evalLive Δᵤ e₁ env (⊆trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H)) env)
     (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H)
 evalLive Δᵤ (Var i) env H = lookup-sub Δᵤ i env H
-
--- forget . analyse = id
-analyse-preserves : (e : Expr Γ σ) → forget (proj₂ (analyse e)) ≡ e
-analyse-preserves (Val x) = refl
-analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
-analyse-preserves (Eq e₁ e₂) = cong₂ Eq (analyse-preserves e₁) (analyse-preserves e₂)
-analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analyse-preserves e₂)
-analyse-preserves (Var x) = refl
 
 -- evalLive = eval . forget
 evalLive-correct : (e : LiveExpr Γ Δ σ) (Δᵤ : Subset Γ) (env : Env Γ) → .(H : Δ ⊆ Δᵤ) →
@@ -188,11 +188,24 @@ optimize-correct {Γ} e env =
     eval e env
   ∎
 
-fix-optimize-wf : (e : Expr [] σ) → WF.Acc _<-bindings_ e → Expr [] σ
-fix-optimize-wf e (WF.acc g) with analyse e 
-... | Empty , le with num-bindings (dbe le) <? num-bindings e
-...                 | inj₁ p = fix-optimize-wf (dbe le) (g (dbe le) p)
-...                 | inj₂ p = dbe le
+-- TODO: SomeExpr/existential needs to guarantee some universe so we eval e with some env
+fix-optimize-wf : (se : Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ se → Σ[ Δ' ∈ Subset Γ ] Expr ⌊ Δ' ⌋ σ
+fix-optimize-wf {Γ} (Δ , e) (WF.acc g) with optimize e
+... | Δ' , e' with num-bindings e' <? num-bindings e
+...              | inj₁ p = fix-optimize-wf {!!} {!!} -- fix-optimize-wf {⌊ Δ ⌋} {Δ'} (Δ'' , e') {!g !}
+...              | inj₂ p = {!!} -- ⌊ Δ' ⌋ , e'
 
-fix-optimize : Expr [] σ → Expr [] σ
-fix-optimize e = fix-optimize-wf e (<-bindings-wf e)
+fix-optimize : Expr Γ σ → Σ[ Γ' ∈ Ctx ] Expr Γ' σ
+fix-optimize {Γ} e = {!!} -- fix-optimize-wf (Γ , e) (<-bindings-wf (Γ , e))
+
+{-
+fix-optimize-wf-correct : (e : Σ[ Γ ∈ Ctx ] Expr Γ σ) (env : Env Γ) (acc : WF.Acc _<-bindings_ e) →
+  eval (fix-optimize-wf e acc) env ≡ eval ? env
+fix-optimize-wf-correct e (WF.acc g) with analyse e
+... | Empty , le with num-bindings (dbe le) <? num-bindings e
+...                 | p = ?
+
+fix-optimize-correct : (e : Expr [] σ) →
+  eval (fix-optimize e) Nil ≡ eval e Nil
+fix-optimize-correct e = fix-optimize-wf-correct e (<-bindings-wf e)
+-}

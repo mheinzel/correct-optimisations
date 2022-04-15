@@ -1,8 +1,9 @@
 module Subset where
 
-open import Data.Nat using (_+_ ; _≡ᵇ_)
+open import Data.Nat using (_+_ ; _≡ᵇ_) renaming (ℕ to Nat)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Unit
+open import Data.Product
 open import Data.Empty
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 
