@@ -175,16 +175,13 @@ optimize-correct : (e : Expr Γ σ) (env : Env Γ) →
   in eval e' (prjEnv Δ env) ≡ eval e env
 optimize-correct {Γ} e env =
   let Δ , le = analyse e
-      e' = dbe le
   in
-    eval e' (prjEnv Δ env)
-  ≡⟨ cong (eval e') (prjEnv≡prjEnv' Δ env) ⟩
-    eval e' (prjEnv' Δ (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env))
-  ≡⟨ sym (renameExpr-preserves Δ (all Γ) (⊆-of-all Γ Δ) e' (prjEnv (all Γ) env)) ⟩
-    eval (renameExpr Δ (all Γ) (⊆-of-all Γ Δ) e') (prjEnv (all Γ) env)
-  ≡⟨ dbe-correct le (all Γ) (⊆-of-all Γ Δ) (prjEnv (all Γ) env) ⟩  -- eval . dbe ≡ evalLive
-    evalLive (all Γ) le (prjEnv (all Γ) env) (⊆-of-all Γ Δ)
-  ≡⟨ evalLive-correct le (all Γ) env (⊆-of-all Γ Δ) ⟩  -- evalLive ≡ eval . forget
+    eval (dbe le) (prjEnv Δ env)
+  ≡⟨ cong (λ e → eval e (prjEnv Δ env)) (sym (renameExpr-id Δ (dbe le))) ⟩
+    eval (renameExpr Δ Δ (⊆refl Δ) (dbe le)) (prjEnv Δ env)
+  ≡⟨ dbe-correct le Δ (⊆refl Δ) (prjEnv Δ env) ⟩  -- eval . dbe ≡ evalLive
+    evalLive Δ le (prjEnv Δ env) (⊆refl Δ)
+  ≡⟨ evalLive-correct le Δ env (⊆refl Δ) ⟩  -- evalLive ≡ eval . forget
     eval (forget le) env
   ≡⟨ cong (λ e →  eval e env) (analyse-preserves e) ⟩  -- forget . analyse ≡ id
     eval e env
