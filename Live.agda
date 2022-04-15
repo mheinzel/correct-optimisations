@@ -2,14 +2,15 @@
 module Live where
 
 open import Data.Nat using (_+_ ; _≡ᵇ_)
-open import Data.Bool renaming (true to True ; false to False)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
+open import Data.Sum
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Lang
 open import Subset
+open import Recursion
 
 data LiveExpr (Γ : Ctx) : (Δ : Subset Γ) → (σ : U) → Set where
   Val : ⟦ σ ⟧ → LiveExpr Γ ∅ σ
@@ -100,12 +101,12 @@ evalLive-correct (Var i) Δᵤ env H = lookup-sub-correct i Δᵤ env H
 -- dead binding elimination
 dbe : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
 dbe (Val x) = Val x
-dbe (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (inj₁ Δ₁ Δ₂ (dbe e₁)) (inj₂ Δ₁ Δ₂ (dbe e₂))
-dbe (Eq {Δ₁} {Δ₂} e₁ e₂) = Eq ((inj₁ Δ₁ Δ₂ (dbe e₁))) ((inj₂ Δ₁ Δ₂ (dbe e₂)))
-dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) = inj₂ Δ₁ Δ₂ (dbe e₂)
+dbe (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (dbe e₁)) (injExpr₂ Δ₁ Δ₂ (dbe e₂))
+dbe (Eq {Δ₁} {Δ₂} e₁ e₂) = Eq ((injExpr₁ Δ₁ Δ₂ (dbe e₁))) ((injExpr₂ Δ₁ Δ₂ (dbe e₂)))
+dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) = injExpr₂ Δ₁ Δ₂ (dbe e₂)
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
   Let
-    (inj₁ Δ₁ Δ₂ (dbe e₁))
+    (injExpr₁ Δ₁ Δ₂ (dbe e₁))
     (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (∪sub₂ Δ₁ Δ₂) (dbe e₂))
 dbe (Var i) = Var (restrictedRef i)
 
@@ -126,7 +127,7 @@ dbe-correct (Eq {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
     (dbe-correct e₁ Δᵤ _ env)
     (dbe-correct e₂ Δᵤ _ env)
 dbe-correct {Γ} (Let {σ} {τ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env =
-    eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₂ Δ₁ Δ₂ (dbe e₂))) env
+    eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₂ Δ₁ Δ₂ (dbe e₂))) env
   ≡⟨ cong (λ e → eval e env) (renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
     eval (renameExpr Δ₂ Δᵤ _ (dbe e₂)) env
   ≡⟨ renameExpr-preserves Δ₂ Δᵤ _ (dbe e₂) env ⟩
@@ -139,12 +140,12 @@ dbe-correct {Γ} (Let {σ} {τ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env =
 dbe-correct (Let {_} {_} {Δ₁} {Keep Δ₂} e₁ e₂) Δᵤ H env =
     eval
       (renameExpr (Keep (Δ₁ ∪ Δ₂)) (Keep Δᵤ) _ (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) _ (dbe e₂)))
-      (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₁ Δ₁ Δ₂ (dbe e₁))) env) env)
+      (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₁ Δ₁ Δ₂ (dbe e₁))) env) env)
   ≡⟨ cong (λ e → eval e _)
       (renameExpr-trans (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (Keep Δᵤ) (∪sub₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
     eval
       (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
-      (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (inj₁ Δ₁ Δ₂ (dbe e₁))) env) env)
+      (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₁ Δ₁ Δ₂ (dbe e₁))) env) env)
   ≡⟨ cong (λ e → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₂ Δ₁ Δ₂) H) (dbe e₂)) (Cons (eval e env) env))
       (renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (∪sub₁ Δ₁ Δ₂) H (dbe e₁)) ⟩
     eval
@@ -187,6 +188,11 @@ optimize-correct {Γ} e env =
     eval e env
   ∎
 
-fix-optimize : Expr Γ σ → Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ
-fix-optimize e with optimize e
-... | Δ , e' = {!!}
+fix-optimize-wf : (e : Expr [] σ) → WF.Acc _<-bindings_ e → Expr [] σ
+fix-optimize-wf e (WF.acc g) with analyse e 
+... | Empty , le with num-bindings (dbe le) <? num-bindings e
+...                 | inj₁ p = fix-optimize-wf (dbe le) (g (dbe le) p)
+...                 | inj₂ p = dbe le
+
+fix-optimize : Expr [] σ → Expr [] σ
+fix-optimize e = fix-optimize-wf e (<-bindings-wf e)
