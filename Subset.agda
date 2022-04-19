@@ -16,7 +16,7 @@ data Subset : Ctx → Set where
   Keep   : Subset Γ → Subset (τ ∷ Γ)
 
 variable
-  Δ Δ₁ Δ₂ : Subset Γ
+  Δ Δ' Δ₁ Δ₂ : Subset Γ
 
 ∅ : {Γ : Ctx} → Subset Γ
 ∅ {[]} = Empty
@@ -33,26 +33,25 @@ Drop Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
 Keep Δ₁ ∪ Drop Δ₂ = Keep (Δ₁ ∪ Δ₂)
 Keep Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
 
-[_] : Ref τ Γ → Subset Γ
-[ Top ]    = Keep ∅
-[ Pop p ]  = Drop [ p ]
-
-pop : Subset (σ ∷ Γ) → Subset Γ
-pop (Drop Δ) = Δ
-pop (Keep Δ) = Δ
-
 ⌊_⌋ : Subset Γ → Ctx
 ⌊ Empty ⌋              = []
 ⌊ Drop Δ ⌋             = ⌊ Δ ⌋
 ⌊ Keep {τ = τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 
-restrictedRef : (i : Ref σ Γ) → Ref σ ⌊ [ i ] ⌋
-restrictedRef Top = Top
-restrictedRef (Pop i) = restrictedRef i
+_[_] : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
+(Drop Δ) [ i ] = Drop (Δ [ i ])
+(Keep Δ) [ Top ]  = Keep ∅
+(Keep Δ) [ Pop i ] = Drop (Δ [ i ])
 
-⌊allΓ⌋≡Γ : (Γ : Ctx) → ⌊ all Γ ⌋ ≡ Γ
-⌊allΓ⌋≡Γ [] = refl
-⌊allΓ⌋≡Γ (x ∷ Γ) = cong (λ Γ' → x ∷ Γ') (⌊allΓ⌋≡Γ Γ)
+pop : Subset (σ ∷ Γ) → Subset Γ
+pop (Drop Δ) = Δ
+pop (Keep Δ) = Δ
+
+restrictedRef : (Δ : Subset Γ) (i : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ Δ [ i ] ⌋
+restrictedRef {[]} Empty ()
+restrictedRef {τ ∷ Γ} (Drop Δ) i = restrictedRef Δ i
+restrictedRef {τ ∷ Γ} (Keep Δ) Top = Top
+restrictedRef {τ ∷ Γ} (Keep Δ) (Pop i) = restrictedRef Δ i
 
 -- Relating subsets and environments
 _⊆_ : Subset Γ → Subset Γ → Set
@@ -61,10 +60,30 @@ Empty ⊆ Empty = ⊤
 Drop Δ₁ ⊆ Drop Δ₂ = Δ₁ ⊆ Δ₂
 Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 
-⊆-of-all : (Γ : Ctx) → (Δ : Subset Γ) → Δ ⊆ all Γ
-⊆-of-all Γ Empty = tt
-⊆-of-all (x ∷ Γ) (Drop Δ) = ⊆-of-all Γ Δ
-⊆-of-all (x ∷ Γ) (Keep Δ) = ⊆-of-all Γ Δ
+∅⊆ : (Γ : Ctx) → (Δ : Subset Γ) → ∅ ⊆ Δ
+∅⊆ [] Empty = tt
+∅⊆ (x ∷ Γ) (Drop Δ) = ∅⊆ Γ Δ
+∅⊆ (x ∷ Γ) (Keep Δ) = ∅⊆ Γ Δ
+
+⊆all : (Γ : Ctx) → (Δ : Subset Γ) → Δ ⊆ all Γ
+⊆all Γ Empty = tt
+⊆all (x ∷ Γ) (Drop Δ) = ⊆all Γ Δ
+⊆all (x ∷ Γ) (Keep Δ) = ⊆all Γ Δ
+
+∪⊆ : (Γ : Ctx) → (Δ₁ Δ₂ Δ : Subset Γ) → .(H₁ : Δ₁ ⊆ Δ) → .(H₂ : Δ₂ ⊆ Δ) →
+  (Δ₁ ∪ Δ₂) ⊆ Δ
+∪⊆ [] Empty Empty Empty H₁ H₂ = tt
+∪⊆ (_ ∷ Γ) (Drop Δ₁) (Drop Δ₂) (Drop Δ) H₁ H₂ = ∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂
+∪⊆ (_ ∷ Γ) (Drop Δ₁) (Drop Δ₂) (Keep Δ) H₁ H₂ = ∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂
+∪⊆ (_ ∷ Γ) (Drop Δ₁) (Keep Δ₂) (Keep Δ) H₁ H₂ = ∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂
+∪⊆ (_ ∷ Γ) (Keep Δ₁) (Drop Δ₂) (Keep Δ) H₁ H₂ = ∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂
+∪⊆ (_ ∷ Γ) (Keep Δ₁) (Keep Δ₂) (Keep Δ) H₁ H₂ = ∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂
+
+[i]⊆ : (Γ : Ctx) (Δ : Subset Γ) (i : Ref σ ⌊ Δ ⌋) → (Δ [ i ]) ⊆ Δ
+[i]⊆ [] Empty ()
+[i]⊆ (τ ∷ Γ) (Drop Δ) i = [i]⊆ Γ Δ i
+[i]⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
+[i]⊆ (τ ∷ Γ) (Keep Δ) (Pop i) = [i]⊆ Γ Δ i
 
 ⊆unique : (Δ₁ Δ₂ : Subset Γ) (H₁ H₂ : Δ₁ ⊆ Δ₂) → H₁ ≡ H₂
 ⊆unique Empty Empty H₁ H₂ = refl
