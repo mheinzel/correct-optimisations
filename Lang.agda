@@ -50,7 +50,7 @@ eval (Plus e₁ e₂) env = eval e₁ env + eval e₂ env
 eval (Let e body) env = eval body (Cons (eval e env) env)
 eval (Var x) env = lookup x env 
 
--- number of Let constructors
+-- Number of Let constructors
 num-bindings : Expr Γ σ → Nat
 num-bindings (Val x) = Zero
 num-bindings (Plus e₁ e₂) = num-bindings e₁ + num-bindings e₂

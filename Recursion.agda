@@ -49,7 +49,6 @@ suc m <? suc n with m <? n
     aux .(suc x) y (<-step {x} y<x) = aux x y y<x
 
 module Inverse-image-Well-founded { A B }
-  -- Should actually used ≺, but I decided it looked to similar to < for comfort.
   (_<_ : Rel B)(f : A → B) where
   _⊰_ : Rel A
   x ⊰ y = f x < f y
