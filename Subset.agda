@@ -158,6 +158,14 @@ prjEnv' (Drop Δ₁) (Drop Δ₂) prf env = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv' Δ₁ Δ₂ prf env
 prjEnv' (Keep Δ₁) (Keep Δ₂) prf (Cons x env) = Cons x (prjEnv' Δ₁ Δ₂ prf env)
 
+prjEnv'-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (env : Env ⌊ Δ₃ ⌋) →
+  prjEnv' Δ₁ Δ₂ H₁₂ (prjEnv' Δ₂ Δ₃ H₂₃ env) ≡ prjEnv' Δ₁ Δ₃ (⊆trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) env
+prjEnv'-trans Empty Empty Empty H₁₂ H₂₃ env = refl
+prjEnv'-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) H₁₂ H₂₃ env = prjEnv'-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
+prjEnv'-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons x env) = prjEnv'-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
+prjEnv'-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons x env) = prjEnv'-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
+prjEnv'-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons x env) = cong (Cons x) (prjEnv'-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env)
+
 -- TODO what is the expected behaviour and use of this?
 sub₁ : (Δ₁ Δ₂ : Subset Γ) → Subset ⌊ Δ₁ ∪ Δ₂ ⌋
 sub₁ Empty Empty = Empty
