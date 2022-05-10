@@ -104,6 +104,12 @@ evalLive-correct (Var i) Δᵤ env H' H =
   lookupLive-correct i Δᵤ env H' H
 
 -- dead binding elimination
+restrictedRef : (Δ : Subset Γ) (i : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ Δ [ i ] ⌋
+restrictedRef {[]} Empty ()
+restrictedRef {τ ∷ Γ} (Drop Δ) i = restrictedRef Δ i
+restrictedRef {τ ∷ Γ} (Keep Δ) Top = Top
+restrictedRef {τ ∷ Γ} (Keep Δ) (Pop i) = restrictedRef Δ i
+
 dbe : LiveExpr Δ Δ' σ → Expr ⌊ Δ' ⌋ σ
 dbe (Val x) = Val x
 dbe (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (dbe e₁)) (injExpr₂ Δ₁ Δ₂ (dbe e₂))

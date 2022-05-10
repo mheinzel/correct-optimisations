@@ -47,12 +47,6 @@ pop : Subset (σ ∷ Γ) → Subset Γ
 pop (Drop Δ) = Δ
 pop (Keep Δ) = Δ
 
-restrictedRef : (Δ : Subset Γ) (i : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ Δ [ i ] ⌋
-restrictedRef {[]} Empty ()
-restrictedRef {τ ∷ Γ} (Drop Δ) i = restrictedRef Δ i
-restrictedRef {τ ∷ Γ} (Keep Δ) Top = Top
-restrictedRef {τ ∷ Γ} (Keep Δ) (Pop i) = restrictedRef Δ i
-
 -- Relating subsets and environments
 _⊆_ : Subset Γ → Subset Γ → Set
 Δ₁ ⊆ Keep Δ₂ = pop Δ₁ ⊆ Δ₂
@@ -137,6 +131,12 @@ prjEnv Empty Empty prf env = env
 prjEnv (Drop Δ₁) (Drop Δ₂) prf env = prjEnv Δ₁ Δ₂ prf env
 prjEnv (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv Δ₁ Δ₂ prf env
 prjEnv (Keep Δ₁) (Keep Δ₂) prf (Cons x env) = Cons x (prjEnv Δ₁ Δ₂ prf env)
+
+prjEnv₁ : (Δ₁ Δ₂ : Subset Γ) → Env ⌊ Δ₁ ∪ Δ₂ ⌋ → Env ⌊ Δ₁ ⌋
+prjEnv₁ Δ₁ Δ₂ = prjEnv Δ₁ (Δ₁ ∪ Δ₂) (⊆∪₁ Δ₁ Δ₂)
+
+prjEnv₂ : (Δ₁ Δ₂ : Subset Γ) → Env ⌊ Δ₁ ∪ Δ₂ ⌋ → Env ⌊ Δ₂ ⌋
+prjEnv₂ Δ₁ Δ₂ = prjEnv Δ₂ (Δ₁ ∪ Δ₂) (⊆∪₂ Δ₁ Δ₂)
 
 prjEnv-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (env : Env ⌊ Δ₃ ⌋) →
   prjEnv Δ₁ Δ₂ H₁₂ (prjEnv Δ₂ Δ₃ H₂₃ env) ≡ prjEnv Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) env
