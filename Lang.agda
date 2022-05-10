@@ -57,26 +57,3 @@ num-bindings (Plus e₁ e₂) = num-bindings e₁ + num-bindings e₂
 num-bindings (Eq e₁ e₂) = num-bindings e₁ + num-bindings e₂
 num-bindings (Let e₁ e₂) = Succ (num-bindings e₁ + num-bindings e₂)
 num-bindings (Var x) = Zero
-
--- Examples
-
--- let x = 1 in let y = x in 2
-ex-unused : Expr Γ NAT
-ex-unused = Let (Val 1) (Let (Var Top) (Val 2))
-
--- λ a → let x = a in let y = 1 in let z = x + 5 in y + a
-ex-unused-2 : Expr (NAT ∷ Γ) NAT
-ex-unused-2 =
-  Let (Var Top)
-    (Let (Val 1)
-      (Let (Var (Pop Top))
-        (Plus (Var (Pop Top)) (Var (Pop (Pop (Pop Top)))))))
-
-test-ex-unused : (env : Env Γ) → eval ex-unused env ≡ 2
-test-ex-unused env = refl
-
-test-ex-unused-2 : (env : Env Γ) (n : Nat) → eval ex-unused-2 (Cons n env) ≡ Succ n
-test-ex-unused-2 env n = refl
-
-count-ex-unused-2 : num-bindings (ex-unused-2 {Γ}) ≡ 3
-count-ex-unused-2 = refl
