@@ -105,12 +105,6 @@ liftRename {Γ} {σ} Δ e = subst (λ Γ' → Expr Γ' σ) (⌊allΓ⌋≡Γ Γ)
 sdbe' : Expr Γ σ → Expr Γ σ
 sdbe' e = let liveVars , analysed = analyse e in liftRename liveVars (optimize analysed)
 
-ex-unused-optimized : Expr Γ NAT
-ex-unused-optimized = Val 2
-
-test-optimized : sdbe' {[]} ex-unused ≡ ex-unused-optimized
-test-optimized = refl
-
 lemma-lookup : (Δ₁ Δ₂ : Subset Γ) (i : Ref σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) → (subset : Δ₁ ⊆ Δ₂) →
   lookup (renameVar Δ₁ Δ₂ subset i) env ≡ lookup i (prjEnv Δ₁ Δ₂ subset env)
 lemma-lookup (Drop Δ₁) (Drop Δ₂) i env subset = lemma-lookup Δ₁ Δ₂ i env subset
