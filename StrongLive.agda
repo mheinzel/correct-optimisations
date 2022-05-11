@@ -1,8 +1,7 @@
 -- Strong live variable analysis
 module StrongLive where
 
-open import Data.Nat
-  using (_+_ ; _≡ᵇ_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
+open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.List using (_∷_ ; [])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; subst ; cong₂ ; sym)
@@ -25,7 +24,6 @@ prjEnv' {Γ} Δ env = prjEnv Δ (all Γ) (⊆all Γ Δ) (envOfAll env)
 data LiveExpr (Γ : Ctx) : (Δ : Subset Γ) → (σ : U) → Set where
   Val : ⟦ σ ⟧ → LiveExpr Γ ∅ σ
   Plus : ∀ {Δ₁ Δ₂} → LiveExpr Γ Δ₁ NAT → LiveExpr Γ Δ₂ NAT → LiveExpr Γ (Δ₁ ∪ Δ₂) NAT
-  Eq : ∀ {Δ₁ Δ₂} → LiveExpr Γ Δ₁ NAT → LiveExpr Γ Δ₂ NAT → LiveExpr Γ (Δ₁ ∪ Δ₂) BOOL
   Var : (i : Ref σ Γ) → LiveExpr Γ (all[ i ]) σ
   Eliminated : ∀ {Δ}
       → (decl : Expr Γ τ)  -- just remembering this, but we don't need to analyse it further, as it's unused
@@ -39,7 +37,6 @@ data LiveExpr (Γ : Ctx) : (Δ : Subset Γ) → (σ : U) → Set where
 forget : LiveExpr Γ Δ σ → Expr Γ σ
 forget (Val x) = Val x
 forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
-forget (Eq e₁ e₂) = Eq (forget e₁) (forget e₂)
 forget (Var i) = Var i
 forget (Eliminated e₁ e₂) = Let e₁ (forget e₂)
 forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
@@ -52,7 +49,6 @@ lookupSingle (Pop i) env = lookupSingle i env
 evalLive : LiveExpr Γ Δ σ → Env ⌊ Δ ⌋ → ⟦ σ ⟧
 evalLive (Val x) env = x
 evalLive (Plus {Δ₁} {Δ₂} e₁ e₂) env = evalLive e₁ (prjEnv₁ Δ₁ Δ₂ env) + evalLive e₂ (prjEnv₂ Δ₁ Δ₂ env)
-evalLive (Eq {Δ₁} {Δ₂} e₁ e₂) env = evalLive e₁ (prjEnv₁ Δ₁ Δ₂ env) ≡ᵇ evalLive e₂ (prjEnv₂ Δ₁ Δ₂ env)
 evalLive (Var i) env = lookupSingle i env
 evalLive (Eliminated _ e) env = evalLive e env
 evalLive (Let {σ} {τ} {Δ₁} {Δ₂} e₁ e₂) env =
@@ -63,8 +59,6 @@ analyse : Expr Γ σ → Σ[ Δ ∈ Subset Γ ] LiveExpr Γ Δ σ
 analyse (Val x) =  ∅ , Val x
 analyse (Plus e₁ e₂) with analyse e₁ | analyse e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , (Plus le₁ le₂)
-analyse (Eq e₁ e₂) with analyse e₁ | analyse e₂
-... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , (Eq le₁ le₂)
 analyse (Let e₁ e₂) with analyse e₂
 ... | (Keep Δ₂) , le₂ = (proj₁ (analyse e₁) ∪ Δ₂) , (Let (proj₂ (analyse e₁)) le₂)
 ... | (Drop Δ₂) , le₂ = Δ₂ , Eliminated e₁ le₂
@@ -81,7 +75,6 @@ helper (Keep Δ₁) Δ₂ e = injExpr₂ (Keep Δ₁) (Keep Δ₂) e
 optimize : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
 optimize (Val x) = Val x
 optimize (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (optimize e₁)) (injExpr₂ Δ₁ Δ₂ (optimize e₂))
-optimize (Eq {Δ₁} {Δ₂} e₁ e₂) = Eq (injExpr₁ Δ₁ Δ₂ (optimize e₁)) (injExpr₂ Δ₁ Δ₂ (optimize e₂))
 optimize {Γ} (Var i) = Var (restrictedRef i)
 optimize (Eliminated _ e) = optimize e
 optimize {Γ} (Let {σ} {τ} {Δ₁} {Δ₂} e₁ e₂) =
@@ -116,7 +109,6 @@ lemma : (Δ₁ Δ₂ : Subset Γ) (e : Expr ⌊ Δ₁ ⌋ σ) (env : Env ⌊ Δ�
   eval (renameExpr Δ₁ Δ₂ subset e) env ≡ eval e (prjEnv Δ₁ Δ₂ subset env)
 lemma Δ₁ Δ₂ (Val x) env subset = refl
 lemma Δ₁ Δ₂ (Plus e₁ e₂) env subset = cong₂ _+_ (lemma Δ₁ Δ₂ e₁ env subset) (lemma Δ₁ Δ₂ e₂ env subset)
-lemma Δ₁ Δ₂ (Eq e₁ e₂) env subset =  cong₂ _≡ᵇ_ (lemma Δ₁ Δ₂ e₁ env subset) (lemma Δ₁ Δ₂ e₂ env subset)
 lemma Δ₁ Δ₂ (Let e₁ e₂) env subset = {!!} -- should be doable, just a bit messy
 lemma Δ₁ Δ₂ (Var i) env subset = lemma-lookup Δ₁ Δ₂ i env subset
 
@@ -140,10 +132,6 @@ optimize-correct : (analysed : LiveExpr Γ Δ σ) (env : Env ⌊ Δ ⌋) →
 optimize-correct (Val x) env = refl
 optimize-correct (Plus {Δ₁} {Δ₂} e₁ e₂) env =
   cong₂ _+_
-    (lemma₁ e₁ env (optimize-correct e₁ (prjEnv₁ Δ₁ Δ₂ env)))
-    (lemma₂ e₂ env (optimize-correct e₂ (prjEnv₂ Δ₁ Δ₂ env)))
-optimize-correct (Eq {Δ₁} {Δ₂} e₁ e₂) env =
-  cong₂ _≡ᵇ_
     (lemma₁ e₁ env (optimize-correct e₁ (prjEnv₁ Δ₁ Δ₂ env)))
     (lemma₂ e₂ env (optimize-correct e₂ (prjEnv₂ Δ₁ Δ₂ env)))
 optimize-correct (Var i) env = lemma-ref i env
@@ -187,7 +175,6 @@ evalLive-correct : (e : LiveExpr Γ Δ σ) (env : Env Γ) →
 evalLive-correct (Val x) env = refl
 evalLive-correct (Plus e₁ e₂) env = {!cong₂ _+_ (evalLive-correct e₁ ?) ?!}
 -- we need: prjEnv₁ Δ₁ Δ₂ (prjEnv (Δ₁ ∪ Δ₂) env) ≡ prjEnv Δ₁ env
-evalLive-correct (Eq e₁ e₂) env = {!!}
 evalLive-correct (Var i) env = {!!}
 evalLive-correct (Eliminated decl e) env = {!!}
 evalLive-correct (Let e₁ e₂) env = {!!}
@@ -196,7 +183,6 @@ analyse-preserves : (e : Expr Γ σ) →
   forget (proj₂ (analyse e)) ≡ e
 analyse-preserves (Val x) = refl
 analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
-analyse-preserves (Eq e₁ e₂) = cong₂ Eq (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Let e₁ e₂) with analyse e₂ | analyse-preserves e₂
 ... | Drop Δ₂ , le₂ | r = cong (Let e₁) r
 ... | Keep Δ₂ , le₂ | r = cong₂ Let (analyse-preserves e₁) r

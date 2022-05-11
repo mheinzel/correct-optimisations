@@ -1,6 +1,6 @@
 module Subset where
 
-open import Data.Nat using (_+_ ; _≡ᵇ_) renaming (ℕ to Nat)
+open import Data.Nat using (_+_) renaming (ℕ to Nat)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Unit
 open import Data.Product
@@ -115,7 +115,6 @@ renameVar (Keep Δ₁) (Keep Δ₂) H (Pop i) = Pop (renameVar Δ₁ Δ₂ H i)
 renameExpr : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₂ ⌋ σ
 renameExpr Δ₁ Δ₂ H (Val x) = Val x
 renameExpr Δ₁ Δ₂ H (Plus e₁ e₂) = Plus (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
-renameExpr Δ₁ Δ₂ H (Eq e₁ e₂) = Eq (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
 renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (renameExpr (Keep Δ₁) (Keep Δ₂) H e₂)
 renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
 
@@ -155,7 +154,6 @@ renameVar-id (Keep Δ) (Pop i) = cong Pop (renameVar-id Δ i)
 renameExpr-id : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) → renameExpr Δ Δ (⊆-refl Δ) e ≡ e
 renameExpr-id Δ (Val x) = refl
 renameExpr-id Δ (Plus e₁ e₂) = cong₂ Plus (renameExpr-id Δ e₁) (renameExpr-id Δ e₂)
-renameExpr-id Δ (Eq e₁ e₂) = cong₂ Eq (renameExpr-id Δ e₁) (renameExpr-id Δ e₂)
 renameExpr-id Δ (Let e₁ e₂) = cong₂ Let (renameExpr-id Δ e₁) (renameExpr-id (Keep Δ) e₂)
 renameExpr-id Δ (Var x) = cong Var (renameVar-id Δ x)
 
@@ -173,8 +171,6 @@ renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Val x) =
   refl
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Plus e₁ e₂) =
   cong₂ Plus (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₂)
-renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Eq e₁ e₂) =
-  cong₂ Eq (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₂)
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Let e₁ e₂) =
   cong₂ Let (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ e₂)
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Var x) =
@@ -192,8 +188,6 @@ renameExpr-preserves : (Δ₁ Δ₂ : Subset Γ) → .(H : Δ₁ ⊆ Δ₂) → 
 renameExpr-preserves Δ₁ Δ₂ H (Val x) env = refl
 renameExpr-preserves Δ₁ Δ₂ H (Plus e₁ e₂) env =
   cong₂ _+_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
-renameExpr-preserves Δ₁ Δ₂ H (Eq e₁ e₂) env =
-  cong₂ _≡ᵇ_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
 renameExpr-preserves Δ₁ Δ₂ H (Let e₁ e₂) env =
     eval (renameExpr (Keep Δ₁) (Keep Δ₂) _ e₂) (Cons (eval (renameExpr Δ₁ Δ₂ _ e₁) env) env)
   ≡⟨ renameExpr-preserves (Keep Δ₁) (Keep Δ₂ ) _ e₂ (Cons (eval (renameExpr Δ₁ Δ₂ H e₁) env) env) ⟩

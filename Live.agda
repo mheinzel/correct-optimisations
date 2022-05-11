@@ -1,7 +1,7 @@
 -- Live variable analysis
 module Live where
 
-open import Data.Nat using (_+_ ; _≡ᵇ_)
+open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Data.Sum
@@ -15,7 +15,6 @@ open import Recursion
 data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
   Val : ⟦ σ ⟧ → LiveExpr Δ ∅ σ
   Plus : ∀ {Δ Δ₁ Δ₂} → LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
-  Eq : ∀ {Δ Δ₁ Δ₂} → LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) BOOL
   Let : ∀ {Δ Δ₁ Δ₂} → (decl : LiveExpr Δ Δ₁ σ) → (body : LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ) → LiveExpr Δ (Δ₁ ∪ (pop Δ₂)) τ
   Var : (i : Ref σ ⌊ Δ ⌋) → LiveExpr Δ (Δ [ i ]) σ
 
@@ -23,7 +22,6 @@ data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
 forget : LiveExpr Δ Δ' σ → Expr ⌊ Δ ⌋ σ
 forget (Val x) = Val x
 forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
-forget (Eq e₁ e₂) = Eq (forget e₁) (forget e₂)
 forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
 forget (Var i) = Var i
 
@@ -32,8 +30,6 @@ analyse : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] ((
 analyse {Γ} Δ (Val x) = ∅ , (∅⊆ Γ Δ , Val x)
 analyse {Γ} Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 ... | Δ₁ , (H₁ , le₁) | Δ₂ , (H₂ , le₂) = (Δ₁ ∪ Δ₂) , (∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂ , Plus le₁ le₂)
-analyse {Γ} Δ (Eq e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
-... | Δ₁ , (H₁ , le₁) | Δ₂ , (H₂ , le₂) = (Δ₁ ∪ Δ₂) , (∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂ , Eq le₁ le₂)
 analyse {Γ} Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
 ... | Δ₁ , (H₁ , le₁) | Δ₂ , (H₂ , le₂) = (Δ₁ ∪ (pop Δ₂)) , (∪⊆ Γ Δ₁ (pop Δ₂) Δ H₁ H₂ , Let le₁ le₂)
 analyse {Γ} Δ (Var i) = (Δ [ i ]) , ([i]⊆ Γ Δ i , Var i)
@@ -42,7 +38,6 @@ analyse {Γ} Δ (Var i) = (Δ [ i ]) , ([i]⊆ Γ Δ i , Var i)
 analyse-preserves : (e : Expr ⌊ Δ ⌋ σ) → forget (proj₂ (proj₂ (analyse Δ e))) ≡ e
 analyse-preserves (Val x) = refl
 analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
-analyse-preserves (Eq e₁ e₂) = cong₂ Eq (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Var i) = refl
 
@@ -60,9 +55,6 @@ evalLive Δᵤ (Val x) env H = x
 evalLive Δᵤ (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
     evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H)
   + evalLive Δᵤ e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
-evalLive Δᵤ (Eq {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
-     evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H)
-  ≡ᵇ evalLive Δᵤ e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
 evalLive Δᵤ (Let {σ} {τ} {Δ} {Δ₁} {Drop Δ₂} e₁ e₂) env H =
   evalLive (Drop Δᵤ) e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
 evalLive Δᵤ (Let {_} {_} {Δ} {Δ₁} {Keep Δ₂} e₁ e₂) env H =
@@ -87,10 +79,6 @@ evalLive-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H' H =
   cong₂ _+_
     (evalLive-correct e₁ Δᵤ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H') H)
     (evalLive-correct e₂ Δᵤ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H') H)
-evalLive-correct (Eq {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H' H =
-  cong₂ _≡ᵇ_
-    (evalLive-correct e₁ Δᵤ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H') H)
-    (evalLive-correct e₂ Δᵤ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H') H)
 evalLive-correct (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ env H' H =
   evalLive-correct e₂ (Drop Δᵤ) (Cons (eval (forget e₁) env) env) (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H') H
 evalLive-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ env H' H =
@@ -113,7 +101,6 @@ restrictedRef {τ ∷ Γ} (Keep Δ) (Pop i) = restrictedRef Δ i
 dbe : LiveExpr Δ Δ' σ → Expr ⌊ Δ' ⌋ σ
 dbe (Val x) = Val x
 dbe (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (dbe e₁)) (injExpr₂ Δ₁ Δ₂ (dbe e₂))
-dbe (Eq {Δ} {Δ₁} {Δ₂} e₁ e₂) = Eq ((injExpr₁ Δ₁ Δ₂ (dbe e₁))) ((injExpr₂ Δ₁ Δ₂ (dbe e₂)))
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) = injExpr₂ Δ₁ Δ₂ (dbe e₂)
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
   Let
@@ -129,12 +116,6 @@ dbe-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
   rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H (dbe e₁)
   rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H (dbe e₂) =
   cong₂ _+_
-    (dbe-correct e₁ Δᵤ _ env)
-    (dbe-correct e₂ Δᵤ _ env)
-dbe-correct (Eq {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
-  rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H (dbe e₁)
-  rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H (dbe e₂) =
-  cong₂ _≡ᵇ_
     (dbe-correct e₁ Δᵤ _ env)
     (dbe-correct e₂ Δᵤ _ env)
 dbe-correct {Γ} (Let {σ} {τ} {Δ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env =
