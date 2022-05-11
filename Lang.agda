@@ -17,8 +17,6 @@ data U : Set where
 Ctx = List U
 
 variable
-  n : Nat
-  b : Bool
   Γ : Ctx
   σ τ : U
 
@@ -26,13 +24,13 @@ variable
 data Ref (σ : U) : Ctx → Set where
   Top  : Ref σ (σ ∷ Γ)
   Pop  : Ref σ Γ → Ref σ (τ ∷ Γ)
- 
+
 data Expr (Γ : Ctx) : (σ : U) → Set where
   Val : ⟦ σ ⟧ → Expr Γ σ
+  Var : Ref σ Γ → Expr Γ σ
   Plus : Expr Γ NAT → Expr Γ NAT → Expr Γ NAT
   Eq : Expr Γ NAT → Expr Γ NAT → Expr Γ BOOL
   Let : (decl : Expr Γ σ) → (body : Expr (σ ∷ Γ) τ) → Expr Γ τ
-  Var : Ref σ Γ → Expr Γ σ
 
 -- Semantics
 data Env : Ctx → Set where
