@@ -8,6 +8,7 @@ open import Data.List using (List ; _∷_ ; [])
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 \end{code}
 
+\newcommand{\CodeLangSyntax}{%
 \begin{code}
 -- Types
 data U : Set where
@@ -30,11 +31,10 @@ data Ref (σ : U) : Ctx → Set where
 
 data Expr (Γ : Ctx) : (σ : U) → Set where
   Val : ⟦ σ ⟧ → Expr Γ σ
-  Var : Ref σ Γ → Expr Γ σ
   Plus : Expr Γ NAT → Expr Γ NAT → Expr Γ NAT
-  Eq : Expr Γ NAT → Expr Γ NAT → Expr Γ BOOL
   Let : (decl : Expr Γ σ) → (body : Expr (σ ∷ Γ) τ) → Expr Γ τ
-\end{code}
+  Var : Ref σ Γ → Expr Γ σ
+\end{code}}
 
 \begin{code}[hide]
 -- Semantics
@@ -48,7 +48,6 @@ lookup (Pop ref)  (Cons x env)   = lookup ref env
 
 eval : Expr Γ σ → Env Γ → ⟦ σ ⟧
 eval (Val x) env = x
-eval (Eq n m) env = (eval n env) ≡ᵇ (eval m env)
 eval (Plus e₁ e₂) env = eval e₁ env + eval e₂ env
 eval (Let e body) env = eval body (Cons (eval e env) env)
 eval (Var x) env = lookup x env 
@@ -57,7 +56,6 @@ eval (Var x) env = lookup x env
 num-bindings : Expr Γ σ → Nat
 num-bindings (Val x) = Zero
 num-bindings (Plus e₁ e₂) = num-bindings e₁ + num-bindings e₂
-num-bindings (Eq e₁ e₂) = num-bindings e₁ + num-bindings e₂
 num-bindings (Let e₁ e₂) = Succ (num-bindings e₁ + num-bindings e₂)
 num-bindings (Var x) = Zero
 \end{code}

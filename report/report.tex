@@ -8,18 +8,27 @@
 \usepackage{latex/agda}
 
 \usepackage{newunicodechar}
+\newunicodechar{∀}{\ensuremath{\mathnormal\forall}}
 \newunicodechar{≡}{\ensuremath{\mathnormal\equiv}}
 \newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
-\newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
 \newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
+\newunicodechar{∅}{\ensuremath{\mathnormal\emptyset}}
+\newunicodechar{∪}{\ensuremath{\mathnormal\cup}}
 \newunicodechar{∷}{\ensuremath{\mathnormal::}}
 \newunicodechar{⟦}{\ensuremath{\mathnormal\llbracket}}
 \newunicodechar{⟧}{\ensuremath{\mathnormal\rrbracket}}
+\newunicodechar{⌊}{\ensuremath{\mathnormal\lfloor}}
+\newunicodechar{⌋}{\ensuremath{\mathnormal\rfloor}}
 \newunicodechar{Γ}{\ensuremath{\mathnormal\Gamma}}
 \newunicodechar{σ}{\ensuremath{\mathnormal\sigma}}
 \newunicodechar{τ}{\ensuremath{\mathnormal\tau}}
+\newunicodechar{Δ}{\ensuremath{\mathnormal\Delta}}
 \newunicodechar{₁}{\ensuremath{\mathnormal{}_1}}
 \newunicodechar{₂}{\ensuremath{\mathnormal{}_2}}
+
+\include{latex/Lang}
+\include{latex/Subset}
+\include{latex/Live}
 
 % TODO: proper title
 \title{Report Experimentation Project}
@@ -28,16 +37,63 @@
 
 \begin{document}
 %\maketitle
+%\tableofcontents
+
 
 \section{Introduction}
+% ?
+
+
+\section{A Simple Language}
+
+\subsection{Simply-typed $\lambda$-calculus}
+% simply typed lambda calculus
+%  but fist order, i.e. no lambda  TODO: how else to call that?
 
 \begin{align*}
   P, Q ::=&\ v
-  \\ \big|&\ x
-  \\ \big|&\ \textbf{let } x = P \textbf{ in } Q
   \\ \big|&\ P + Q
+  \\ \big|&\ \textbf{let } x = P \textbf{ in } Q
+  \\ \big|&\ x
 \end{align*}
 
-\include{latex/Lang}
+\subsection{Representing Variables}
+% open/closed terms
+% de Bruijn
+% some representations are error-prone/partial
+% typed Ctx
+% representation correct by construction
+
+\CodeLangSyntax
+
+
+\section{Live Variable Analysis}
+% want to annotate terms with variables actually used
+% then remove unused bindings
+
+\subsection{Subsets of a Context}
+% TODO: call it thinning? cite something, e.g. McBride?
+% why this representation?
+%   subset relation/proof on Subsets is unique (compare e.g. [NAT] \subseteq [NAT, NAT]
+%   union-like operation is definable
+
+\CodeSubsetSubset
+\CodeSubsetOpSubseteq
+
+\subsection{Analysis}
+% a lot is encoded in the annotated LiveExpr type
+
+\CodeLiveExpr
+
+\subsection{Correctness}
+% relate by evaluation
+% split the proof
+% subtleties: evaluate under which environment
+
+\subsection{Iterating the Analysis}
+% optimization might make other bindings unused
+% could be done in one pass here, but gets complex
+% termination?
+% Well-Founded recursion
 
 \end{document}
