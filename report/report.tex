@@ -1,0 +1,43 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{stmaryrd}
+\usepackage{listings}
+\usepackage{ebproof}
+\usepackage{latex/agda}
+
+\usepackage{newunicodechar}
+\newunicodechar{≡}{\ensuremath{\mathnormal\equiv}}
+\newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
+\newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
+\newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
+\newunicodechar{∷}{\ensuremath{\mathnormal::}}
+\newunicodechar{⟦}{\ensuremath{\mathnormal\llbracket}}
+\newunicodechar{⟧}{\ensuremath{\mathnormal\rrbracket}}
+\newunicodechar{Γ}{\ensuremath{\mathnormal\Gamma}}
+\newunicodechar{σ}{\ensuremath{\mathnormal\sigma}}
+\newunicodechar{τ}{\ensuremath{\mathnormal\tau}}
+\newunicodechar{₁}{\ensuremath{\mathnormal{}_1}}
+\newunicodechar{₂}{\ensuremath{\mathnormal{}_2}}
+
+% TODO: proper title
+\title{Report Experimentation Project}
+\author{Matthias Heinzel (1632256)}
+\date{\today}
+
+\begin{document}
+%\maketitle
+
+\section{Introduction}
+
+\begin{align*}
+  P, Q ::=&\ v
+  \\ \big|&\ x
+  \\ \big|&\ \textbf{let } x = P \textbf{ in } Q
+  \\ \big|&\ P + Q
+\end{align*}
+
+\include{latex/Lang}
+
+\end{document}
