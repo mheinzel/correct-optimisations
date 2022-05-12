@@ -1,6 +1,6 @@
 GEN_DIR = report/generated
 
-report/report.pdf: report/report.tex $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex
+report/report.pdf: report/report.tex $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex report/agda.sty
 	cd report; pdflatex report.tex
 	cd report; pdflatex report.tex
 
