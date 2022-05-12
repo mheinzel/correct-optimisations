@@ -1,10 +1,14 @@
+\begin{code}[hide]
 module Lang where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
 open import Data.List using (List ; _∷_ ; [])
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
+\end{code}
 
+\newcommand{\CodeLangSyntax}{%
+\begin{code}
 -- Types
 data U : Set where
   BOOL NAT : U
@@ -26,10 +30,12 @@ data Ref (σ : U) : Ctx → Set where
 
 data Expr (Γ : Ctx) : (σ : U) → Set where
   Val : ⟦ σ ⟧ → Expr Γ σ
-  Var : Ref σ Γ → Expr Γ σ
   Plus : Expr Γ NAT → Expr Γ NAT → Expr Γ NAT
   Let : (decl : Expr Γ σ) → (body : Expr (σ ∷ Γ) τ) → Expr Γ τ
+  Var : Ref σ Γ → Expr Γ σ
+\end{code}}
 
+\begin{code}[hide]
 -- Semantics
 data Env : Ctx → Set where
   Nil   : Env []
@@ -51,3 +57,4 @@ num-bindings (Val x) = Zero
 num-bindings (Plus e₁ e₂) = num-bindings e₁ + num-bindings e₂
 num-bindings (Let e₁ e₂) = Succ (num-bindings e₁ + num-bindings e₂)
 num-bindings (Var x) = Zero
+\end{code}

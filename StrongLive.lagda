@@ -1,3 +1,4 @@
+\begin{code}[hide]
 -- Strong live variable analysis
 module StrongLive where
 
@@ -202,3 +203,4 @@ opt-correct e env =
   ∎
   where
     open Relation.Binary.PropositionalEquality.≡-Reasoning
+\end{code}

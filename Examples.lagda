@@ -1,3 +1,4 @@
+\begin{code}[hide]
 module Examples where
 
 open import Data.List using (List ; _∷_ ; [])
@@ -62,3 +63,4 @@ count-fix-optimize-ex-unused-2 :
   let (Δ , (H , e)) = fix-optimize (Keep Empty) (ex-unused-2 {[]}) in
     e ≡ ex-unused-2-opt {[]}
 count-fix-optimize-ex-unused-2 = refl
+\end{code}

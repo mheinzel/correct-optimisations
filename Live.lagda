@@ -2,7 +2,7 @@
 -- Live variable analysis
 module Live where
 
-open import Data.Nat using (_+_ ; _≡ᵇ_)
+open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Data.Sum

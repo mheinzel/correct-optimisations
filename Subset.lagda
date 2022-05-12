@@ -1,7 +1,7 @@
 \begin{code}[hide]
 module Subset where
 
-open import Data.Nat using (_+_ ; _≡ᵇ_) renaming (ℕ to Nat)
+open import Data.Nat using (_+_) renaming (ℕ to Nat)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Unit
 open import Data.Product
