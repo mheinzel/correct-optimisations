@@ -52,9 +52,10 @@ _[_] : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
 pop : Subset (σ ∷ Γ) → Subset Γ
 pop (Drop Δ) = Δ
 pop (Keep Δ) = Δ
-\end{code}
 
 -- Relating subsets and environments
+\end{code}
+
 \newcommand{\CodeSubsetOpSubseteq}{%
 \begin{code}
 _⊆_ : Subset Γ → Subset Γ → Set

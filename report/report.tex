@@ -9,10 +9,13 @@
 
 \usepackage{newunicodechar}
 \newunicodechar{∀}{\ensuremath{\mathnormal\forall}}
+\newunicodechar{⊤}{\ensuremath{\mathnormal\top}}
+\newunicodechar{⊥}{\ensuremath{\mathnormal\bot}}
 \newunicodechar{≡}{\ensuremath{\mathnormal\equiv}}
 \newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
 \newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
 \newunicodechar{∅}{\ensuremath{\mathnormal\emptyset}}
+\newunicodechar{⊆}{\ensuremath{\mathnormal\subseteq}}
 \newunicodechar{∪}{\ensuremath{\mathnormal\cup}}
 \newunicodechar{∷}{\ensuremath{\mathnormal::}}
 \newunicodechar{⟦}{\ensuremath{\mathnormal\llbracket}}
@@ -28,20 +31,28 @@
 
 \include{latex/Lang}
 \include{latex/Subset}
+\include{latex/Recursion}
 \include{latex/Live}
 
 % TODO: proper title
-\title{Report Experimentation Project}
+% goal of report: summary of main results
+\title{Provingly Correct Optimizations in an Intrinsically Typed Compiler\\
+  \vspace{1cm}
+  \large Experimentation Project Report}
 \author{Matthias Heinzel (1632256)}
 \date{\today}
 
 \begin{document}
-%\maketitle
-%\tableofcontents
+
+\maketitle
+\tableofcontents
 
 
 \section{Introduction}
 % ?
+% others worked on compilation of intrinsically typed AST
+% but not a lot on optimizations in this setting
+% handling bindings in a way the compiler accepts requires some care
 
 
 \section{A Simple Language}
@@ -60,6 +71,8 @@
 \subsection{Representing Variables}
 % open/closed terms
 % de Bruijn
+
+\subsection{Intrinsically Typed Syntax Trees}
 % some representations are error-prone/partial
 % typed Ctx
 % representation correct by construction
@@ -88,12 +101,27 @@
 \subsection{Correctness}
 % relate by evaluation
 % split the proof
-% subtleties: evaluate under which environment
+% subtlety: evaluate under which environment
+% subtlety: irrelevant arguments
 
 \subsection{Iterating the Analysis}
 % optimization might make other bindings unused
 % could be done in one pass here, but gets complex
-% termination?
+% => take a fixpoint! termination?
 % Well-Founded recursion
+
+
+\section{Further Work}
+
+\subsection{Extending the Language}
+% Lam+App, short sketch
+% recursion
+% data types (product/sum)
+% pointers?
+
+\subsection{Other Analyses}
+% inlining
+%   more difficult to encode goal, take list of what to inline
+% move bindings to top or as far down as possible
 
 \end{document}
