@@ -18,12 +18,12 @@ data Subset : Ctx → Set where
   Empty  : Subset []
   Drop   : Subset Γ → Subset (τ ∷ Γ)
   Keep   : Subset Γ → Subset (τ ∷ Γ)
+
+variable
+  Δ Δ' Δ₁ Δ₂ : Subset Γ
 \end{code}}
 
 \begin{code}[hide]
-variable
-  Δ Δ' Δ₁ Δ₂ : Subset Γ
-
 ∅ : {Γ : Ctx} → Subset Γ
 ∅ {[]} = Empty
 ∅ {x ∷ Γ} = Drop ∅

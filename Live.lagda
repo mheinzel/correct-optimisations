@@ -18,8 +18,8 @@ open import Recursion
 \begin{code}
 data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
   Val : ⟦ σ ⟧ → LiveExpr Δ ∅ σ
-  Plus : ∀ {Δ Δ₁ Δ₂} → LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
-  Let : ∀ {Δ Δ₁ Δ₂} → (decl : LiveExpr Δ Δ₁ σ) → (body : LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ) → LiveExpr Δ (Δ₁ ∪ (pop Δ₂)) τ
+  Plus : LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
+  Let : LiveExpr Δ Δ₁ σ → LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ → LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
   Var : (i : Ref σ ⌊ Δ ⌋) → LiveExpr Δ (Δ [ i ]) σ
 \end{code}}
 
@@ -61,9 +61,9 @@ evalLive Δᵤ (Val x) env H = x
 evalLive Δᵤ (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
     evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H)
   + evalLive Δᵤ e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
-evalLive Δᵤ (Let {σ} {τ} {Δ} {Δ₁} {Drop Δ₂} e₁ e₂) env H =
+evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) env H =
   evalLive (Drop Δᵤ) e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
-evalLive Δᵤ (Let {_} {_} {Δ} {Δ₁} {Keep Δ₂} e₁ e₂) env H =
+evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) env H =
   evalLive (Keep Δᵤ) e₂
     (Cons (evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H)) env)
     (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
@@ -124,7 +124,7 @@ dbe-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
   cong₂ _+_
     (dbe-correct e₁ Δᵤ _ env)
     (dbe-correct e₂ Δᵤ _ env)
-dbe-correct {Γ} (Let {σ} {τ} {Δ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env =
+dbe-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ H env =
     eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₂ Δ₁ Δ₂ (dbe e₂))) env
   ≡⟨ cong (λ e → eval e env) (renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
     eval (renameExpr Δ₂ Δᵤ _ (dbe e₂)) env
@@ -132,7 +132,7 @@ dbe-correct {Γ} (Let {σ} {τ} {Δ} {Δ₁} {Drop Δ₂} e₁ e₂) Δᵤ H env
     eval (dbe e₂) (prjEnv Δ₂ Δᵤ _ env)
   ≡⟨ sym (renameExpr-preserves (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂) env) ⟩
     eval (renameExpr (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂)) env
-  ≡⟨ dbe-correct {σ ∷ Γ} {Keep Δ} {Drop Δ₂} e₂ (Drop Δᵤ) _ env ⟩
+  ≡⟨ dbe-correct e₂ (Drop Δᵤ) _ env ⟩
     evalLive (Drop Δᵤ) e₂ env _
   ∎
 dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ H env =
