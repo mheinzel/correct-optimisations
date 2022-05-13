@@ -45,9 +45,9 @@ Keep Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
 ⌊ Keep {τ = τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 
 _[_] : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
-(Drop Δ) [ i ] = Drop (Δ [ i ])
+(Drop Δ) [ x ] = Drop (Δ [ x ])
 (Keep Δ) [ Top ]  = Keep ∅
-(Keep Δ) [ Pop i ] = Drop (Δ [ i ])
+(Keep Δ) [ Pop x ] = Drop (Δ [ x ])
 
 pop : Subset (σ ∷ Γ) → Subset Γ
 pop (Drop Δ) = Δ
@@ -99,11 +99,11 @@ Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 ⊆∪₂ (Keep Δ₁) (Drop Δ₂) = ⊆∪₂ Δ₁ Δ₂
 ⊆∪₂ (Keep Δ₁) (Keep Δ₂) = ⊆∪₂ Δ₁ Δ₂
 
-[i]⊆ : (Γ : Ctx) (Δ : Subset Γ) (i : Ref σ ⌊ Δ ⌋) → (Δ [ i ]) ⊆ Δ
-[i]⊆ [] Empty ()
-[i]⊆ (τ ∷ Γ) (Drop Δ) i = [i]⊆ Γ Δ i
-[i]⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
-[i]⊆ (τ ∷ Γ) (Keep Δ) (Pop i) = [i]⊆ Γ Δ i
+[x]⊆ : (Γ : Ctx) (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → (Δ [ x ]) ⊆ Δ
+[x]⊆ [] Empty ()
+[x]⊆ (τ ∷ Γ) (Drop Δ) x = [x]⊆ Γ Δ x
+[x]⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
+[x]⊆ (τ ∷ Γ) (Keep Δ) (Pop x) = [x]⊆ Γ Δ x
 
 ⊆-refl : (Δ : Subset Γ) → Δ ⊆ Δ
 ⊆-refl Empty = tt
@@ -119,13 +119,13 @@ Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 
 -- Renamings / weakenings
 renameVar : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Ref σ ⌊ Δ₁ ⌋ → Ref σ ⌊ Δ₂ ⌋
-renameVar (Drop Δ₁) (Drop Δ₂) H i = renameVar Δ₁ Δ₂ H i
-renameVar (Drop Δ₁) (Keep Δ₂) H i = Pop (renameVar Δ₁ Δ₂ H i)
+renameVar (Drop Δ₁) (Drop Δ₂) H x = renameVar Δ₁ Δ₂ H x
+renameVar (Drop Δ₁) (Keep Δ₂) H x = Pop (renameVar Δ₁ Δ₂ H x)
 renameVar (Keep Δ₁) (Keep Δ₂) H Top = Top
-renameVar (Keep Δ₁) (Keep Δ₂) H (Pop i) = Pop (renameVar Δ₁ Δ₂ H i)
+renameVar (Keep Δ₁) (Keep Δ₂) H (Pop x) = Pop (renameVar Δ₁ Δ₂ H x)
 
 renameExpr : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₂ ⌋ σ
-renameExpr Δ₁ Δ₂ H (Val x) = Val x
+renameExpr Δ₁ Δ₂ H (Val v) = Val v
 renameExpr Δ₁ Δ₂ H (Plus e₁ e₂) = Plus (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
 renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (renameExpr (Keep Δ₁) (Keep Δ₂) H e₂)
 renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
@@ -140,8 +140,8 @@ injExpr₂ Δ₁ Δ₂ = renameExpr Δ₂ (Δ₁ ∪ Δ₂) (⊆∪₂ Δ₁ Δ�
 prjEnv : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Env ⌊ Δ₂ ⌋ → Env ⌊ Δ₁ ⌋
 prjEnv Empty Empty prf env = env
 prjEnv (Drop Δ₁) (Drop Δ₂) prf env = prjEnv Δ₁ Δ₂ prf env
-prjEnv (Drop Δ₁) (Keep Δ₂) prf (Cons x env) = prjEnv Δ₁ Δ₂ prf env
-prjEnv (Keep Δ₁) (Keep Δ₂) prf (Cons x env) = Cons x (prjEnv Δ₁ Δ₂ prf env)
+prjEnv (Drop Δ₁) (Keep Δ₂) prf (Cons v env) = prjEnv Δ₁ Δ₂ prf env
+prjEnv (Keep Δ₁) (Keep Δ₂) prf (Cons v env) = Cons v (prjEnv Δ₁ Δ₂ prf env)
 
 prjEnv₁ : (Δ₁ Δ₂ : Subset Γ) → Env ⌊ Δ₁ ∪ Δ₂ ⌋ → Env ⌊ Δ₁ ⌋
 prjEnv₁ Δ₁ Δ₂ = prjEnv Δ₁ (Δ₁ ∪ Δ₂) (⊆∪₁ Δ₁ Δ₂)
@@ -153,33 +153,33 @@ prjEnv-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) 
   prjEnv Δ₁ Δ₂ H₁₂ (prjEnv Δ₂ Δ₃ H₂₃ env) ≡ prjEnv Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) env
 prjEnv-trans Empty Empty Empty H₁₂ H₂₃ env = refl
 prjEnv-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) H₁₂ H₂₃ env = prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
-prjEnv-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons x env) = prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
-prjEnv-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons x env) = prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
-prjEnv-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons x env) = cong (Cons x) (prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env)
+prjEnv-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons v env) = prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
+prjEnv-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons v env) = prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env
+prjEnv-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Cons v env) = cong (Cons v) (prjEnv-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ env)
 
 -- Properties of renamings
-renameVar-id : (Δ : Subset Γ) (i : Ref σ ⌊ Δ ⌋) → renameVar Δ Δ (⊆-refl Δ) i ≡ i
-renameVar-id (Drop Δ) i = renameVar-id Δ i
+renameVar-id : (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → renameVar Δ Δ (⊆-refl Δ) x ≡ x
+renameVar-id (Drop Δ) x = renameVar-id Δ x
 renameVar-id (Keep Δ) Top = refl
-renameVar-id (Keep Δ) (Pop i) = cong Pop (renameVar-id Δ i)
+renameVar-id (Keep Δ) (Pop x) = cong Pop (renameVar-id Δ x)
 
 renameExpr-id : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) → renameExpr Δ Δ (⊆-refl Δ) e ≡ e
-renameExpr-id Δ (Val x) = refl
+renameExpr-id Δ (Val v) = refl
 renameExpr-id Δ (Plus e₁ e₂) = cong₂ Plus (renameExpr-id Δ e₁) (renameExpr-id Δ e₂)
 renameExpr-id Δ (Let e₁ e₂) = cong₂ Let (renameExpr-id Δ e₁) (renameExpr-id (Keep Δ) e₂)
 renameExpr-id Δ (Var x) = cong Var (renameVar-id Δ x)
 
-renameVar-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (i : Ref σ ⌊ Δ₁ ⌋) →
-  renameVar Δ₂ Δ₃ H₂₃ (renameVar Δ₁ Δ₂ H₁₂ i) ≡ renameVar Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) i
-renameVar-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) H₁₂ H₂₃ i = renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i
-renameVar-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) H₁₂ H₂₃ i = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i)
-renameVar-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ i = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i)
+renameVar-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (x : Ref σ ⌊ Δ₁ ⌋) →
+  renameVar Δ₂ Δ₃ H₂₃ (renameVar Δ₁ Δ₂ H₁₂ x) ≡ renameVar Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) x
+renameVar-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) H₁₂ H₂₃ x = renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x
+renameVar-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) H₁₂ H₂₃ x = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
+renameVar-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ x = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
 renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ Top = refl
-renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Pop i) = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ i)
+renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Pop x) = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
 
 renameExpr-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (e : Expr ⌊ Δ₁ ⌋ σ) →
   renameExpr Δ₂ Δ₃ H₂₃ (renameExpr Δ₁ Δ₂ H₁₂ e) ≡ renameExpr Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) e
-renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Val x) =
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Val v) =
   refl
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Plus e₁ e₂) =
   cong₂ Plus (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₂)
@@ -188,23 +188,23 @@ renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Let e₁ e₂) =
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Var x) =
   cong Var (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
 
-renameVar-preserves : (Δ₁ Δ₂ : Subset Γ) → .(H : Δ₁ ⊆ Δ₂) → (i : Ref σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) →
-  lookup (renameVar Δ₁ Δ₂ H i) env ≡ lookup i (prjEnv Δ₁ Δ₂ H env)
-renameVar-preserves (Drop Δ₁) (Drop Δ₂) H i env = renameVar-preserves Δ₁ Δ₂ H i env
-renameVar-preserves (Drop Δ₁) (Keep Δ₂) H i (Cons x env) = renameVar-preserves Δ₁ Δ₂ H i env
-renameVar-preserves (Keep Δ₁) (Keep Δ₂) H Top (Cons x env) = refl
-renameVar-preserves (Keep Δ₁) (Keep Δ₂) H (Pop i) (Cons x env) = renameVar-preserves Δ₁ Δ₂ H i env
+renameVar-preserves : (Δ₁ Δ₂ : Subset Γ) → .(H : Δ₁ ⊆ Δ₂) → (x : Ref σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) →
+  lookup (renameVar Δ₁ Δ₂ H x) env ≡ lookup x (prjEnv Δ₁ Δ₂ H env)
+renameVar-preserves (Drop Δ₁) (Drop Δ₂) H x env = renameVar-preserves Δ₁ Δ₂ H x env
+renameVar-preserves (Drop Δ₁) (Keep Δ₂) H x (Cons v env) = renameVar-preserves Δ₁ Δ₂ H x env
+renameVar-preserves (Keep Δ₁) (Keep Δ₂) H Top (Cons v env) = refl
+renameVar-preserves (Keep Δ₁) (Keep Δ₂) H (Pop x) (Cons v env) = renameVar-preserves Δ₁ Δ₂ H x env
 
 renameExpr-preserves : (Δ₁ Δ₂ : Subset Γ) → .(H : Δ₁ ⊆ Δ₂) → (e : Expr ⌊ Δ₁ ⌋ σ) (env : Env ⌊ Δ₂ ⌋) →
   eval (renameExpr Δ₁ Δ₂ H e) env ≡ eval e (prjEnv Δ₁ Δ₂ H env)
-renameExpr-preserves Δ₁ Δ₂ H (Val x) env = refl
+renameExpr-preserves Δ₁ Δ₂ H (Val v) env = refl
 renameExpr-preserves Δ₁ Δ₂ H (Plus e₁ e₂) env =
   cong₂ _+_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
 renameExpr-preserves Δ₁ Δ₂ H (Let e₁ e₂) env =
     eval (renameExpr (Keep Δ₁) (Keep Δ₂) _ e₂) (Cons (eval (renameExpr Δ₁ Δ₂ _ e₁) env) env)
   ≡⟨ renameExpr-preserves (Keep Δ₁) (Keep Δ₂ ) _ e₂ (Cons (eval (renameExpr Δ₁ Δ₂ H e₁) env) env) ⟩
     eval e₂ (prjEnv (Keep Δ₁) (Keep Δ₂) _ (Cons (eval (renameExpr Δ₁ Δ₂ _ e₁) env) env))
-  ≡⟨ cong (λ x → eval e₂ (Cons x (prjEnv Δ₁ Δ₂ _ env))) (renameExpr-preserves Δ₁ Δ₂ H e₁ env) ⟩
+  ≡⟨ cong (λ v → eval e₂ (Cons v (prjEnv Δ₁ Δ₂ _ env))) (renameExpr-preserves Δ₁ Δ₂ H e₁ env) ⟩
     eval e₂ (Cons (eval e₁ (prjEnv Δ₁ Δ₂ _ env)) (prjEnv Δ₁ Δ₂ _ env))
   ∎
   where

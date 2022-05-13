@@ -49,8 +49,8 @@ data Env : Ctx → Set where
   Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
 
 lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
-lookup Top      (Cons x env)   = x
-lookup (Pop i)  (Cons x env)   = lookup i env
+lookup Top      (Cons v env)   = v
+lookup (Pop i)  (Cons v env)   = lookup i env
 
 eval : Expr Γ σ → Env Γ → ⟦ σ ⟧
 eval (Val v)       env  = v
