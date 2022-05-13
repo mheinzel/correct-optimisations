@@ -48,19 +48,33 @@
 \maketitle
 \tableofcontents
 
+% TODO: consistently use british spelling
 
 \section{Introduction}
 % ?
+% Agda
 % others worked on compilation of intrinsically typed AST
 % but not a lot on optimizations in this setting
 % handling bindings in a way the compiler accepts requires some care
 
 
-\section{A Simple Language}
+\section{A Simple Expression Language}
 
-\subsection{Simply-typed $\lambda$-calculus}
-% simply typed lambda calculus
-%  but fist order, i.e. no lambda  TODO: how else to call that?
+\subsection{Expressions with Bindings}
+
+We define a simple typed expression language with bindings.
+Since the optimizations we are interested in relate to variables and bindings only,
+the choice of values and primitive operations on them is mostly arbitrary.
+For simplicity, we choose values $v$ in our language to be natural numbers or Booleans
+and include addition as an example of a binary operator.
+Extending the language with further values and operators is trivial.
+
+Expressions can be bound to a variable $v$ using the $\textbf{let}$ construction.
+This gives us a language similar to the simply typed $\lambda$-calculus,
+with $\textbf{let } x = P \textbf{ in } Q$ corresponding to $(\lambda x. Q) P$.
+Forcing $\lambda$-abstraction and application to occur together
+simplifies parts of the analysis and
+avoids the need for functions as values.
 
 \begin{align*}
   P, Q ::=&\ v
@@ -69,9 +83,6 @@
   \\ \big|&\ x
 \end{align*}
 
-% like simply typed lambda calculus
-%  but first order, i.e. no lambda
-%  let = app lam
 % TODO: say something generally about open/closed terms and de Bruijn indices?
 
 \subsection{Intrinsically Typed Syntax Trees}
