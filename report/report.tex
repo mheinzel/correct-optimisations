@@ -69,16 +69,32 @@
   \\ \big|&\ x
 \end{align*}
 
-\subsection{Representing Variables}
-% open/closed terms
-% de Bruijn
+% like simply typed lambda calculus
+%  but first order, i.e. no lambda
+%  let = app lam
+% TODO: say something generally about open/closed terms and de Bruijn indices?
 
 \subsection{Intrinsically Typed Syntax Trees}
+% now in Agda!
 % some representations are error-prone/partial
-% typed Ctx
 % representation correct by construction
+% similar to ... (TODO: reference)
 
-\CodeLangSyntax
+\CodeLangTypes
+
+% open/closed terms
+
+\CodeLangCtx
+
+% de Bruijn (TODO: reference)
+
+\CodeLangRef
+
+\CodeLangExpr
+
+% allows semantics to be total
+
+\CodeLangSemantics
 
 
 \section{Live Variable Analysis}
