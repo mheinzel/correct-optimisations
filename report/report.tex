@@ -4,7 +4,9 @@
 \usepackage{amsthm}
 \usepackage{stmaryrd}
 \usepackage{listings}
+\usepackage[pdftex]{xcolor}
 \usepackage{agda}
+\usepackage{cite}
 
 \usepackage{newunicodechar}
 \newunicodechar{∀}{\ensuremath{\mathnormal\forall}}
@@ -84,7 +86,8 @@
 % then remove unused bindings
 
 \subsection{Subsets of a Context}
-% TODO: call it thinning? cite something, e.g. McBride?
+% order preserving embedding
+\cite{chapman2009type}
 % why this representation?
 %   subset relation/proof on Subsets is unique (compare e.g. [NAT] \subseteq [NAT, NAT]
 %   union-like operation is definable
@@ -122,5 +125,8 @@
 % inlining
 %   more difficult to encode goal, take list of what to inline
 % move bindings to top or as far down as possible
+
+\bibliographystyle{plain}
+\bibliography{report}{}
 
 \end{document}
