@@ -3,17 +3,24 @@ AGDA = agda -l standard-library -i .
 GEN_DIR = latex/generated
 GEN_TEX_FILES = $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex
 
-.PHONY: all clean project-report
+.PHONY: all clean project-report icfp-tyde-abstract
 
-all: project-report
+all: project-report icfp-tyde-abstract
 
 project-report: latex/project-report.pdf
+icfp-tyde-abstract: latex/icfp-tyde-abstract.pdf
 
 latex/project-report.pdf: latex/project-report.tex latex/agda.sty latex/bibliography.bib $(GEN_TEX_FILES)
 	cd latex; pdflatex project-report
 	cd latex; bibtex project-report
 	cd latex; pdflatex project-report
 	cd latex; pdflatex project-report
+
+latex/icfp-tyde-abstract.pdf: latex/icfp-tyde-abstract.tex latex/agda.sty latex/bibliography.bib $(GEN_TEX_FILES)
+	cd latex; pdflatex icfp-tyde-abstract
+	cd latex; bibtex icfp-tyde-abstract
+	cd latex; pdflatex icfp-tyde-abstract
+	cd latex; pdflatex icfp-tyde-abstract
 
 $(GEN_DIR)/Lang.tex: Lang.lagda
 	$(AGDA) --latex-dir=$(GEN_DIR) --latex Lang.lagda
