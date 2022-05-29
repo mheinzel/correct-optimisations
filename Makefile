@@ -1,15 +1,19 @@
-GEN_DIR = report/generated
 AGDA = agda -l standard-library -i .
 
-.PHONY: all clean
+GEN_DIR = latex/generated
+GEN_TEX_FILES = $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex
 
-all: report/report.pdf
+.PHONY: all clean project-report
 
-report/report.pdf: report/report.tex $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex report/agda.sty report/report.bib
-	cd report; pdflatex report
-	cd report; bibtex report
-	cd report; pdflatex report
-	cd report; pdflatex report
+all: project-report
+
+project-report: latex/project-report.pdf
+
+latex/project-report.pdf: latex/project-report.tex latex/agda.sty latex/bibliography.bib $(GEN_TEX_FILES)
+	cd latex; pdflatex project-report
+	cd latex; bibtex project-report
+	cd latex; pdflatex project-report
+	cd latex; pdflatex project-report
 
 $(GEN_DIR)/Lang.tex: Lang.lagda
 	$(AGDA) --latex-dir=$(GEN_DIR) --latex Lang.lagda
@@ -25,6 +29,5 @@ $(GEN_DIR)/Live.tex: Live.lagda Lang.lagda Subset.lagda Recursion.lagda
 
 clean:
 	rm -f *.agdai *.agda~
-	rm -f report/*.log report/*.aux report/*.toc report/*.ptb
+	rm -f latex/*.{aux,bbl,blg,log,out,pdf,ptb,toc}
 	rm -f $(GEN_DIR)/*
-	rm -f report/report.pdf

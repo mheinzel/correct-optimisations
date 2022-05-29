@@ -2,6 +2,7 @@
 *.bbl
 *.blg
 *.log
+*.out
 *.pdf
 *.ptb
 *.toc
