@@ -54,7 +54,7 @@
 % others worked on compilation of intrinsically typed AST
 % but not a lot on optimizations in this setting
 % handling bindings in a way the compiler accepts requires some care
-
+% TODO: refer to Nielsen book
 
 \section{A Simple Expression Language}
 
@@ -109,6 +109,7 @@ avoids the need for functions as values.
 \section{Live Variable Analysis}
 % want to annotate terms with variables actually used
 % then remove unused bindings
+\cite{nielsen1999analysis}
 
 \subsection{Subsets of a Context}
 % order preserving embedding
@@ -136,6 +137,7 @@ avoids the need for functions as values.
 % could be done in one pass here, but gets complex
 % => take a fixpoint! termination?
 % Well-Founded recursion
+\cite{bove2016recursion}
 
 
 \section{Further Work}
