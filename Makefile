@@ -1,4 +1,4 @@
-AGDA = agda -l standard-library -i .
+AGDA = agda
 
 GEN_DIR = latex/generated
 GEN_TEX_FILES = $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex

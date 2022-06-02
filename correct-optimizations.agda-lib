@@ -1,0 +1,3 @@
+name: correct-optimizations
+include: .
+depend: standard-library
