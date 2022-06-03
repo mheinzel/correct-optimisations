@@ -16,7 +16,7 @@ latex/project-report.pdf: latex/project-report.tex latex/agda.sty latex/bibliogr
 	cd latex; pdflatex project-report
 	cd latex; pdflatex project-report
 
-latex/icfp-tyde-abstract.pdf: latex/icfp-tyde-abstract.tex latex/agda.sty latex/bibliography.bib $(GEN_TEX_FILES)
+latex/icfp-tyde-abstract.pdf: latex/icfp-tyde-abstract.tex latex/bibliography.bib
 	cd latex; pdflatex icfp-tyde-abstract
 	cd latex; bibtex icfp-tyde-abstract
 	cd latex; pdflatex icfp-tyde-abstract

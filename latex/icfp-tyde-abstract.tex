@@ -2,49 +2,21 @@
 
 % https://icfp22.sigplan.org/home/tyde-2022#Call-for-Papers
 
-% TODO: check https://authors.acm.org/proceedings/production-information/accepted-latex-packages
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{stmaryrd}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{agda}
 \usepackage{natbib}
 \usepackage{todonotes} % TODO: remove at the end
 
 \citestyle{acmauthoryear}
 
-\usepackage{newunicodechar}
-\newunicodechar{∀}{\ensuremath{\mathnormal\forall}}
-\newunicodechar{⊤}{\ensuremath{\mathnormal\top}}
-\newunicodechar{⊥}{\ensuremath{\mathnormal\bot}}
-\newunicodechar{≡}{\ensuremath{\mathnormal\equiv}}
-\newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
-\newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
-\newunicodechar{∅}{\ensuremath{\mathnormal\emptyset}}
-\newunicodechar{⊆}{\ensuremath{\mathnormal\subseteq}}
-\newunicodechar{∪}{\ensuremath{\mathnormal\cup}}
-\newunicodechar{∷}{\ensuremath{\mathnormal::}}
-\newunicodechar{⟦}{\ensuremath{\mathnormal\llbracket}}
-\newunicodechar{⟧}{\ensuremath{\mathnormal\rrbracket}}
-\newunicodechar{⌊}{\ensuremath{\mathnormal\lfloor}}
-\newunicodechar{⌋}{\ensuremath{\mathnormal\rfloor}}
-\newunicodechar{Γ}{\ensuremath{\mathnormal\Gamma}}
-\newunicodechar{σ}{\ensuremath{\mathnormal\sigma}}
-\newunicodechar{τ}{\ensuremath{\mathnormal\tau}}
-\newunicodechar{Δ}{\ensuremath{\mathnormal\Delta}}
-\newunicodechar{₁}{\ensuremath{\mathnormal{}_1}}
-\newunicodechar{₂}{\ensuremath{\mathnormal{}_2}}
-
-\include{generated/Lang}
-\include{generated/Subset}
-\include{generated/Recursion}
-\include{generated/Live}
-
 \newcommand{\Draft}[1]{{\color{gray} - #1}}
 %\newcommand{\Todo}[1]{}
 \newcommand{\Todo}[1]{\todo[inline]{TODO: #1}}
+
 
 \title{Provingly Correct Optimizations in an Intrinsically Typed Compiler (Extended Abstract)}
 
