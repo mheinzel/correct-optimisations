@@ -84,7 +84,18 @@ and its implementation would not matter for optimization correctness.}
 
 
 \section{An Expression Language with Binders}
-\Todo{Merge into some other section? Show Agda definition here?}
+
+We define a simple typed expression language with binding.
+Instead of freely allowing function values to be created (using $\lambda$-abstraction) and applied,
+variables are introduced using let-bindings.
+This keeps the language first-order and simplifies parts of the analysis.
+
+Since the optimizations we are interested in relate to variables and binders only,
+the choice of possible values and additional primitive operations on them is mostly arbitrary.
+For simplicity, we choose the values in our language to be natural numbers or Booleans
+and include addition as an example of a binary operator.
+
+\Todo{Merge into some other section? Show Agda or syntax definition here?}
 
 
 \section{Dead Binding Elimination}
