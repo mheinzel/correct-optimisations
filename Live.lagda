@@ -32,16 +32,22 @@ forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
 forget (Var x) = Var x
 
 -- decide which variables are used or not
-analyse : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × LiveExpr Δ Δ' σ)
-analyse {Γ} Δ (Val v) = ∅ , (∅⊆ Γ Δ , Val v)
+analyse : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] LiveExpr Δ Δ' σ
+analyse {Γ} Δ (Val v) = ∅ , Val v
 analyse {Γ} Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
-... | Δ₁ , (H₁ , le₁) | Δ₂ , (H₂ , le₂) = (Δ₁ ∪ Δ₂) , (∪⊆ Γ Δ₁ Δ₂ Δ H₁ H₂ , Plus le₁ le₂)
+... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , Plus le₁ le₂
 analyse {Γ} Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
-... | Δ₁ , (H₁ , le₁) | Δ₂ , (H₂ , le₂) = (Δ₁ ∪ (pop Δ₂)) , (∪⊆ Γ Δ₁ (pop Δ₂) Δ H₁ H₂ , Let le₁ le₂)
-analyse {Γ} Δ (Var x) = (Δ [ x ]) , ([x]⊆ Γ Δ x , Var x)
+... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ pop Δ₂) , Let le₁ le₂
+analyse {Γ} Δ (Var x) = (Δ [ x ]) , Var x
+
+Δ'⊆Δ : LiveExpr Δ Δ' σ → Δ' ⊆ Δ
+Δ'⊆Δ {Γ} {Δ} (Val v) = ∅⊆ Γ Δ
+Δ'⊆Δ {Γ} {Δ} (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
+Δ'⊆Δ {Γ} {Δ} (Let {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ (pop Δ₂) Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
+Δ'⊆Δ {Γ} {Δ} (Var x) = [x]⊆ Γ Δ x
 
 -- forget . analyse = id
-analyse-preserves : (e : Expr ⌊ Δ ⌋ σ) → forget (proj₂ (proj₂ (analyse Δ e))) ≡ e
+analyse-preserves : (e : Expr ⌊ Δ ⌋ σ) → forget (proj₂ (analyse Δ e)) ≡ e
 analyse-preserves (Val v) = refl
 analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analyse-preserves e₂)
@@ -169,14 +175,16 @@ dbe-correct (Var x) Δᵤ H env =
     lemma-lookupLive {.τ} {τ ∷ Γ} {Keep Δ} Top (Keep Δᵤ) H (Cons v env) = refl
     lemma-lookupLive {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) H (Cons v env) = lemma-lookupLive x Δᵤ H env
 
-optimize : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
-optimize Δ e = let (Δ' , (H , e')) = analyse Δ e in Δ' , (H , dbe e')
+optimize : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] (Expr ⌊ Δ' ⌋ σ)
+optimize Δ e = let Δ' , e' = analyse Δ e in Δ' , dbe e'
 
 optimize-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
-  let Δ' , (H , e') = optimize Δ e
+  let Δ' , e' = optimize Δ e
+      H = Δ'⊆Δ (proj₂ (analyse Δ e))
   in eval e' (prjEnv Δ' Δ H env) ≡ eval e env
 optimize-correct {Γ} Δ e env =
-  let Δ' , (H , le) = analyse Δ e
+  let Δ' , le = analyse Δ e
+      H = Δ'⊆Δ le
   in
     eval (dbe le) (prjEnv Δ' Δ H env)
   ≡⟨ cong (λ e → eval e (prjEnv Δ' Δ H env)) (sym (renameExpr-id Δ' (dbe le))) ⟩
@@ -195,8 +203,9 @@ mutual
   fix-optimize-wf : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ (Δ , e) →
     Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
   fix-optimize-wf {Γ} Δ e accu =
-    let Δ' , (H' , e') = optimize Δ e
-    in fix-optimize-wf-helper Δ Δ' e e' H' accu
+    let Δ' , e' = optimize Δ e
+        H = Δ'⊆Δ (proj₂ (analyse Δ e))
+    in fix-optimize-wf-helper Δ Δ' e e' H accu
 
   -- Without the helper, there were issues with the with-abstraction using a
   -- result of the let-binding.
@@ -218,7 +227,8 @@ mutual
     let Δ'' , (H'' , e'') = fix-optimize-wf Δ e accu
     in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e env
   fix-optimize-wf-correct Δ e env accu =
-    let Δ' , (H' , e') = optimize Δ e
+    let Δ' , e' = optimize Δ e
+        H' = Δ'⊆Δ (proj₂ (analyse Δ e))
         Δ'' , (H'' , e'') = fix-optimize-wf-helper Δ Δ' e e' H' accu
     in eval e'' (prjEnv Δ'' Δ H'' env)
      ≡⟨ fix-optimize-wf-helper-correct Δ Δ' e e' env H' accu ⟩
