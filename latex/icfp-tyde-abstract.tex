@@ -76,11 +76,13 @@ As a specific instance, we present an implementation of \emph{dead binding elimi
 by defining a syntax tree annotated with variable usage information.
 We further show that the optimization is semantics-preserving,
 independently of how the annotations are obtained.
-\Todo{The last bit does not seem clear.
-In LVA, the annotated expression type is expressive enough
-that the definition of \texttt{analyse} is basically forced,
-but generally it could have more freedom, e.g. to use heuristics for inlining,
-and its implementation would not matter for optimization correctness.}
+\Todo{
+  The last bit does not seem clear.
+  In LVA, the annotated expression type is expressive enough
+  that the definition of \texttt{analyse} is basically forced,
+  but generally it could have more freedom, e.g. to use heuristics for inlining,
+  and its implementation would not matter for optimization correctness.
+}
 
 
 \section{An Expression Language with Binders}
