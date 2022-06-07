@@ -8,6 +8,7 @@
 \usepackage{stmaryrd}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{xspace}
 \usepackage{natbib}
 \usepackage{todonotes} % TODO: remove at the end
 
@@ -17,6 +18,13 @@
 %\newcommand{\Todo}[1]{}
 \newcommand{\Todo}[1]{\todo[inline]{TODO: #1}}
 
+\newcommand{\I}[1]{\texttt{#1}\xspace}
+\newcommand{\K}[1]{\texttt{#1}\xspace}
+\newcommand{\U}{\texttt{U}\xspace}
+\newcommand{\Expr}{\texttt{Expr}\xspace}
+\newcommand{\Ctx}{\texttt{Ctx}\xspace}
+\newcommand{\Env}{\texttt{Env}\xspace}
+\newcommand{\Interpret}[1]{\llbracket #1 \rrbracket\xspace}
 
 \title{Provingly Correct Optimizations in an Intrinsically Typed Compiler (Extended Abstract)}
 
@@ -85,7 +93,10 @@ independently of how the annotations are obtained.
 }
 
 
-\section{An Expression Language with Binders}
+\section{Dead Binding Elimination}
+\Todo{Change how it's split into sections and subsections?}
+
+\subsection{An intrinsically typed expression languages with binders}
 
 We define a simple typed expression language with binding.
 Instead of freely allowing function values to be created (using $\lambda$-abstraction) and applied,
@@ -97,13 +108,47 @@ the choice of possible values and additional primitive operations on them is mos
 For simplicity, we choose the values in our language to be natural numbers or Booleans
 and include addition as an example of a binary operator.
 
-\Todo{Merge into some other section? Show Agda or syntax definition here?}
+\Todo{Is the above all relevant? Shorten?}
 
+\Todo{Show Agda definition of $\Expr$?}
 
-\section{Dead Binding Elimination}
+In Agda, the type of expressions $\Expr$ is indexed by its return type ($\tau : \U$)
+and \emph{context} ($\Gamma : \Ctx$).
+Each free variable is a de Bruijn index into the context and acts as a proof that
+the context contains an element of the matching type.
+This allows the definition of a total evaluator
+using a matching \emph{environment}:
+
+\begin{align*}
+  \I{eval} &: \I{Expr}\ \Gamma\ \tau \to \I{Env}\ \Gamma \to \Interpret{\tau}
+\end{align*}
+%(\texttt{eval : Expr $\Gamma$ $\tau$ $\to$ Env $\Gamma$ $\to$ $\Interpret{\tau}$}).
+%($\texttt{eval} : \Expr \Gamma \tau \to \Env \Gamma \to \Interpret{\tau}$).
 
 \subsection{Live Variable Analysis}
-\cite{chapman2009type}
+
+Note that an expression is not forced to make use of the whole context it has access to.
+Specifically, a let-binding introduces a new element into the context, but it might never be used.
+
+\Todo{cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.}
+
+To reason about the \emph{sub-contexts} of a context that are live (actually used),
+we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
+
+\begin{align*}
+  &\K{data}\ \I{Subset} : \I{Ctx} \to \I{Set}\ \K{where}          \\
+  &\ \ \ \ \I{Empty} : \I{Subset}\ []                                    \\
+  &\ \ \ \ \I{Drop}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)  \\
+  &\ \ \ \ \I{Keep}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)
+\end{align*}
+
+Such a sub-context describe a context themselves
+(${[}\_{]} : \I{Subset}\ \Gamma \to \I{Ctx}$),
+but contains more information than that.
+For example, the witnesses a binary relation $\subseteq$ on sub-contexts are unique,
+as opposed to e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+
+\subsection{Transformation}
 
 \subsection{Correctness}
 
