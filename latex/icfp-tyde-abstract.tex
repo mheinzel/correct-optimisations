@@ -28,11 +28,11 @@
 \newcommand{\Floor}[1]{\lfloor #1 \rfloor\xspace}
 \newcommand{\Existential}[2]{\Sigma[ #1 \in #2 ]\xspace}
 
-\title{Provingly Correct Optimizations on Intrinsically Typed Expressions}
+\title{Provingly Correct Optimisations on Intrinsically Typed Expressions}
 \subtitle{Extended Abstract}
 
 % TODO: does this make sense?
-% \keywords{dependent types, agda, compiler, type safety, program optimization}
+% \keywords{dependent types, agda, compiler, type safety, program optimisation}
 
 \author{Matthias Heinzel}
 \affiliation{%
@@ -66,32 +66,32 @@ as basic operations like renaming and substitution
 as well compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
-However, there has been little focus on performing optimizations on the syntax tree.
-\Draft{optimizations are important, correctness often not trivial}
+However, there has been little focus on performing optimisations on the syntax tree.
+\Draft{optimisations are important, correctness often not trivial}
 
-While the search for optimization opportunities is mostly unaffected
+While the search for optimisation opportunities is mostly unaffected
 by the presence of additional type information,
 performing any transformation of the program now comes with the burden of
 convincing the compiler of its type- and scope-safety.
 \Draft{especially when related to binders}
 \Draft{also, analysis results need to be in form that allows proving correctness}
 
-For any given set of language features, there is a large number of potentially relevant optimizations.
+For any given set of language features, there is a large number of potentially relevant optimisations.
 We will consider a very simple expression language with binders,
-making the optimizations widely applicable.
+making the optimisations widely applicable.
 \Todo{Not sure how to plug the Nielsen book here.}
 \Todo{This reads a bit awkwardly, maybe there's a better justification.}
 
 As a specific instance, we present an implementation of \emph{dead binding elimination}
 by defining a syntax tree annotated with variable usage information.
-We further show that the optimization is semantics-preserving,
+We further show that the optimisation is semantics-preserving,
 independently of how the annotations are obtained.
 \Todo{
   The last bit does not seem clear.
   In LVA, the annotated expression type is expressive enough
   that the definition of \I{analyse} is basically forced,
   but generally it could have more freedom, e.g. to use heuristics for inlining,
-  and its implementation would not matter for optimization correctness.
+  and its implementation would not matter for optimisation correctness.
 }
 
 
@@ -104,7 +104,7 @@ Instead of freely allowing function values to be created (using $\lambda$-abstra
 variables are introduced using let-bindings.
 This keeps the language first-order and simplifies parts of the analysis.
 
-Since the optimizations we are interested in relate to variables and binders only,
+Since the optimisations we are interested in relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
 For simplicity, we choose the values in our language to be natural numbers or Booleans
 and include addition as an example of a binary operator.
@@ -187,7 +187,7 @@ with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
 Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
 that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
-This \emph{optimized semantics} shows that we can do a similar program transformation
+This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
 
 \begin{align*}
@@ -215,33 +215,33 @@ it is sufficient to show the following:
   \I{eval} \circ \I{dbe} \equiv \I{eval} \circ \I{forget}
 \end{align*}
 
-The proof gets simpler if we split it up using the optimized semantics.
+The proof gets simpler if we split it up using the optimised semantics.
 
 \begin{align*}
   \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
 \end{align*}
 
-\Todo{details about proof statement, generalization of environment used etc.}
+\Todo{details about proof statement, generalisation of environment used etc.}
 
 Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
 The interesting case is \I{Let}, \ldots
 
 \Todo{continue}
 
-\subsection{Iterating the Optimization}
+\subsection{Iterating the Optimisation}
 
-% When we remove a binding that contains the only occurences of some other variable,
-% we can run the optimization again to remove that binding as well.
-% This is common among optimizations, which then can be iteratively applied until a fixpoint is reached.
+% When we remove a binding that contains the only occurrences of some other variable,
+% we can run the optimisation again to remove that binding as well.
+% This is common among optimisations, which then can be iteratively applied until a fixpoint is reached.
 % Sometimes (as with \emph{strong live variable analysis} here)
 % it is possible to achieve the same result in a single pass,
 % but at the cost of additional complexity.
 
-A removed binding can contain the only occurences of some other variable.
-This makes another binding dead, allowing further optimization when running the algorithm again.
+A removed binding can contain the only occurrences of some other variable.
+This makes another binding dead, allowing further optimisation when running the algorithm again.
 While in our simple setting all these bindings could be identified in a single pass
 using \emph{strong live variable analysis},
-in general it can be useful to simply iterate the optimization until a fixpoint is reached.
+in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
 
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
 We observe that the algorithm must terminate
@@ -252,7 +252,7 @@ on the number of bindings.
 The correctness follows directly from the correctness of each individual iteration step.
 
 \section{Preliminary Results}
-\Todo{Conclude, other possible optimizations, more complex language?}
+\Todo{Conclude, other possible optimisations, more complex language?}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}{}
