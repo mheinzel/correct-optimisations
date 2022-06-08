@@ -44,6 +44,7 @@ Keep Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
 ⌊ Drop Δ ⌋             = ⌊ Δ ⌋
 ⌊ Keep {τ = τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 
+-- TODO: rename `singleton`? It's a singleton subset.
 _[_] : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
 (Drop Δ) [ x ] = Drop (Δ [ x ])
 (Keep Δ) [ Top ]  = Keep ∅

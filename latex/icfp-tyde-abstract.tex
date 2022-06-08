@@ -158,17 +158,35 @@ Initially, we take $\Delta = \I{all}\ \Gamma$ to be the complete sub-context of 
 
 Now we can annotate each expression with its \emph{live variables},
 the sub-context $\Delta' \subseteq \Delta$ that is really used.
-%To that end, we define annotated expressions $\I{LiveExpr}\ \Delta
+To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'$.
+While $\Delta$ is treated as before, $\Delta'$ now only contains live variables,
+starting with the variables, where it forms a singleton sub-context.
+
+\begin{align*}
+  \K{data}\ \I{LiveExpr}& : (\Delta\ \Delta' : \I{Subset}\ \Gamma) (\tau : \I{U}) \to Set\ \K{where} \\
+  \I{Let}
+    :\ &\I{LiveExpr}\ \Delta\ \Delta_1\ \sigma \to  \\
+       &\I{LiveExpr}\ (\I{Keep}\ \Delta)\ \Delta_2\ \tau \to  \\
+       &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau \\
+  \ldots&
+\end{align*}
 
 \begin{align*}
   \I{analyse}
     &:  \I{Expr}\ \Floor{\Delta}\ \tau
-    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \\
-  \I{forget}
-    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
-    \to \I{Expr}\ \Floor{\Delta}\ \tau
+    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+  %\I{forget}
+  %  &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+  %  \to \I{Expr}\ \Floor{\Delta}\ \tau
 \end{align*}
 
+The only requirement on \I{analyse} we have is that we can forget the annotations again,
+with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
+Also note that we can now evaluate $\I{LiveExpr}$ directly, with the main difference
+that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+If it is not, we directly evaluate the body, ignoring the binding declaration.
+This \emph{optimized semantics} foreshadows a similar program transformation
+and will be useful in its correctness proof.
 
 \subsection{Transformation}
 
