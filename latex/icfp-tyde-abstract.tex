@@ -47,7 +47,6 @@
 \begin{document}
 
 \maketitle
-\Todo{Wouter as second author?}
 
 \section{Introduction}
 
@@ -61,10 +60,10 @@ A well-known technique when using dependently typed programming languages such a
 is to define an intrinsically typed syntax tree \cite{augustsson1999intrinsic}.
 \Draft{correct by construction, scope- and type-safe, total evaluator}
 This construction has featured in several papers exploring
-compilation to different target languages
-\cite[supplemental material]{pickard2021calculating}
-as well as basic operations like renaming and substitution
-\cite{allais2018universe}.
+as basic operations like renaming and substitution
+\cite{allais2018universe}
+as well compilation to different target languages
+\cite[supplemental material]{pickard2021calculating}.
 
 However, there has been little focus on performing optimizations on the syntax tree.
 \Draft{optimizations are important, correctness often not trivial}
@@ -96,9 +95,8 @@ independently of how the annotations are obtained.
 
 
 \section{Dead Binding Elimination}
-\Todo{Change how it's split into sections and subsections?}
 
-\subsection{An intrinsically typed expression languages with binders}
+\subsection{Intrinsically Typed Expressions with Binders}
 
 We define a simple typed expression language with binding.
 Instead of freely allowing function values to be created (using $\lambda$-abstraction) and applied,
