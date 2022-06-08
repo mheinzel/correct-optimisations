@@ -89,7 +89,7 @@ independently of how the annotations are obtained.
 \Todo{
   The last bit does not seem clear.
   In LVA, the annotated expression type is expressive enough
-  that the definition of \texttt{analyse} is basically forced,
+  that the definition of \I{analyse} is basically forced,
   but generally it could have more freedom, e.g. to use heuristics for inlining,
   and its implementation would not matter for optimization correctness.
 }
@@ -174,23 +174,60 @@ starting with the variables, where it forms a singleton sub-context.
 \begin{align*}
   \I{analyse}
     &:  \I{Expr}\ \Floor{\Delta}\ \tau
-    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau
-  %\I{forget}
-  %  &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
-  %  \to \I{Expr}\ \Floor{\Delta}\ \tau
+    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \\
+  \I{forget}
+    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+    \to \I{Expr}\ \Floor{\Delta}\ \tau
 \end{align*}
 
 The only requirement on \I{analyse} we have is that we can forget the annotations again,
 with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
-Also note that we can now evaluate $\I{LiveExpr}$ directly, with the main difference
-that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
-If it is not, we directly evaluate the body, ignoring the binding declaration.
-This \emph{optimized semantics} foreshadows a similar program transformation
-and will be useful in its correctness proof.
 
 \subsection{Transformation}
 
+Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
+that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+If it is not, we directly evaluate the body, ignoring the bound declaration.
+This \emph{optimized semantics} shows that we can do a similar program transformation
+and will be useful in its correctness proof.
+
+\begin{align*}
+  \I{dbe}
+    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+    \to \I{Expr}\ \Floor{\Delta'}\ \tau
+\end{align*}
+
+\Todo{
+  Not sure if and how to show code here.
+  It's a bit verbose with the pattern matching on $\Delta_1$ and $\Delta_2$ and \I{injExpr}.
+}
+\Todo{
+  Mention renamings (\I{injExpr}) that are necessary.
+}
+
 \subsection{Correctness}
+
+We want to show that dead binding elimination preserves semantics:
+$\I{eval} \circ \I{dbe} \circ \I{analyse} \equiv \I{eval}$.
+Since we know that $\I{forget} \circ \I{analyse} \equiv \I{id}$,
+it is sufficient to show the following:
+
+\begin{align*}
+  \I{eval} \circ \I{dbe} \equiv \I{eval} \circ \I{forget}
+\end{align*}
+
+The proof gets simpler if we split it up using the optimized semantics.
+
+\begin{align*}
+  \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
+\end{align*}
+
+\Todo{details about proof statement, generalization of environment used etc.}
+
+Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
+The interesting case is \I{Let}, \ldots
+
+\Todo{continue}
 
 \subsection{Iterating the Optimization}
 \cite{bove2016recursion}
