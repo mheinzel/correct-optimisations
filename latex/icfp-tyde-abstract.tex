@@ -61,9 +61,9 @@ A well-known technique when using dependently typed programming languages such a
 is to define an intrinsically typed syntax tree \cite{augustsson1999intrinsic}.
 \Draft{correct by construction, scope- and type-safe, total evaluator}
 This construction has featured in several papers exploring
-as basic operations like renaming and substitution
+basic operations like renaming and substitution
 \cite{allais2018universe}
-as well compilation to different target languages
+as well as compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
 However, there has been little focus on performing optimisations on the syntax tree.
@@ -77,11 +77,13 @@ convincing the compiler of its type- and scope-safety.
 \Draft{also, analysis results need to be in form that allows proving correctness}
 
 For any given set of language features, there is a large number of potentially relevant optimisations.
-We will consider a very simple expression language with binders,
+We will consider a simple expression language with let-bindings,
 making the optimisations widely applicable.
-\Todo{Not sure how to plug the Nielsen book here.}
-\Todo{This reads a bit awkwardly, maybe there's a better justification.}
+% \Todo{Not sure how to plug the Nielsen book here, maybe just leave it out}
+% \Todo{This reads a bit awkwardly, maybe there's a better justification.}
+% list interesting optimisations?
 
+In this paper, we \ldots\ set of analyses \ldots\ 
 As a specific instance, we present an implementation of \emph{dead binding elimination}
 by defining a syntax tree annotated with variable usage information.
 We further show that the optimisation is semantics-preserving,
