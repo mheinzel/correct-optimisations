@@ -231,19 +231,26 @@ The interesting case is \I{Let}, \ldots
 
 \subsection{Iterating the Optimization}
 
-Removing a binding can remove the only usages of a variable.
-This makes another binding dead, allowing further optimization.
-While this could be avoided in this particular case using \emph{strong live variable analysis},
-it is common to iterate optimizations until no further improvement is achieved.
+% When we remove a binding that contains the only occurences of some other variable,
+% we can run the optimization again to remove that binding as well.
+% This is common among optimizations, which then can be iteratively applied until a fixpoint is reached.
+% Sometimes (as with \emph{strong live variable analysis} here)
+% it is possible to achieve the same result in a single pass,
+% but at the cost of additional complexity.
 
-Such an iteration is not structurally recursive \ldots
+A removed binding can contain the only occurences of some other variable.
+This makes another binding dead, allowing further optimization when running the algorithm again.
+While in our simple setting all these bindings could be identified in a single pass
+using \emph{strong live variable analysis},
+in general it can be useful to simply iterate the optimization until a fixpoint is reached.
 
-\Draft{Agda total, termination checker}
-\Draft{We know it terminates, num bindings decreases and positive}
+Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+We observe that the algorithm must terminate
+since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
+on the number of bindings.
 
-\Draft{$\leq$ on num bindings is well-founded relation}
-\Draft{Convince compiler using well-founded recursion}
-\cite{bove2016recursion}
+The correctness follows directly from the correctness of each individual iteration step.
 
 \section{Preliminary Results}
 \Todo{Conclude, other possible optimizations, more complex language?}
