@@ -230,8 +230,23 @@ The interesting case is \I{Let}, \ldots
 \Todo{continue}
 
 \subsection{Iterating the Optimization}
+
+Removing a binding can remove the only usages of a variable.
+This makes another binding dead, allowing further optimization.
+While this could be avoided in this particular case using \emph{strong live variable analysis},
+it is common to iterate optimizations until no further improvement is achieved.
+
+Such an iteration is not structurally recursive \ldots
+
+\Draft{Agda total, termination checker}
+\Draft{We know it terminates, num bindings decreases and positive}
+
+\Draft{$\leq$ on num bindings is well-founded relation}
+\Draft{Convince compiler using well-founded recursion}
 \cite{bove2016recursion}
 
+\section{Preliminary Results}
+\Todo{Conclude, other possible optimizations, more complex language?}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}{}
