@@ -19,12 +19,14 @@
 \newcommand{\Todo}[1]{\todo[inline]{TODO: #1}}
 
 \newcommand{\I}[1]{\texttt{#1}\xspace}
-\newcommand{\K}[1]{\texttt{#1}\xspace}
+\newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
 \newcommand{\U}{\texttt{U}\xspace}
 \newcommand{\Expr}{\texttt{Expr}\xspace}
 \newcommand{\Ctx}{\texttt{Ctx}\xspace}
 \newcommand{\Env}{\texttt{Env}\xspace}
 \newcommand{\Interpret}[1]{\llbracket #1 \rrbracket\xspace}
+\newcommand{\Floor}[1]{\lfloor #1 \rfloor\xspace}
+\newcommand{\Existential}[2]{\Sigma[ #1 \in #2 ]\xspace}
 
 \title{Provingly Correct Optimizations in an Intrinsically Typed Compiler (Extended Abstract)}
 
@@ -125,7 +127,7 @@ using a matching \emph{environment}:
 %(\texttt{eval : Expr $\Gamma$ $\tau$ $\to$ Env $\Gamma$ $\to$ $\Interpret{\tau}$}).
 %($\texttt{eval} : \Expr \Gamma \tau \to \Env \Gamma \to \Interpret{\tau}$).
 
-\subsection{Live Variable Analysis}
+\subsection{Sub-contexts}
 
 Note that an expression is not forced to make use of the whole context it has access to.
 Specifically, a let-binding introduces a new element into the context, but it might never be used.
@@ -143,10 +145,30 @@ we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
 \end{align*}
 
 Such a sub-context describe a context themselves
-(${[}\_{]} : \I{Subset}\ \Gamma \to \I{Ctx}$),
+($\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$),
 but contains more information than that.
-For example, the witnesses a binary relation $\subseteq$ on sub-contexts are unique,
+For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
 as opposed to e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+
+From now on, we will only consider expressions
+$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context $\Delta : \I{Subset}\ \Gamma$.
+Initially, we take $\Delta = \I{all}\ \Gamma$ to be the complete sub-context of the original context.
+
+\subsection{Live Variable Analysis}
+
+Now we can annotate each expression with its \emph{live variables},
+the sub-context $\Delta' \subseteq \Delta$ that is really used.
+%To that end, we define annotated expressions $\I{LiveExpr}\ \Delta
+
+\begin{align*}
+  \I{analyse}
+    &:  \I{Expr}\ \Floor{\Delta}\ \tau
+    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \\
+  \I{forget}
+    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+    \to \I{Expr}\ \Floor{\Delta}\ \tau
+\end{align*}
+
 
 \subsection{Transformation}
 
