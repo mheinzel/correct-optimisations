@@ -99,26 +99,34 @@ We further prove that the optimisation is semantics-preserving.
 
 \subsection{Intrinsically Typed Expressions with Binders}
 
-We define a simple typed expression language with binding.
-Instead of freely allowing function values to be created (using $\lambda$-abstraction) and applied,
-variables are introduced using let-bindings.
-This keeps the language first-order and simplifies parts of the analysis.
-
+We define a simple typed expression language with let-bindings,
+variables, primitive values, and addition as an example of a binary operator.
 Since the optimisations we are interested in relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
-For simplicity, we choose the values in our language to be natural numbers or Booleans
-and include addition as an example of a binary operator.
 
-\Todo{Is the above all relevant? Shorten?}
-
-\Todo{Show Agda definition of $\Expr$?}
+\begin{align*}
+  P, Q ::= v
+  \ \big|\  P + Q
+  \ \big|\  \textbf{let } x = P \textbf{ in } Q
+  \ \big|\  x
+\end{align*}
 
 In Agda, the type of expressions $\Expr$ is indexed by its return type ($\tau : \U$)
-and \emph{context} ($\Gamma : \Ctx$).
+and context ($\Gamma : \Ctx$).
 Each free variable is a de Bruijn index into the context and acts as a proof that
 the context contains an element of the matching type.
+We can see how the context changes when introducing a new binding:
+
+\begin{align*}
+  \K{data}\ \I{Expr}& : (\Gamma : Ctx) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
+  \I{Let}
+    :\ &\I{Expr}\ \Gamma\ \sigma \to
+        \I{Expr}\ (\sigma :: \Gamma)\ \tau \to
+        \I{Expr}\ \Gamma\ \tau
+\end{align*}
+
 This allows the definition of a total evaluator
-using a matching \emph{environment}:
+using a matching environment:
 
 \begin{align*}
   \I{eval} &: \I{Expr}\ \Gamma\ \tau \to \I{Env}\ \Gamma \to \Interpret{\tau}
@@ -128,13 +136,13 @@ using a matching \emph{environment}:
 
 \subsection{Sub-contexts}
 
-Note that an expression is not forced to make use of the whole context it has access to.
-Specifically, a let-binding introduces a new element into the context, but it might never be used.
-
 \Todo{cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.}
 
-To reason about the \emph{sub-contexts} of a context that are live (actually used),
+Note that an expression is not forced to make use of the whole context it has access to.
+Specifically, a let-binding introduces a new element into the context, but it might never be used.
+To reason about the \emph{sub-contexts} that are live (actually used),
 we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
+For each element of a context, a sub-context specifies whether to keep it or not.
 
 \begin{align*}
   &\K{data}\ \I{Subset} : \I{Ctx} \to \I{Set}\ \K{where}          \\
@@ -143,34 +151,36 @@ we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
   &\ \ \ \ \I{Keep}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)
 \end{align*}
 
-Such a sub-context describe a context themselves
+Such a sub-context describes a context themselves
 ($\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$),
-but contains more information than that.
+but it contains more information than that.
 For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
 as opposed to e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
 
 From now on, we will only consider expressions
-$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context $\Delta : \I{Subset}\ \Gamma$.
-Initially, we take $\Delta = \I{all}\ \Gamma$ to be the complete sub-context of the original context.
+$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
+Initially, we take $\Delta = \I{all}\ \Gamma : \I{Subset}\ \Gamma$,
+the complete sub-context of the original context.
 
 \subsection{Live Variable Analysis}
 
 Now we can annotate each expression with its \emph{live variables},
 the sub-context $\Delta' \subseteq \Delta$ that is really used.
-To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'$.
-While $\Delta$ is treated as before, $\Delta'$ now only contains live variables,
-starting with the variables, where it forms a singleton sub-context.
+To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'\ \tau$.
+While $\Delta$ is treated as $\Gamma$ before, $\Delta'$ now only contains live variables,
+starting with a singleton sub-context at the variable usage sites.
 
 \begin{align*}
   \K{data}\ \I{LiveExpr}& : (\Delta\ \Delta' : \I{Subset}\ \Gamma) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
   \I{Let}
     :\ &\I{LiveExpr}\ \Delta\ \Delta_1\ \sigma \to  \\
        &\I{LiveExpr}\ (\I{Keep}\ \Delta)\ \Delta_2\ \tau \to  \\
-       &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau \\
-  \ldots&
+       &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau
 \end{align*}
 
-% NOTE: could be relaxed...
+These annotations are now computed by \I{analyse}.
+The only requirement on we have for it is that we can forget the annotations again,
+with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
 
 \begin{align*}
   \I{analyse}
@@ -181,8 +191,7 @@ starting with the variables, where it forms a singleton sub-context.
     \to \I{Expr}\ \Floor{\Delta}\ \tau
 \end{align*}
 
-The only requirement on \I{analyse} we have is that we can forget the annotations again,
-with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
+% NOTE: could be relaxed...
 
 \subsection{Transformation}
 
@@ -191,6 +200,8 @@ that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bou
 If it is not, we directly evaluate the body, ignoring the bound declaration.
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
+The implementation does not contain more than the same case distinction and some renaming
+(e.g. from $\Floor{\Delta_1} to \Floor{\Delta_1 \cup \Delta_2}$).
 
 \begin{align*}
   \I{dbe}
@@ -198,13 +209,8 @@ and will be useful in its correctness proof.
     \to \I{Expr}\ \Floor{\Delta'}\ \tau
 \end{align*}
 
-\Todo{
-  Not sure if and how to show code here.
-  It's a bit verbose with the pattern matching on $\Delta_1$ and $\Delta_2$ and \I{injExpr}.
-}
-\Todo{
-  Mention renamings (\I{injExpr}) that are necessary.
-}
+As opposed to \I{forget}, which returns to the original context,
+here we remove unused variables, only keeping $\Floor{\Delta'}$.
 
 \subsection{Correctness}
 
