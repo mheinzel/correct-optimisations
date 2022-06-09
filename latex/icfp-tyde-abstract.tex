@@ -52,49 +52,47 @@
 \section{Introduction}
 
 When writing a compiler for a functional programming language,
-one of the core considerations usually is the treatment of binders and variables.
-\Draft{many possible representations (string, de Bruijn)}
-\Draft{naive implementation is not scope-safe, therefore partial}
-
+an important consideration is the treatment of binders and variables.
+%\Draft{many possible representations (string, de Bruijn)}
+%\Draft{naive implementation is not scope-safe, therefore partial}
 A well-known technique when using dependently typed programming languages such as Agda
 \cite{norell2007agda}
 is to define an intrinsically typed syntax tree \cite{augustsson1999intrinsic}.
-\Draft{correct by construction, scope- and type-safe, total evaluator}
-This construction has featured in several papers exploring
+Expressions are scope- and type-safe by construction and admit a total evaluation function.
+This construction has featured in several papers, exploring
 basic operations like renaming and substitution
 \cite{allais2018universe}
 as well as compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
-However, there has been little focus on performing optimisations on the syntax tree.
-\Draft{optimisations are important, correctness often not trivial}
+Optimisations play an important role in compilers, but
+establishing their correctness is often not trivial,
+with ample opportunity for mistakes.
+However, there has been little focus on performing optimisations on intrinsically typed programs.
+%
+In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
+but provide a proof witness that the optimisation is safe,
+e.g. that some dead code is indeed not reachable.
+Other than that, it is mostly unaffected by the presence of additional type invariants.
+%
+For \emph{transformations} on intrinsically typed programs,
+the programmer can rely on the compiler to check the relevant invariants,
+but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
+especially when manipulating binders and variables.
 
-While the search for optimisation opportunities is mostly unaffected
-by the presence of additional type information,
-performing any transformation of the program now comes with the burden of
-convincing the compiler of its type- and scope-safety.
-\Draft{especially when related to binders}
-\Draft{also, analysis results need to be in form that allows proving correctness}
-
-For any given set of language features, there is a large number of potentially relevant optimisations.
-We will consider a simple expression language with let-bindings,
-making the optimisations widely applicable.
+Depending on the features of a language, there is a different,
+potentially large number of relevant optimisations.
+Therefore, we are limiting ourselves to a simple expression language
+and widely applicable optimisations that only require bindings and variables to be present.
 % \Todo{Not sure how to plug the Nielsen book here, maybe just leave it out}
-\Todo{This reads a bit awkwardly, maybe there's a better justification.}
 % list interesting optimisations?
 
 % In this paper, we \ldots\ set of analyses \ldots\ 
-As a specific instance, we present an implementation of \emph{dead binding elimination}
-by defining a syntax tree annotated with variable usage information.
-We further show that the optimisation is semantics-preserving,
-independently of how the annotations are obtained.
-\Todo{
-  The last bit does not seem clear.
-  In LVA, the annotated expression type is expressive enough
-  that the definition of \I{analyse} is basically forced,
-  but generally it could have more freedom, e.g. to use heuristics for inlining,
-  and its implementation would not matter for optimisation correctness.
-}
+Since our work is still in progress,
+we will mainly present a specific optimisation, \emph{dead binding elimination}.
+It is implemented by first annotating expressions with variable usage information
+and then removing bindings that turn out to be unused.
+We further prove that the optimisation is semantics-preserving.
 
 
 \section{Dead Binding Elimination}
@@ -261,6 +259,12 @@ The correctness follows directly from the correctness of each individual iterati
 The implementation and correctness proof of dead binding elimination are complete,
 the Agda source code is available online
 \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations/-/tree/tyde}}.
+One interesting observation is that the correctness proof does not rely on how
+\I{analyse} computes the annotations.
+At first, this does not seem particularly useful,
+but for other optimisations the analysis might use complex, frequently changing heuristics to decide
+which transformations are worth it.
+
 We are currently extending the expression language
 with $\lambda$-abstractions.
 While some increase in complexity is necessary to eliminate applications of functions that do not use their argument,
