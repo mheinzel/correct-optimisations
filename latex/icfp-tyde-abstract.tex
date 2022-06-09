@@ -257,7 +257,27 @@ on the number of bindings.
 The correctness follows directly from the correctness of each individual iteration step.
 
 \section{Preliminary Results}
-\Todo{Conclude, other possible optimisations, more complex language?}
+
+The implementation and correctness proof of dead binding elimination are complete,
+the Agda source code is available online
+\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations/-/tree/tyde}}.
+We are currently extending the expression language
+with $\lambda$-abstractions.
+While some increase in complexity is necessary to eliminate applications of functions that do not use their argument,
+the correctness proof seems to stay relatively simple.
+
+We are further investigating additional binding-related transformations,
+such as moving bindings up or down in the syntax tree.
+Another interesting type of optimisation is avoidance of redundant computations
+using \emph{available expression analysis}.
+An example is \emph{common subexpression elimination},
+where subexpressions get replaced by variables bound to equivalent declarations
+(pre-existing or newly created).
+
+Between the different optimisations,
+we hope to discover common patterns and refine our approach,
+providing useful strategies for performing optimisations in intrinsically typed compilers.
+
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}{}
