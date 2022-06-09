@@ -227,7 +227,8 @@ and the abovementioned case distinction.
 \begin{align*}
   &\I{dbe} :  \I{LiveExpr}\ \Delta\ \Delta'\ \tau \to \I{Expr}\ \Floor{\Delta'}\ \tau  \\
   &\I{dbe}\ (\I{Let}\ \{\Delta_1\}\ \{\I{Drop}\ \Delta_2\}\ e_1\ e_2) =
-      \I{injExpr}_2\ \Delta_1\ \Delta_2\ (\I{dbe}\ e_2)
+      \I{injExpr}_2\ \Delta_1\ \Delta_2\ (\I{dbe}\ e_2)  \\
+  &\I{dbe}\ \ldots
 \end{align*}
 
 As opposed to \I{forget}, which returns to the original context,
