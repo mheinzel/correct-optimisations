@@ -17,6 +17,7 @@ open import Recursion
 \newcommand{\CodeLiveExpr}{%
 \begin{code}
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
+-- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?
 data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
   Val : ⟦ σ ⟧ → LiveExpr Δ ∅ σ
   Plus : LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) NAT

@@ -16,7 +16,7 @@
 
 \newcommand{\Draft}[1]{{\color{gray} - #1}}
 %\newcommand{\Todo}[1]{}
-\newcommand{\Todo}[1]{\todo[inline]{TODO: #1}}
+\newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
 
 \newcommand{\I}[1]{\texttt{#1}\xspace}
 \newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
@@ -164,13 +164,15 @@ While $\Delta$ is treated as before, $\Delta'$ now only contains live variables,
 starting with the variables, where it forms a singleton sub-context.
 
 \begin{align*}
-  \K{data}\ \I{LiveExpr}& : (\Delta\ \Delta' : \I{Subset}\ \Gamma) (\tau : \I{U}) \to Set\ \K{where} \\
+  \K{data}\ \I{LiveExpr}& : (\Delta\ \Delta' : \I{Subset}\ \Gamma) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
   \I{Let}
     :\ &\I{LiveExpr}\ \Delta\ \Delta_1\ \sigma \to  \\
        &\I{LiveExpr}\ (\I{Keep}\ \Delta)\ \Delta_2\ \tau \to  \\
        &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau \\
   \ldots&
 \end{align*}
+
+% NOTE: could be relaxed...
 
 \begin{align*}
   \I{analyse}
@@ -245,6 +247,7 @@ While in our simple setting all these bindings could be identified in a single p
 using \emph{strong live variable analysis},
 in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
 
+% NOTE: number of iterations not statically known
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
 We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
