@@ -240,7 +240,7 @@ and the abovementioned case distinction.
   &\I{dbe}\ \ldots
 \end{align*}
 
-As opposed to \I{forget}, which returns to the original context,
+As opposed to \I{forget}, which stays in the original context,
 here we remove unused variables, only keeping $\Floor{\Delta'}$.
 
 \subsection{Correctness}
@@ -260,12 +260,16 @@ The proof gets simpler if we split it up using the optimised semantics.
   \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
 \end{align*}
 
-\Todo{details about proof statement, generalisation of environment used etc.}
+The actual proof statements are more involved,
+since they quantify over the expression and environment used.
+As foreshadowed in the definition of \I{evalLive}, the statements are also generalised
+to evaluation under any $\I{Env}\ \Floor{\Delta_u}$,
+as long as it contains the live sub-centext.
+This gives us more flexibility when using the inductive hypothesis.
 
 Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
-The interesting case is \I{Let}, \ldots
-
-\Todo{continue}
+The interesting one is again \I{Let}, where we split cases on the variable being used or not
+and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \subsection{Iterating the Optimisation}
 
