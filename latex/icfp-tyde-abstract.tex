@@ -73,8 +73,11 @@ However, there has been little focus on performing optimisations on intrinsicall
 In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
 but provide a proof witness that the optimisation is safe,
 e.g. that some dead code is indeed not reachable.
+%WOUTER - not used? never called?
 Other than that, it is mostly unaffected by the presence of additional type invariants.
-%
+%WOUTER - I'm not sure I undertand this sentence - what
+% is unaffected? what invariants are you referring to here?
+% I'd suggest removing the sentence above.
 For \emph{transformations} on intrinsically typed programs,
 the programmer can rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
@@ -84,6 +87,16 @@ Depending on the features of a language, there is a different,
 potentially large number of relevant optimisations.
 Therefore, we are limiting ourselves to a simple expression language
 and widely applicable optimisations that only require bindings and variables to be present.
+% WOUTER - how about something like - in this abstract we start to
+% explore one optimization for a simple language. You don't need to
+% mention that there are lots of different languages/optimizations out
+% there -- that's kind of obvious -- but instead focus on what you
+% want to tell here.
+
+% WOUTER - you may want to cite Graham's (draft) paper - it's as easy
+% as 1,2,3 that argues that studying semantics is best done in a
+% setting that is as simple as possible.
+
 % \Todo{Not sure how to plug the Nielsen book here, maybe just leave it out}
 % list interesting optimisations?
 
@@ -113,6 +126,10 @@ the choice of possible values and additional primitive operations on them is mos
 
 In Agda, the type of expressions $\Expr$ is indexed by its return type ($\tau : \U$)
 and context ($\Gamma : \Ctx$).
+% WOUTER - the \U is not formatting correctly in my build...
+% WOUTER - in this grammar you only have Nats, so indexing with the number of
+% variables would suffice... Perhaps adding some bool ops make sense?
+
 Each free variable is a de Bruijn index into the context and acts as a proof that
 the context contains an element of the matching type.
 We can see how the context changes when introducing a new binding:
@@ -124,6 +141,8 @@ We can see how the context changes when introducing a new binding:
         \I{Expr}\ (\sigma :: \Gamma)\ \tau \to
         \I{Expr}\ \Gamma\ \tau
 \end{align*}
+% WOUTER - perhaps add an explicit ... and clarify that this is a fragment of the
+% Expr definition
 
 This allows the definition of a total evaluator
 using a matching environment:
@@ -139,6 +158,7 @@ using a matching environment:
 \Todo{cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.}
 
 Note that an expression is not forced to make use of the whole context it has access to.
+%WOUTER - to which it has access (try not to end a sentence with a proposition)
 Specifically, a let-binding introduces a new element into the context, but it might never be used.
 To reason about the \emph{sub-contexts} that are live (actually used),
 we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
@@ -153,9 +173,13 @@ For each element of a context, a sub-context specifies whether to keep it or not
 
 Such a sub-context describes a context themselves
 ($\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$),
+% WOUTER - we can define a function floor : ....
 but it contains more information than that.
 For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
 as opposed to e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+% WOUTER - I'm not sure I understand this remark.. you haven't defined
+% subseteq, which makes it a bit confusing.  Perhaps it suffices to
+% note that these Subsets determine a unique sub-context?
 
 From now on, we will only consider expressions
 $\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
@@ -177,7 +201,10 @@ starting with a singleton sub-context at the variable usage sites.
        &\I{LiveExpr}\ (\I{Keep}\ \Delta)\ \Delta_2\ \tau \to  \\
        &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau
 \end{align*}
+% WOUTER - give type signature of evalLive?
 
+% WOUTER - To create such live expressions, we need to perform
+% some static analysis of our source programs...
 The function \I{analyse} now computes the live sub-context $\Delta'$
 together with a matching annotated expression.
 The only requirement we have for it is that we can forget the annotations again,
@@ -200,10 +227,13 @@ with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
 \subsection{Transformation}
 
 Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
+%WOUTER - scrap 'with' in the line above?
 that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
+% WOUTER - does not contain more that -> simply maps each constructor from LiveExpr to its
+% counterpart in Expr.
 The implementation does not contain more than the same case distinction and some renaming
 (e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$).
 
@@ -249,7 +279,7 @@ The interesting case is \I{Let}, \ldots
 % it is possible to achieve the same result in a single pass,
 % but at the cost of additional complexity.
 
-A removed binding can contain the only occurrences of some other variable.
+A binding that is removed can contain the only occurrences of some other variable.
 This makes another binding dead, allowing further optimisation when running the algorithm again.
 While in our simple setting all these bindings could be identified in a single pass
 using \emph{strong live variable analysis},
@@ -261,6 +291,8 @@ We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
 To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
 on the number of bindings.
+% WOUTER - perhaps say that this is exactly the same as the ascending chain condition
+% in Program Analysis literature?
 
 The correctness follows directly from the correctness of each individual iteration step.
 
@@ -291,7 +323,7 @@ where subexpressions get replaced by variables bound to equivalent declarations
 Between the different optimisations,
 we hope to discover common patterns and refine our approach,
 providing useful strategies for performing optimisations in intrinsically typed compilers.
-
+%WOUTER - or more generally, manipulating well-typed well-scoped syntax trees?
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}{}
