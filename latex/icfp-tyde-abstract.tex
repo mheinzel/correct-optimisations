@@ -178,8 +178,9 @@ starting with a singleton sub-context at the variable usage sites.
        &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau
 \end{align*}
 
-These annotations are now computed by \I{analyse}.
-The only requirement on we have for it is that we can forget the annotations again,
+The function \I{analyse} now computes the live sub-context $\Delta'$
+together with a matching annotated expression.
+The only requirement we have for it is that we can forget the annotations again,
 with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
 
 \begin{align*}
@@ -191,7 +192,10 @@ with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
     \to \I{Expr}\ \Floor{\Delta}\ \tau
 \end{align*}
 
-% NOTE: could be relaxed...
+\Todo{
+  Maybe add a note that \I{LiveExpr} is overspecified.
+  Instead of $\Delta_1 \cup \Delta_2$ we could have any $\Delta'$ containing $\Delta_1$ and $\Delta_2$.
+}
 
 \subsection{Transformation}
 
