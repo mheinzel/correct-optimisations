@@ -160,7 +160,7 @@ Such a sub-context describes a context themselves,
 given by a function $\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$,
 but it contains more information than that.
 For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
-as opposed to e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
 % WOUTER - I'm not sure I understand this remark.. you haven't defined
 % subseteq, which makes it a bit confusing.  Perhaps it suffices to
 % note that these Subsets determine a unique sub-context?
@@ -186,7 +186,6 @@ starting with a singleton sub-context at the variable usage sites.
        &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau  \\
     \ldots\ &
 \end{align*}
-% WOUTER - give type signature of evalLive?
 
 To create such annotated expressions, we need to perform
 some static analysis of our source programs.
@@ -215,6 +214,16 @@ Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
 %WOUTER - scrap 'with' in the line above?
 that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
+Another important detail is that evaluation works under any environment containing (at least) the live context.
+
+\begin{align*}
+  &\I{evalLive} : \\
+  &\ \ \ \ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \to  
+           \I{Env}\ \Floor{\Delta_u} \to  
+           .(\Delta' \subseteq \Delta_u) \to  
+           \Interpret{\tau}
+\end{align*}
+
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
 % WOUTER - does not contain more that -> simply maps each constructor from LiveExpr to its
