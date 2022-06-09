@@ -1,0 +1,310 @@
+\documentclass[acmsmall,nonacm,review,timestamp]{acmart}
+
+% https://icfp22.sigplan.org/track/icfp-2022-student-research-competition#Call-for-Submissions
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{stmaryrd}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{natbib}
+\usepackage{todonotes} % TODO: remove at the end
+
+\citestyle{acmauthoryear}
+
+\newcommand{\Draft}[1]{{\color{gray} - #1}}
+%\newcommand{\Todo}[1]{}
+\newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
+
+\newcommand{\I}[1]{\texttt{#1}\xspace}
+\newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
+\newcommand{\U}{\texttt{U}\xspace}
+\newcommand{\Expr}{\texttt{Expr}\xspace}
+\newcommand{\Ctx}{\texttt{Ctx}\xspace}
+\newcommand{\Env}{\texttt{Env}\xspace}
+\newcommand{\Interpret}[1]{\llbracket #1 \rrbracket\xspace}
+\newcommand{\Floor}[1]{\lfloor #1 \rfloor\xspace}
+\newcommand{\Existential}[2]{\Sigma[ #1 \in #2 ]\xspace}
+
+\title{Provingly Correct Optimisations on Intrinsically Typed Expressions (Extended Abstract)}
+\subtitle{Graduate category, ACM 7975103, advisor Wouter Swierstra}
+
+% TODO: does this make sense?
+% \keywords{dependent types, agda, compiler, type safety, program optimisation}
+
+\author{Matthias Heinzel}
+\affiliation{%
+  \institution{Utrecht University}
+  \city{Utrecht}
+  \country{Netherlands}
+  \position{Student (ACM 7975103)}}
+\email{m.h.heinzel@students.uu.nl}
+
+%\author{Wouter Swierstra}
+%\affiliation{%
+%  \institution{Utrecht University}
+%  \city{Utrecht}
+%  \country{Netherlands}
+%  \position{Advisor}}
+%\email{w.s.swierstra@uu.nl}
+
+\acmConference[ICFP’22]{International Conference on Functional Programming}{September 11--16}{Ljubljana, Slovenia}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\Todo{shorten}
+
+\section{Introduction}
+
+When writing a compiler for a functional programming language,
+an important consideration is the treatment of binders and variables.
+%\Draft{many possible representations (string, de Bruijn)}
+%\Draft{naive implementation is not scope-safe, therefore partial}
+A well-known technique when using dependently typed programming languages such as Agda
+\cite{norell2007agda}
+is to define an intrinsically typed syntax tree \cite{augustsson1999intrinsic}.
+Expressions are scope- and type-safe by construction and admit a total evaluation function.
+This construction has featured in several papers, exploring
+basic operations like renaming and substitution
+\cite{allais2018universe}
+as well as compilation to different target languages
+\cite[supplemental material]{pickard2021calculating}.
+
+Optimisations play an important role in compilers, but
+establishing their correctness is often not trivial,
+with ample opportunity for mistakes.
+However, there has been little focus on performing optimisations on intrinsically typed programs.
+%
+In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
+but provide a proof witness that the optimisation is safe,
+e.g. that some dead code is indeed not reachable.
+Other than that, it is mostly unaffected by the presence of additional type invariants.
+%
+For \emph{transformations} on intrinsically typed programs,
+the programmer can rely on the compiler to check the relevant invariants,
+but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
+especially when manipulating binders and variables.
+
+Depending on the features of a language, there is a different,
+potentially large number of relevant optimisations.
+Therefore, we are limiting ourselves to a simple expression language
+and widely applicable optimisations that only require bindings and variables to be present.
+% \Todo{Not sure how to plug the Nielsen book here, maybe just leave it out}
+% list interesting optimisations?
+
+% In this paper, we \ldots\ set of analyses \ldots\ 
+Since our work is still in progress,
+we will mainly present a specific optimisation, \emph{dead binding elimination}.
+It is implemented by first annotating expressions with variable usage information
+and then removing bindings that turn out to be unused.
+We further prove that the optimisation is semantics-preserving.
+
+
+\section{Dead Binding Elimination}
+
+\subsection{Intrinsically Typed Expressions with Binders}
+
+We define a simple typed expression language with let-bindings,
+variables, primitive values, and addition as an example of a binary operator.
+Since the optimisations we are interested in relate to variables and binders only,
+the choice of possible values and additional primitive operations on them is mostly arbitrary.
+
+\begin{align*}
+  P, Q ::= v
+  \ \big|\  P + Q
+  \ \big|\  \textbf{let } x = P \textbf{ in } Q
+  \ \big|\  x
+\end{align*}
+
+In Agda, the type of expressions $\Expr$ is indexed by its return type ($\tau : \U$)
+and context ($\Gamma : \Ctx$).
+Each free variable is a de Bruijn index into the context and acts as a proof that
+the context contains an element of the matching type.
+We can see how the context changes when introducing a new binding:
+
+\begin{align*}
+  \K{data}\ \I{Expr}& : (\Gamma : Ctx) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
+  \I{Let}
+    :\ &\I{Expr}\ \Gamma\ \sigma \to
+        \I{Expr}\ (\sigma :: \Gamma)\ \tau \to
+        \I{Expr}\ \Gamma\ \tau
+\end{align*}
+
+This allows the definition of a total evaluator
+using a matching environment:
+
+\begin{align*}
+  \I{eval} &: \I{Expr}\ \Gamma\ \tau \to \I{Env}\ \Gamma \to \Interpret{\tau}
+\end{align*}
+%(\texttt{eval : Expr $\Gamma$ $\tau$ $\to$ Env $\Gamma$ $\to$ $\Interpret{\tau}$}).
+%($\texttt{eval} : \Expr \Gamma \tau \to \Env \Gamma \to \Interpret{\tau}$).
+
+\subsection{Sub-contexts}
+
+\Todo{cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.}
+
+Note that an expression is not forced to make use of the whole context it has access to.
+Specifically, a let-binding introduces a new element into the context, but it might never be used.
+To reason about the \emph{sub-contexts} that are live (actually used),
+we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
+For each element of a context, a sub-context specifies whether to keep it or not.
+
+\begin{align*}
+  &\K{data}\ \I{Subset} : \I{Ctx} \to \I{Set}\ \K{where}          \\
+  &\ \ \ \ \I{Empty} : \I{Subset}\ []                                    \\
+  &\ \ \ \ \I{Drop}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)  \\
+  &\ \ \ \ \I{Keep}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)
+\end{align*}
+
+Such a sub-context describes a context themselves
+($\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$),
+but it contains more information than that.
+For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
+as opposed to e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+
+From now on, we will only consider expressions
+$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
+Initially, we take $\Delta = \I{all}\ \Gamma : \I{Subset}\ \Gamma$,
+the complete sub-context of the original context.
+
+\subsection{Live Variable Analysis}
+
+Now we can annotate each expression with its \emph{live variables},
+the sub-context $\Delta' \subseteq \Delta$ that is really used.
+To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'\ \tau$.
+While $\Delta$ is treated as $\Gamma$ before, $\Delta'$ now only contains live variables,
+starting with a singleton sub-context at the variable usage sites.
+
+\begin{align*}
+  \K{data}\ \I{LiveExpr}& : (\Delta\ \Delta' : \I{Subset}\ \Gamma) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
+  \I{Let}
+    :\ &\I{LiveExpr}\ \Delta\ \Delta_1\ \sigma \to  \\
+       &\I{LiveExpr}\ (\I{Keep}\ \Delta)\ \Delta_2\ \tau \to  \\
+       &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau
+\end{align*}
+
+The function \I{analyse} now computes the live sub-context $\Delta'$
+together with a matching annotated expression.
+The only requirement we have for it is that we can forget the annotations again,
+with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
+
+\begin{align*}
+  \I{analyse}
+    &:  \I{Expr}\ \Floor{\Delta}\ \tau
+    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \\
+  \I{forget}
+    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+    \to \I{Expr}\ \Floor{\Delta}\ \tau
+\end{align*}
+
+\Todo{
+  Maybe add a note that \I{LiveExpr} is overspecified.
+  Instead of $\Delta_1 \cup \Delta_2$ we could have any $\Delta'$ containing $\Delta_1$ and $\Delta_2$.
+}
+
+\subsection{Transformation}
+
+Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
+that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+If it is not, we directly evaluate the body, ignoring the bound declaration.
+This \emph{optimised semantics} shows that we can do a similar program transformation
+and will be useful in its correctness proof.
+The implementation does not contain more than the same case distinction and some renaming
+(e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$).
+
+\begin{align*}
+  \I{dbe}
+    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
+    \to \I{Expr}\ \Floor{\Delta'}\ \tau
+\end{align*}
+
+As opposed to \I{forget}, which returns to the original context,
+here we remove unused variables, only keeping $\Floor{\Delta'}$.
+
+\subsection{Correctness}
+
+We want to show that dead binding elimination preserves semantics:
+$\I{eval} \circ \I{dbe} \circ \I{analyse} \equiv \I{eval}$.
+Since we know that $\I{forget} \circ \I{analyse} \equiv \I{id}$,
+it is sufficient to show the following:
+
+\begin{align*}
+  \I{eval} \circ \I{dbe} \equiv \I{eval} \circ \I{forget}
+\end{align*}
+
+The proof gets simpler if we split it up using the optimised semantics.
+
+\begin{align*}
+  \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
+\end{align*}
+
+\Todo{details about proof statement, generalisation of environment used etc.}
+
+Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
+The interesting case is \I{Let}, \ldots
+
+\Todo{continue}
+
+\subsection{Iterating the Optimisation}
+
+% When we remove a binding that contains the only occurrences of some other variable,
+% we can run the optimisation again to remove that binding as well.
+% This is common among optimisations, which then can be iteratively applied until a fixpoint is reached.
+% Sometimes (as with \emph{strong live variable analysis} here)
+% it is possible to achieve the same result in a single pass,
+% but at the cost of additional complexity.
+
+A removed binding can contain the only occurrences of some other variable.
+This makes another binding dead, allowing further optimisation when running the algorithm again.
+While in our simple setting all these bindings could be identified in a single pass
+using \emph{strong live variable analysis},
+in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
+
+% NOTE: number of iterations not statically known
+Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+We observe that the algorithm must terminate
+since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
+on the number of bindings.
+
+The correctness follows directly from the correctness of each individual iteration step.
+
+\section{Preliminary Results}
+
+The implementation and correctness proof of dead binding elimination are complete,
+the Agda source code is available online
+\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations/-/tree/tyde}}.
+One interesting observation is that the correctness proof does not rely on how
+\I{analyse} computes the annotations.
+At first, this does not seem particularly useful,
+but for other optimisations the analysis might use complex, frequently changing heuristics to decide
+which transformations are worth it.
+
+We are currently extending the expression language
+with $\lambda$-abstractions.
+While some increase in complexity is necessary to eliminate applications of functions that do not use their argument,
+the correctness proof seems to stay relatively simple.
+
+We are further investigating additional binding-related transformations,
+such as moving bindings up or down in the syntax tree.
+Another interesting type of optimisation is avoidance of redundant computations
+using \emph{available expression analysis}.
+An example is \emph{common subexpression elimination},
+where subexpressions get replaced by variables bound to equivalent declarations
+(pre-existing or newly created).
+
+Between the different optimisations,
+we hope to discover common patterns and refine our approach,
+providing useful strategies for performing optimisations in intrinsically typed compilers.
+
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bibliography}{}
+
+\end{document}
