@@ -1,4 +1,4 @@
-\documentclass[sigplan,nonacm,screen,review,timestamp]{acmart}
+\documentclass[sigplan,nonacm,screen]{acmart}
 
 % https://icfp22.sigplan.org/home/tyde-2022#Call-for-Papers
 
@@ -14,9 +14,10 @@
 
 \citestyle{acmauthoryear}
 
-\newcommand{\Draft}[1]{{\color{gray} - #1}}
-%\newcommand{\Todo}[1]{}
-\newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
+\newcommand{\Draft}[1]{}
+\newcommand{\Todo}[1]{}
+%\newcommand{\Draft}[1]{{\color{gray} - #1}}
+%\newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
 
 \newcommand{\I}[1]{\texttt{#1}\xspace}
 \newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
@@ -74,10 +75,9 @@ the programmer can rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
 especially when manipulating binders and variables.
 
-Depending on the features of a language, there is a different,
-potentially large number of relevant optimisations.
-Therefore, we are limiting ourselves to a simple expression language
-and widely applicable optimisations that only require bindings and variables to be present.
+%As a first step of our ongoing work, we present an implementation of dead binding elimination for a simple language
+%Therefore, we are limiting ourselves to a simple expression language
+%and widely applicable optimisations that only require bindings and variables to be present.
 % WOUTER - how about something like - in this abstract we start to
 % explore one optimization for a simple language. You don't need to
 % mention that there are lots of different languages/optimizations out
@@ -103,21 +103,20 @@ We further prove that the optimisation is semantics-preserving.
 \subsection{Intrinsically Typed Expressions with Binders}
 
 We define a simple typed expression language with let-bindings,
-variables, primitive values, and addition as an example of a binary operator.
+variables, primitive values (integers and Booleans), and a few binary operators.
 Since the optimisations we are interested in relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
 
 \begin{align*}
   P, Q ::= v
   \ \big|\  P + Q
+  \ \big|\  \ldots
   \ \big|\  \textbf{let } x = P \textbf{ in } Q
   \ \big|\  x
 \end{align*}
 
 In Agda, the type of expressions $\I{Expr}$ is indexed by its return type ($\tau : \I{U}$)
 and context ($\Gamma : \I{Ctx}$).
-% WOUTER - in this grammar you only have Nats, so indexing with the number of
-% variables would suffice... Perhaps adding some bool ops make sense?
 
 Each free variable is a de Bruijn index into the context and acts as a proof that
 the context contains an element of the matching type.
@@ -226,11 +225,9 @@ Another important detail is that evaluation works under any environment containi
 
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
-% WOUTER - does not contain more that -> simply maps each constructor from LiveExpr to its
-% counterpart in Expr.
 The implementation simply maps each constructor to its counterpart in \I{Expr},
 with some renaming
-(e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$).
+(e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$)
 and the abovementioned case distinction.
 
 \begin{align*}
