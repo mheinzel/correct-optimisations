@@ -9,11 +9,11 @@ open import Data.Empty
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 
 open import Lang
-\end{code}
 
+-- Subsets of our context and operations on them 
+\end{code}
 \newcommand{\CodeSubsetSubset}{%
 \begin{code}
--- Subsets of our context and operations on them 
 data Subset : Ctx → Set where
   Empty  : Subset []
   Drop   : Subset Γ → Subset (τ ∷ Γ)

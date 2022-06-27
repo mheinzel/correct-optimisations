@@ -1,12 +1,27 @@
 \documentclass[11pt,a4paper]{article}
+
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{stmaryrd}
 \usepackage{listings}
 \usepackage[pdftex]{xcolor}
+\usepackage{xspace}
 \usepackage{agda}
 \usepackage{cite}
+\usepackage{hyperref}
+\usepackage{todonotes}
+
+%\newcommand{\Draft}[1]{}
+%\newcommand{\Todo}[1]{}
+\newcommand{\Draft}[1]{{\color{gray} - #1}}
+\newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
+
+\newcommand{\I}[1]{\texttt{#1}\xspace}
+\newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
+\newcommand{\Interpret}[1]{\llbracket #1 \rrbracket\xspace}
+\newcommand{\Floor}[1]{\lfloor #1 \rfloor\xspace}
+\newcommand{\Existential}[2]{\Sigma[ #1 \in #2 ]\xspace}
 
 % TODO: try instead: https://tex.stackexchange.com/questions/529907/how-to-set-the-font-which-agda-code-uses
 \usepackage{newunicodechar}
@@ -17,6 +32,7 @@
 \newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
 \newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
 \newunicodechar{∅}{\ensuremath{\mathnormal\emptyset}}
+\newunicodechar{∈}{\ensuremath{\mathnormal\in}}
 \newunicodechar{⊆}{\ensuremath{\mathnormal\subseteq}}
 \newunicodechar{∪}{\ensuremath{\mathnormal\cup}}
 \newunicodechar{∷}{\ensuremath{\mathnormal::}}
@@ -28,8 +44,10 @@
 \newunicodechar{σ}{\ensuremath{\mathnormal\sigma}}
 \newunicodechar{τ}{\ensuremath{\mathnormal\tau}}
 \newunicodechar{Δ}{\ensuremath{\mathnormal\Delta}}
+\newunicodechar{Σ}{\ensuremath{\mathnormal\Sigma}}
 \newunicodechar{₁}{\ensuremath{\mathnormal{}_1}}
 \newunicodechar{₂}{\ensuremath{\mathnormal{}_2}}
+\newunicodechar{ᵤ}{\ensuremath{\mathnormal{}_u}}
 
 \include{generated/Lang}
 \include{generated/Subset}
@@ -47,26 +65,58 @@
 \maketitle
 \tableofcontents
 
-% TODO: consistently use british spelling
 
 \section{Introduction}
-% ?
-% Agda
+% TODO: make this more high-level and move citations to other sections?
+
+When writing a compiler for a functional programming language,
+an important consideration is the treatment of binders and variables.
+%\Draft{many possible representations (string, de Bruijn)}
+%\Draft{naive implementation is not scope-safe, therefore partial}
+A well-known technique when using dependently typed programming languages such as Agda
 \cite{norell2007agda}
-% others worked on compilation of intrinsically typed AST
-\cite{augustsson1999intrinsic}
-% but not a lot on optimizations in this setting
-% handling bindings in a way the compiler accepts requires some care
+is to define an intrinsically typed syntax tree,
+where expressions are scope- and type-safe by construction and admit a total evaluation function
+\cite{augustsson1999intrinsic}.
+This construction has featured in several papers, exploring
+basic operations like renaming and substitution
+\cite{allais2018universe}
+as well as compilation to different target languages
+\cite[supplemental material]{pickard2021calculating}.
+
+% MATTHIAS - re-order this paragraph, so it connects more neatly to the previous one?
+Optimisations play an important role in compilers, but
+establishing their correctness is often not trivial,
+with ample opportunity for mistakes.
+However, there has been little focus on performing optimisations on intrinsically typed programs.
+%
+In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
+but provide a proof witness that the optimisation is safe,
+e.g. that some dead code is indeed not used.
+For \emph{transformations} on intrinsically typed programs,
+the programmer can rely on the compiler to check the relevant invariants,
+but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
+especially when manipulating binders and variables.
+
+% WOUTER - you may want to cite Graham's (draft) paper - it's as easy
+% as 1,2,3 that argues that studying semantics is best done in a
+% setting that is as simple as possible.
+As a first step towards a more general treatment of optimisations of intrinsically typed programs,
+we present an implementation of \emph{dead binding elimination} for a simple language.
+It is implemented by first annotating expressions with variable usage information
+and then removing bindings that turn out to be unused.
+We further prove that the optimisation is semantics-preserving.
+The Agda source code is available online at
+\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}.
 
 \section{A Simple Expression Language}
 
 \subsection{Expressions with Bindings}
 
-We define a simple typed expression language with bindings.
-Since the optimizations we are interested in relate to variables and bindings only,
-the choice of values and primitive operations on them is mostly arbitrary.
-For simplicity, we choose values $v$ in our language to be natural numbers or Booleans
-and include addition as an example of a binary operator.
+We define a simple typed expression language with let-bindings,
+variables, primitive values (integers and Booleans), and a few binary operators.
+Since the optimisations we are interested in relate to variables and binders only,
+the choice of possible values and additional primitive operations on them is mostly arbitrary.
 Extending the language with further values and operators is trivial.
 
 Expressions can be bound to a variable $v$ using the $\textbf{let}$ construction.
@@ -83,77 +133,205 @@ avoids the need for functions as values.
   \\ \big|&\ x
 \end{align*}
 
-% TODO: say something generally about open/closed terms and de Bruijn indices?
+\Todo{say something generally about open/closed terms and de Bruijn indices?}
 
 \subsection{Intrinsically Typed Syntax Trees}
-% now in Agda!
-% some representations are error-prone/partial
-% representation correct by construction
-% similar to ... (TODO: reference)
+
+\Todo{unify code listings (syntax highlighting, font, ...)}
+\Todo{more context? E.g. how some representations are error-prone/partial?}
+
+In Agda, the type of expressions $\I{Expr}$ is indexed by its return type ($\tau : \I{U}$)
+and context ($\Gamma : \I{Ctx}$).
+
+Each free variable is a de Bruijn index into the context and acts as a proof that
+the context contains an element of the matching type.
+We can see how the context changes when introducing a new binding:
 
 \CodeLangTypes
 
-% open/closed terms
+\Draft{open vs. closed terms}
 
 \CodeLangCtx
 
-% de Bruijn (TODO: reference)
+\Draft{de Bruijn}
 
 \CodeLangRef
 
 \CodeLangExpr
 
-% allows semantics to be total
+This allows the definition of a total evaluator
+using an environment matching the context:
 
 \CodeLangSemantics
 
 
 \section{Live Variable Analysis}
-% want to annotate terms with variables actually used
-% then remove unused bindings
+
+Note that an expression is not forced to make use of the whole context to which it has access.
+Specifically, a let-binding introduces a new element into the context, but it might never be used.
+\Draft{
+We to annotate terms with variables actually used,
+then remove unused bindings
+}
 \cite{nielsen1999analysis}
 
 \subsection{Subsets of a Context}
-% order preserving embedding
-\cite{chapman2009type}
-% why this representation?
-%   subset relation/proof on Subsets is unique (compare e.g. [NAT] \subseteq [NAT, NAT]
-%   union-like operation is definable
+
+To reason about the \emph{sub-contexts} that are live (actually used),
+we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
+For each element of a context, a sub-context specifies whether to keep it or not.
+
+\Draft{
+  Subset = Ctx + OPE
+}
 
 \CodeSubsetSubset
+
+We can then define a subset-like order $\subseteq$:
+
 \CodeSubsetOpSubseteq
 
-\subsection{Analysis}
-% a lot is encoded in the annotated LiveExpr type
+\Draft{Dealing with these sub-contexts simplifies proofs}
+For example, the witnesses of $\subseteq$ on sub-contexts are unique,
+as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+% WOUTER - I'm not sure I understand this remark.. you haven't defined
+% subseteq, which makes it a bit confusing.  Perhaps it suffices to
+% note that these Subsets determine a unique sub-context?
+% why this representation?
+\Todo{Clarify this?}
+
+From now on, we will only consider expressions
+$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
+Initially, we take $\Delta = \I{all}\ \Gamma : \I{Subset}\ \Gamma$,
+the complete sub-context of the original context.
+
+
+\subsection{Live Variable Analysis}
+
+Now we can annotate each expression with its \emph{live variables},
+the sub-context $\Delta' \subseteq \Delta$ that is really used.
+To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'\ \tau$.
+While $\Delta$ is treated as $\Gamma$ before, $\Delta'$ now only contains live variables,
+starting with a singleton sub-context at the variable usage sites.
 
 \CodeLiveExpr
 
+To create such annotated expressions, we need to perform
+some static analysis of our source programs.
+The function \I{analyse} computes the live sub-context $\Delta'$
+together with a matching annotated expression.
+
+\CodeLiveAnalyse
+
+The only requirement we have for it is that we can forget the annotations again.
+
+\CodeLiveForgetSignature
+
+\CodeLiveAnalysePreservesSignature
+
+
+\subsection{Dead Binding Elimination}
+
+Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
+%WOUTER - scrap 'with' in the line above?
+that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+If it is not, we directly evaluate the body, ignoring the bound declaration.
+Another important detail is that evaluation works under any environment containing (at least) the live context.
+
+\CodeLiveEvalLive
+
+This \emph{optimised semantics} shows that we can do a similar program transformation
+and will be useful in its correctness proof.
+The implementation simply maps each constructor to its counterpart in \I{Expr},
+with some renaming
+(e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$)
+and the abovementioned case distinction.
+
+\CodeLiveDbe
+\CodeLiveRestrictedRefSignature
+
+As opposed to \I{forget}, which stays in the original context,
+here we remove unused variables, only keeping $\Floor{\Delta'}$.
+
+
 \subsection{Correctness}
-% relate by evaluation
-% split the proof
-% subtlety: evaluate under which environment
-% subtlety: irrelevant arguments
+
+We want to show that dead binding elimination preserves semantics:
+$\I{eval} \circ \I{dbe} \circ \I{analyse} \equiv \I{eval}$.
+Since we know that $\I{forget} \circ \I{analyse} \equiv \I{id}$,
+it is sufficient to show the following:
+
+\begin{align*}
+  \I{eval} \circ \I{dbe} \equiv \I{eval} \circ \I{forget}
+\end{align*}
+
+The proof gets simpler if we split it up using the optimised semantics.
+
+\begin{align*}
+  \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
+\end{align*}
+
+The actual proof statements are more involved,
+since they quantify over the expression and environment used.
+As foreshadowed in the definition of \I{evalLive}, the statements are also generalised
+to evaluation under any $\I{Env}\ \Floor{\Delta_u}$,
+as long as it contains the live sub-centext.
+This gives us more flexibility when using the inductive hypothesis.
+
+\CodeLiveDbeCorrectSignature
+\CodeLiveEvalLiveCorrectSignature
+
+Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
+The interesting one is again \I{Let}, where we split cases on the variable being used or not
+and need some auxiliary facts about evaluation, renaming and sub-contexts.
+
+\Todo{More details? E.g. about using irrelevant arguments?}
+
 
 \subsection{Iterating the Analysis}
-% optimization might make other bindings unused
-% could be done in one pass here, but gets complex
-% => take a fixpoint! termination?
-% Well-Founded recursion
-\cite{bove2016recursion}
+
+A binding that is removed can contain the only occurrences of some other variable.
+This makes another binding dead, allowing further optimisation when running the algorithm again.
+While in our simple setting all these bindings could be identified in a single pass
+using \emph{strong live variable analysis},
+in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
+
+% NOTE: number of iterations not statically known
+Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+We observe that the algorithm must terminate
+since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+This is the same as the ascending chain condition in program analysis literature
+\cite{nielsen1999analysis}.
+To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
+on the number of bindings.
+
+The correctness follows directly from the correctness of each individual iteration step.
 
 
 \section{Further Work}
 
 \subsection{Extending the Language}
-% Lam+App, short sketch
-% recursion
-% data types (product/sum)
-% pointers?
+
+While our language only contains let-bindings,
+one might want to show that our work is also applicable to languages with $\lambda$-abstractions.
+
+\Todo{brief look at recursion, data types etc.?}
 
 \subsection{Other Analyses}
-% inlining
-%   more difficult to encode goal, take list of what to inline
-% move bindings to top or as far down as possible
+
+Furthermore, there are several other binding-related transformations to explore,
+such as moving bindings up or down in the syntax tree.
+Another interesting type of optimisation is avoidance of redundant computations
+using \emph{available expression analysis}.
+An example is \emph{common subexpression elimination},
+where subexpressions get replaced by variables bound to equivalent declarations
+(pre-existing or newly created).
+
+Ideally, further exploration will lead to the discovery of common patterns
+and useful strategies for performing optimisations on intrinsically typed syntax trees.
+
+\Todo{Generally, keep this about optimisations sepcifically, or relax to transformation/manipulation?}
+
 
 \bibliographystyle{plain}
 \bibliography{bibliography}{}
