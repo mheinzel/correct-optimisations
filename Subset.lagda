@@ -44,11 +44,10 @@ Keep Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
 ⌊ Drop Δ ⌋             = ⌊ Δ ⌋
 ⌊ Keep {τ = τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 
--- TODO: rename `singleton`? It's a singleton subset.
-_[_] : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
-(Drop Δ) [ x ] = Drop (Δ [ x ])
-(Keep Δ) [ Top ]  = Keep ∅
-(Keep Δ) [ Pop x ] = Drop (Δ [ x ])
+sing : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
+sing (Drop Δ) x       = Drop (sing Δ x)
+sing (Keep Δ) Top     = Keep ∅
+sing (Keep Δ) (Pop x) = Drop (sing Δ x)
 
 pop : Subset (σ ∷ Γ) → Subset Γ
 pop (Drop Δ) = Δ
@@ -100,11 +99,11 @@ Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 ⊆∪₂ (Keep Δ₁) (Drop Δ₂) = ⊆∪₂ Δ₁ Δ₂
 ⊆∪₂ (Keep Δ₁) (Keep Δ₂) = ⊆∪₂ Δ₁ Δ₂
 
-[x]⊆ : (Γ : Ctx) (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → (Δ [ x ]) ⊆ Δ
-[x]⊆ [] Empty ()
-[x]⊆ (τ ∷ Γ) (Drop Δ) x = [x]⊆ Γ Δ x
-[x]⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
-[x]⊆ (τ ∷ Γ) (Keep Δ) (Pop x) = [x]⊆ Γ Δ x
+sing⊆ : (Γ : Ctx) (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → sing Δ x ⊆ Δ
+sing⊆ [] Empty ()
+sing⊆ (τ ∷ Γ) (Drop Δ) x = sing⊆ Γ Δ x
+sing⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
+sing⊆ (τ ∷ Γ) (Keep Δ) (Pop x) = sing⊆ Γ Δ x
 
 ⊆-refl : (Δ : Subset Γ) → Δ ⊆ Δ
 ⊆-refl Empty = tt

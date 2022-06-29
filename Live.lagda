@@ -22,7 +22,7 @@ data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
   Val : ⟦ σ ⟧ → LiveExpr Δ ∅ σ
   Plus : LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
   Let : LiveExpr Δ Δ₁ σ → LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ → LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
-  Var : (x : Ref σ ⌊ Δ ⌋) → LiveExpr Δ (Δ [ x ]) σ
+  Var : (x : Ref σ ⌊ Δ ⌋) → LiveExpr Δ (sing Δ x) σ
 \end{code}}
 
 \newcommand{\CodeLiveForgetSignature}{%
@@ -46,7 +46,7 @@ analyse {Γ} Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , Plus le₁ le₂
 analyse {Γ} Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ pop Δ₂) , Let le₁ le₂
-analyse {Γ} Δ (Var x) = (Δ [ x ]) , Var x
+analyse {Γ} Δ (Var x) = sing Δ x , Var x
 \end{code}}
 
 \begin{code}[hide]
@@ -54,7 +54,7 @@ analyse {Γ} Δ (Var x) = (Δ [ x ]) , Var x
 Δ'⊆Δ {Γ} {Δ} (Val v) = ∅⊆ Γ Δ
 Δ'⊆Δ {Γ} {Δ} (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
 Δ'⊆Δ {Γ} {Δ} (Let {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ (pop Δ₂) Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
-Δ'⊆Δ {Γ} {Δ} (Var x) = [x]⊆ Γ Δ x
+Δ'⊆Δ {Γ} {Δ} (Var x) = sing⊆ Γ Δ x
 \end{code}
 
 \newcommand{\CodeLiveAnalysePreservesSignature}{%
@@ -69,7 +69,7 @@ analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analys
 analyse-preserves (Var x) = refl
 
 -- Now let's try to define a semantics for LiveExpr...
-lookupLive : (Δ Δᵤ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Env ⌊ Δᵤ ⌋ → .((Δ [ x ]) ⊆ Δᵤ) → ⟦ σ ⟧
+lookupLive : (Δ Δᵤ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Env ⌊ Δᵤ ⌋ → .(sing Δ x ⊆ Δᵤ) → ⟦ σ ⟧
 lookupLive {[]} Empty Δᵤ () env H
 lookupLive {τ ∷ Γ} (Drop Δ) (Drop Δᵤ) x env H = lookupLive Δ Δᵤ x env H
 lookupLive {τ ∷ Γ} (Drop Δ) (Keep Δᵤ) x (Cons v env) H = lookupLive Δ Δᵤ x env H
@@ -95,7 +95,7 @@ evalLive {Γ} {Δ} Δᵤ (Var x) env H = lookupLive Δ Δᵤ x env H
 \end{code}}
 
 \begin{code}[hide]
-lookupLive-correct : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) → .(H' : (Δ [ x ]) ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
+lookupLive-correct : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) → .(H' : sing Δ x ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
   lookupLive Δ Δᵤ x (prjEnv Δᵤ Δ H env) H' ≡ lookup x env
 lookupLive-correct {σ} {[]} {Empty} () Δᵤ Nil H' H
 lookupLive-correct {σ} {τ ∷ Γ} {Drop Δ} x (Drop Δᵤ) env H' H = lookupLive-correct x Δᵤ env H' H
@@ -133,13 +133,13 @@ evalLive-correct (Var x) Δᵤ env H' H =
 
 \newcommand{\CodeLiveRestrictedRefSignature}{%
 \begin{code}
-restrictedRef : (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ Δ [ x ] ⌋
+sing-ref : (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ sing Δ x ⌋
 \end{code}}
 \begin{code}[hide]
-restrictedRef {[]} Empty ()
-restrictedRef {τ ∷ Γ} (Drop Δ) x = restrictedRef Δ x
-restrictedRef {τ ∷ Γ} (Keep Δ) Top = Top
-restrictedRef {τ ∷ Γ} (Keep Δ) (Pop x) = restrictedRef Δ x
+sing-ref {[]} Empty ()
+sing-ref {τ ∷ Γ} (Drop Δ) x = sing-ref Δ x
+sing-ref {τ ∷ Γ} (Keep Δ) Top = Top
+sing-ref {τ ∷ Γ} (Keep Δ) (Pop x) = sing-ref Δ x
 \end{code}
 
 \newcommand{\CodeLiveDbe}{%
@@ -152,7 +152,7 @@ dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
   Let
     (injExpr₁ Δ₁ Δ₂ (dbe e₁))
     (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (⊆∪₂ Δ₁ Δ₂) (dbe e₂))
-dbe {Γ} {Δ} (Var x) = Var (restrictedRef Δ x)
+dbe {Γ} {Δ} (Var x) = Var (sing-ref Δ x)
 \end{code}}
 
 \newcommand{\CodeLiveDbeCorrectSignature}{%
@@ -205,8 +205,8 @@ dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ H env =
 dbe-correct (Var x) Δᵤ H env =
   lemma-lookupLive x Δᵤ H env
   where
-    lemma-lookupLive : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) → .(H : (Δ [ x ]) ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
-      lookup (renameVar (Δ [ x ]) Δᵤ H (restrictedRef Δ x)) env ≡ lookupLive Δ Δᵤ x env H
+    lemma-lookupLive : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) → .(H : sing Δ x ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
+      lookup (renameVar (sing Δ x) Δᵤ H (sing-ref Δ x)) env ≡ lookupLive Δ Δᵤ x env H
     lemma-lookupLive {σ} {[]} {Empty} () Δᵤ H env
     lemma-lookupLive {σ} {τ ∷ Γ} {Drop Δ} x (Drop Δᵤ) H env = lemma-lookupLive x Δᵤ H env
     lemma-lookupLive {σ} {τ ∷ Γ} {Drop Δ} x (Keep Δᵤ) H (Cons v env) = lemma-lookupLive x Δᵤ H env
