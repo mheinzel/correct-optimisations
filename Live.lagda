@@ -41,12 +41,12 @@ forget (Var x) = Var x
 \begin{code}
 -- decide which variables are used or not
 analyse : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] LiveExpr Δ Δ' σ
-analyse {Γ} Δ (Val v) = ∅ , Val v
-analyse {Γ} Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
+analyse Δ (Val v) = ∅ , Val v
+analyse Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , Plus le₁ le₂
-analyse {Γ} Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
+analyse Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ pop Δ₂) , Let le₁ le₂
-analyse {Γ} Δ (Var x) = sing Δ x , Var x
+analyse Δ (Var x) = sing Δ x , Var x
 \end{code}}
 
 \begin{code}[hide]
