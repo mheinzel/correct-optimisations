@@ -66,6 +66,18 @@ Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 \end{code}}
 
 \begin{code}[hide]
+⊆-refl : (Δ : Subset Γ) → Δ ⊆ Δ
+⊆-refl Empty = tt
+⊆-refl (Drop Δ) = ⊆-refl Δ
+⊆-refl (Keep Δ) = ⊆-refl Δ
+
+⊆-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → (Δ₁ ⊆ Δ₂) → (Δ₂ ⊆ Δ₃) → Δ₁ ⊆ Δ₃
+⊆-trans Empty Empty Empty Δ₁⊆Δ₂ Δ₂⊆Δ₃ = tt
+⊆-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+
 ∅⊆ : (Γ : Ctx) → (Δ : Subset Γ) → ∅ ⊆ Δ
 ∅⊆ [] Empty = tt
 ∅⊆ (x ∷ Γ) (Drop Δ) = ∅⊆ Γ Δ
@@ -75,6 +87,12 @@ Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 ⊆all Γ Empty = tt
 ⊆all (x ∷ Γ) (Drop Δ) = ⊆all Γ Δ
 ⊆all (x ∷ Γ) (Keep Δ) = ⊆all Γ Δ
+
+sing⊆ : (Γ : Ctx) (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → sing Δ x ⊆ Δ
+sing⊆ [] Empty ()
+sing⊆ (τ ∷ Γ) (Drop Δ) x = sing⊆ Γ Δ x
+sing⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
+sing⊆ (τ ∷ Γ) (Keep Δ) (Pop x) = sing⊆ Γ Δ x
 
 ∪⊆ : (Γ : Ctx) → (Δ₁ Δ₂ Δ : Subset Γ) → .(H₁ : Δ₁ ⊆ Δ) → .(H₂ : Δ₂ ⊆ Δ) →
   (Δ₁ ∪ Δ₂) ⊆ Δ
@@ -99,23 +117,12 @@ Keep Δ₁ ⊆ Drop Δ₂ = ⊥
 ⊆∪₂ (Keep Δ₁) (Drop Δ₂) = ⊆∪₂ Δ₁ Δ₂
 ⊆∪₂ (Keep Δ₁) (Keep Δ₂) = ⊆∪₂ Δ₁ Δ₂
 
-sing⊆ : (Γ : Ctx) (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → sing Δ x ⊆ Δ
-sing⊆ [] Empty ()
-sing⊆ (τ ∷ Γ) (Drop Δ) x = sing⊆ Γ Δ x
-sing⊆ (τ ∷ Γ) (Keep Δ) Top = ∅⊆ Γ Δ
-sing⊆ (τ ∷ Γ) (Keep Δ) (Pop x) = sing⊆ Γ Δ x
+-- helper for common case
+⊆∪₁-trans : (Δ₁ Δ₂ Δᵤ : Subset Γ) → (Δ₁ ∪ Δ₂) ⊆ Δᵤ → Δ₁ ⊆ Δᵤ
+⊆∪₁-trans Δ₁ Δ₂ Δᵤ H = ⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H
 
-⊆-refl : (Δ : Subset Γ) → Δ ⊆ Δ
-⊆-refl Empty = tt
-⊆-refl (Drop Δ) = ⊆-refl Δ
-⊆-refl (Keep Δ) = ⊆-refl Δ
-
-⊆-trans : (Δ₁ Δ₂ Δ₃ : Subset Γ) → (Δ₁ ⊆ Δ₂) → (Δ₂ ⊆ Δ₃) → Δ₁ ⊆ Δ₃
-⊆-trans Empty Empty Empty Δ₁⊆Δ₂ Δ₂⊆Δ₃ = tt
-⊆-trans (Drop Δ₁) (Drop Δ₂) (Drop Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
-⊆-trans (Drop Δ₁) (Drop Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
-⊆-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
-⊆-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) Δ₁⊆Δ₂ Δ₂⊆Δ₃ = ⊆-trans Δ₁ Δ₂ Δ₃ Δ₁⊆Δ₂ Δ₂⊆Δ₃
+⊆∪₂-trans : (Δ₁ Δ₂ Δᵤ : Subset Γ) → (Δ₁ ∪ Δ₂) ⊆ Δᵤ → Δ₂ ⊆ Δᵤ
+⊆∪₂-trans Δ₁ Δ₂ Δᵤ H = ⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H
 
 -- Renamings / weakenings
 renameVar : (Δ₁ Δ₂ : Subset Γ) → .(Δ₁ ⊆ Δ₂) → Ref σ ⌊ Δ₁ ⌋ → Ref σ ⌊ Δ₂ ⌋

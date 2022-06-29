@@ -83,14 +83,14 @@ lookupLive {τ ∷ Γ} (Keep Δ) (Keep Δᵤ) (Pop x) (Cons v env) H = lookupLiv
 evalLive : (Δᵤ : Subset Γ) → LiveExpr Δ Δ' τ → Env ⌊ Δᵤ ⌋ → .(Δ' ⊆ Δᵤ) → ⟦ τ ⟧
 evalLive Δᵤ (Val v) env H = v
 evalLive Δᵤ (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
-    evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H)
-  + evalLive Δᵤ e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
+    evalLive Δᵤ e₁ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H)
+  + evalLive Δᵤ e₂ env (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
 evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) env H =
-  evalLive (Drop Δᵤ) e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
+  evalLive (Drop Δᵤ) e₂ env (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
 evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) env H =
   evalLive (Keep Δᵤ) e₂
-    (Cons (evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H)) env)
-    (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H)
+    (Cons (evalLive Δᵤ e₁ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H)) env)
+    (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
 evalLive {Γ} {Δ} Δᵤ (Var x) env H = lookupLive Δ Δᵤ x env H
 \end{code}}
 
@@ -114,10 +114,10 @@ evalLive-correct : (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ �
 evalLive-correct (Val v) Δᵤ env H' H = refl
 evalLive-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H' H =
   cong₂ _+_
-    (evalLive-correct e₁ Δᵤ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H') H)
-    (evalLive-correct e₂ Δᵤ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H') H)
+    (evalLive-correct e₁ Δᵤ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H') H)
+    (evalLive-correct e₂ Δᵤ env (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H') H)
 evalLive-correct (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ env H' H =
-  evalLive-correct e₂ (Drop Δᵤ) (Cons (eval (forget e₁) env) env) (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H') H
+  evalLive-correct e₂ (Drop Δᵤ) (Cons (eval (forget e₁) env) env) (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H') H
 evalLive-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ env H' H =
     evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ Δ H env) _) (prjEnv Δᵤ Δ H env)) _
   ≡⟨ evalLive-correct e₂ (Keep Δᵤ) (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ Δ H env) _) env) _ _ ⟩
@@ -189,12 +189,12 @@ dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ H env =
     eval
       (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
       (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₁ Δ₁ Δ₂ (dbe e₁))) env) env)
-  ≡⟨ cong (λ e → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H) (dbe e₂)) (Cons (eval e env) env))
+  ≡⟨ cong (λ e → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H) (dbe e₂)) (Cons (eval e env) env))
       (renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H (dbe e₁)) ⟩
     eval
       (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
       (Cons (eval (renameExpr Δ₁ Δᵤ _ (dbe e₁)) env) env)
-  ≡⟨ cong (λ v → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H) (dbe e₂)) (Cons v env))
+  ≡⟨ cong (λ v → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H) (dbe e₂)) (Cons v env))
       (dbe-correct e₁ Δᵤ _ env) ⟩
     eval
       (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
