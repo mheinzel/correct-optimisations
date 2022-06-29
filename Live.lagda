@@ -106,7 +106,9 @@ lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) 
 \newcommand{\CodeLiveEvalLiveCorrectSignature}{%
 \begin{code}
 -- evalLive = eval . forget
-evalLive-correct : (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) → .(H' : Δ' ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
+evalLive-correct :
+  (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) →
+  .(H' : Δ' ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
   evalLive Δᵤ e (prjEnv Δᵤ Δ H env) H' ≡ eval (forget e) env
 \end{code}}
 \begin{code}[hide]
@@ -144,31 +146,37 @@ sing-ref {τ ∷ Γ} (Keep Δ) (Pop x) = sing-ref Δ x
 \newcommand{\CodeLiveDbe}{%
 \begin{code}
 dbe : LiveExpr Δ Δ' σ → Expr ⌊ Δ' ⌋ σ
-dbe (Val v) = Val v
-dbe (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (dbe e₁)) (injExpr₂ Δ₁ Δ₂ (dbe e₂))
-dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) = injExpr₂ Δ₁ Δ₂ (dbe e₂)
+dbe (Val v) =
+  Val v
+dbe (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) =
+  Plus (injExpr₁ Δ₁ Δ₂ (dbe e₁)) (injExpr₂ Δ₁ Δ₂ (dbe e₂))
+dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) =
+  injExpr₂ Δ₁ Δ₂ (dbe e₂)
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
   Let
     (injExpr₁ Δ₁ Δ₂ (dbe e₁))
     (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (⊆∪₂ Δ₁ Δ₂) (dbe e₂))
-dbe {Γ} {Δ} (Var x) = Var (sing-ref Δ x)
+dbe {Γ} {Δ} (Var x) =
+  Var (sing-ref Δ x)
 \end{code}}
 
 \newcommand{\CodeLiveDbeCorrectSignature}{%
 \begin{code}
 -- eval . dbe ≡ evalLive
-dbe-correct : (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) → .(H : Δ' ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
+dbe-correct :
+  (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δᵤ ⌋) →
+  .(H : Δ' ⊆ Δᵤ) →
   eval (renameExpr Δ' Δᵤ H (dbe e)) env ≡ evalLive Δᵤ e env H
 \end{code}}
 \begin{code}[hide]
-dbe-correct (Val v) Δᵤ H env = refl
-dbe-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ H env
+dbe-correct (Val v) Δᵤ env H = refl
+dbe-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H
   rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H (dbe e₁)
   rewrite renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H (dbe e₂) =
   cong₂ _+_
-    (dbe-correct e₁ Δᵤ _ env)
-    (dbe-correct e₂ Δᵤ _ env)
-dbe-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ H env =
+    (dbe-correct e₁ Δᵤ env _)
+    (dbe-correct e₂ Δᵤ env _)
+dbe-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ env H =
     eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₂ Δ₁ Δ₂ (dbe e₂))) env
   ≡⟨ cong (λ e → eval e env) (renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
     eval (renameExpr Δ₂ Δᵤ _ (dbe e₂)) env
@@ -176,10 +184,10 @@ dbe-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ
     eval (dbe e₂) (prjEnv Δ₂ Δᵤ _ env)
   ≡⟨ sym (renameExpr-preserves (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂) env) ⟩
     eval (renameExpr (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂)) env
-  ≡⟨ dbe-correct e₂ (Drop Δᵤ) _ env ⟩
+  ≡⟨ dbe-correct e₂ (Drop Δᵤ) env _ ⟩
     evalLive (Drop Δᵤ) e₂ env _
   ∎
-dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ H env =
+dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ env H =
     eval
       (renameExpr (Keep (Δ₁ ∪ Δ₂)) (Keep Δᵤ) _ (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) _ (dbe e₂)))
       (Cons (eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₁ Δ₁ Δ₂ (dbe e₁))) env) env)
@@ -194,24 +202,23 @@ dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ H env =
       (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
       (Cons (eval (renameExpr Δ₁ Δᵤ _ (dbe e₁)) env) env)
   ≡⟨ cong (λ v → eval (renameExpr (Keep Δ₂) (Keep Δᵤ) (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H) (dbe e₂)) (Cons v env))
-      (dbe-correct e₁ Δᵤ _ env) ⟩
+      (dbe-correct e₁ Δᵤ env _) ⟩
     eval
       (renameExpr (Keep Δ₂) (Keep Δᵤ) _ (dbe e₂))
       (Cons (evalLive Δᵤ e₁ env _) env)
-  ≡⟨ dbe-correct e₂ (Keep Δᵤ) _ (Cons (evalLive Δᵤ e₁ env _) env) ⟩
+  ≡⟨ dbe-correct e₂ (Keep Δᵤ) (Cons (evalLive Δᵤ e₁ env _) env) _ ⟩
     evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ env _) env) _
   ∎
-dbe-correct (Var x) Δᵤ H env =
-  lemma-lookupLive x Δᵤ H env
+dbe-correct (Var x) Δᵤ env H =
+  lemma-lookupLive x Δᵤ env H
   where
-    lemma-lookupLive : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) → .(H : sing Δ x ⊆ Δᵤ) → (env : Env ⌊ Δᵤ ⌋) →
+    lemma-lookupLive : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) → (env : Env ⌊ Δᵤ ⌋) → .(H : sing Δ x ⊆ Δᵤ) →
       lookup (renameVar (sing Δ x) Δᵤ H (sing-ref Δ x)) env ≡ lookupLive Δ Δᵤ x env H
-    lemma-lookupLive {σ} {[]} {Empty} () Δᵤ H env
-    lemma-lookupLive {σ} {τ ∷ Γ} {Drop Δ} x (Drop Δᵤ) H env = lemma-lookupLive x Δᵤ H env
-    lemma-lookupLive {σ} {τ ∷ Γ} {Drop Δ} x (Keep Δᵤ) H (Cons v env) = lemma-lookupLive x Δᵤ H env
-    lemma-lookupLive {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Drop Δᵤ) H env = lemma-lookupLive x Δᵤ H env
-    lemma-lookupLive {.τ} {τ ∷ Γ} {Keep Δ} Top (Keep Δᵤ) H (Cons v env) = refl
-    lemma-lookupLive {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) H (Cons v env) = lemma-lookupLive x Δᵤ H env
+    lemma-lookupLive {Δ = Drop Δ} x (Drop Δᵤ) env H = lemma-lookupLive x Δᵤ env H
+    lemma-lookupLive {Δ = Drop Δ} x (Keep Δᵤ) (Cons v env) H = lemma-lookupLive x Δᵤ env H
+    lemma-lookupLive {Δ = Keep Δ} (Pop x) (Drop Δᵤ) env H = lemma-lookupLive x Δᵤ env H
+    lemma-lookupLive {Δ = Keep Δ} Top (Keep Δᵤ) (Cons v env) H = refl
+    lemma-lookupLive {Δ = Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) H = lemma-lookupLive x Δᵤ env H
 
 optimize : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] (Expr ⌊ Δ' ⌋ σ)
 optimize Δ e = let Δ' , e' = analyse Δ e in Δ' , dbe e'
@@ -227,7 +234,7 @@ optimize-correct {Γ} Δ e env =
     eval (dbe le) (prjEnv Δ' Δ H env)
   ≡⟨ cong (λ e → eval e (prjEnv Δ' Δ H env)) (sym (renameExpr-id Δ' (dbe le))) ⟩
     eval (renameExpr Δ' Δ' (⊆-refl Δ') (dbe le)) (prjEnv Δ' Δ H env)
-  ≡⟨ dbe-correct le Δ' (⊆-refl Δ') (prjEnv Δ' Δ H env) ⟩  -- eval . dbe ≡ evalLive
+  ≡⟨ dbe-correct le Δ' (prjEnv Δ' Δ H env) (⊆-refl Δ') ⟩  -- eval . dbe ≡ evalLive
     evalLive Δ' le (prjEnv Δ' Δ H env) (⊆-refl Δ')
   ≡⟨ evalLive-correct le Δ' env (⊆-refl Δ') H ⟩  -- evalLive ≡ eval . forget
     eval (forget le) env
