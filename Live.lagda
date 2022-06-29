@@ -70,12 +70,11 @@ analyse-preserves (Var x) = refl
 
 -- Now let's try to define a semantics for LiveExpr...
 lookupLive : (Δ Δᵤ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Env ⌊ Δᵤ ⌋ → .(sing Δ x ⊆ Δᵤ) → ⟦ σ ⟧
-lookupLive {[]} Empty Δᵤ () env H
-lookupLive {τ ∷ Γ} (Drop Δ) (Drop Δᵤ) x env H = lookupLive Δ Δᵤ x env H
-lookupLive {τ ∷ Γ} (Drop Δ) (Keep Δᵤ) x (Cons v env) H = lookupLive Δ Δᵤ x env H
-lookupLive {τ ∷ Γ} (Keep Δ) (Drop Δᵤ) (Pop x) env H = lookupLive Δ Δᵤ x env H
-lookupLive {τ ∷ Γ} (Keep Δ) (Keep Δᵤ) Top (Cons v env) H = v
-lookupLive {τ ∷ Γ} (Keep Δ) (Keep Δᵤ) (Pop x) (Cons v env) H = lookupLive Δ Δᵤ x env H
+lookupLive (Drop Δ) (Drop Δᵤ) x env H = lookupLive Δ Δᵤ x env H
+lookupLive (Drop Δ) (Keep Δᵤ) x (Cons v env) H = lookupLive Δ Δᵤ x env H
+lookupLive (Keep Δ) (Drop Δᵤ) (Pop x) env H = lookupLive Δ Δᵤ x env H
+lookupLive (Keep Δ) (Keep Δᵤ) Top (Cons v env) H = v
+lookupLive (Keep Δ) (Keep Δᵤ) (Pop x) (Cons v env) H = lookupLive Δ Δᵤ x env H
 \end{code}
 
 \newcommand{\CodeLiveEvalLive}{%
