@@ -140,8 +140,9 @@ avoids the need for functions as values.
 \Todo{unify code listings (syntax highlighting, font, ...)}
 \Todo{more context? E.g. how some representations are error-prone/partial?}
 
-In Agda, the type of expressions $\I{Expr}$ is indexed by its return type ($\sigma : \I{U}$)
-and context ($\Gamma : \I{Ctx}$).
+In Agda, the type of expressions \AgdaDatatype{Expr} is indexed by
+its return type ($\sigma : \AgdaDatatype{U}$)
+and context ($\Gamma : \AgdaDatatype{Ctx}$).
 
 Each free variable is a de Bruijn index into the context and acts as a proof that
 the context contains an element of the matching type.
@@ -189,12 +190,12 @@ For each element of a context, a sub-context specifies whether to keep it or not
 
 \CodeSubsetSubset
 
-We can then define a subset-like order $\subseteq$:
+We can then define a subset-like order \AgdaFunction{$\subseteq$}:
 
 \CodeSubsetOpSubseteq
 
 \Draft{Dealing with these sub-contexts simplifies proofs}
-For example, the witnesses of $\subseteq$ on sub-contexts are unique,
+For example, the witnesses of \AgdaFunction{$\subseteq$} on sub-contexts are unique,
 as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
 % WOUTER - I'm not sure I understand this remark.. you haven't defined
 % subseteq, which makes it a bit confusing.  Perhaps it suffices to
@@ -202,17 +203,19 @@ as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, 
 % why this representation?
 \Todo{Clarify this?}
 
+% TODO: highlighting and spacing of \Floor is off
 From now on, we will only consider expressions
-$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
-Initially, we take $\Delta = \I{all}\ \Gamma : \I{Subset}\ \Gamma$,
+$\AgdaDatatype{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
+Initially, we take $\Delta = \AgdaFunction{all}\ \Gamma : \AgdaDatatype{Subset}\ \Gamma$,
 the complete sub-context of the original context.
 
 
 \subsection{Live Variable Analysis}
 
 Now we can annotate each expression with its \emph{live variables},
-the sub-context $\Delta' \subseteq \Delta$ that is really used.
-To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'\ \tau$.
+the sub-context $\Delta'$ that is really used.
+To that end, we define annotated expressions
+$\AgdaDatatype{LiveExpr}\ \Delta\ \Delta'\ \tau$.
 While $\Delta$ is treated as $\Gamma$ before, $\Delta'$ now only contains live variables,
 starting with a singleton sub-context at the variable usage sites.
 
@@ -220,7 +223,7 @@ starting with a singleton sub-context at the variable usage sites.
 
 To create such annotated expressions, we need to perform
 some static analysis of our source programs.
-The function \I{analyse} computes the live sub-context $\Delta'$
+The function \AgdaFunction{analyse} computes the live sub-context $\Delta'$
 together with a matching annotated expression.
 
 \CodeLiveAnalyse
@@ -234,9 +237,9 @@ The only requirement we have for it is that we can forget the annotations again.
 
 \subsection{Dead Binding Elimination}
 
-Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
+Note that we can evaluate \AgdaDatatype{LiveExpr} directly, with the main difference
 %WOUTER - scrap 'with' in the line above?
-that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+that in the \AgdaInductiveConstructor{Let}-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
 
@@ -244,7 +247,7 @@ Another important detail is that evaluation works under any environment containi
 
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
-The implementation simply maps each constructor to its counterpart in \I{Expr},
+The implementation simply maps each constructor to its counterpart in \AgdaDatatype{Expr},
 with some renaming
 (e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$)
 and the abovementioned case distinction.
@@ -252,31 +255,34 @@ and the abovementioned case distinction.
 \CodeLiveDbe
 \CodeLiveRestrictedRefSignature
 
-As opposed to \I{forget}, which stays in the original context,
+As opposed to \AgdaFunction{forget}, which stays in the original context,
 here we remove unused variables, only keeping $\Floor{\Delta'}$.
 
 
 \subsection{Correctness}
 
 We want to show that dead binding elimination preserves semantics:
-$\I{eval} \circ \I{dbe} \circ \I{analyse} \equiv \I{eval}$.
-Since we know that $\I{forget} \circ \I{analyse} \equiv \I{id}$,
+$\AgdaFunction{eval} \circ \AgdaFunction{dbe} \circ \AgdaFunction{analyse} \equiv \AgdaFunction{eval}$.
+Since we know that $\AgdaFunction{forget} \circ \AgdaFunction{analyse} \equiv \AgdaFunction{id}$,
 it is sufficient to show the following:
 
 \begin{align*}
-  \I{eval} \circ \I{dbe} \equiv \I{eval} \circ \I{forget}
+  \AgdaFunction{eval} \circ \AgdaFunction{dbe}
+    \equiv \AgdaFunction{eval} \circ \AgdaFunction{forget}
 \end{align*}
 
 The proof gets simpler if we split it up using the optimised semantics.
 
 \begin{align*}
-  \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
+  \AgdaFunction{eval} \circ \AgdaFunction{dbe}
+    \equiv \AgdaFunction{evalLive}
+    \equiv \AgdaFunction{eval} \circ \AgdaFunction{forget}
 \end{align*}
 
 The actual proof statements are more involved,
 since they quantify over the expression and environment used.
-As foreshadowed in the definition of \I{evalLive}, the statements are also generalised
-to evaluation under any $\I{Env}\ \Floor{\Delta_u}$,
+As foreshadowed in the definition of \AgdaFunction{evalLive}, the statements are also generalised
+to evaluation under any $\AgdaDatatype{Env}\ \Floor{\Delta_u}$,
 as long as it contains the live sub-centext.
 This gives us more flexibility when using the inductive hypothesis.
 
@@ -284,7 +290,8 @@ This gives us more flexibility when using the inductive hypothesis.
 \CodeLiveEvalLiveCorrectSignature
 
 Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
-The interesting one is again \I{Let}, where we split cases on the variable being used or not
+The interesting one is again \AgdaInductiveConstructor{Let},
+where we split cases on the variable being used or not
 and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \Todo{More details? E.g. about using irrelevant arguments?}
