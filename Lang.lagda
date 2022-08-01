@@ -20,17 +20,28 @@ data U : Set where
 \newcommand{\CodeLangCtx}{%
 \begin{code}
 Ctx = List U
+
+variable
+  Γ : Ctx
+  σ τ : U
+\end{code}}
+
+\newcommand{\CodeLangEnv}{%
+\begin{code}
+data Env : Ctx → Set where
+  Nil   : Env []
+  Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
 \end{code}}
 
 \newcommand{\CodeLangRef}{%
 \begin{code}
-variable
-  Γ : Ctx
-  σ τ : U
-
 data Ref (σ : U) : Ctx → Set where
   Top  : Ref σ (σ ∷ Γ)
   Pop  : Ref σ Γ → Ref σ (τ ∷ Γ)
+
+lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
+lookup Top      (Cons v env)   = v
+lookup (Pop i)  (Cons v env)   = lookup i env
 \end{code}}
 
 \newcommand{\CodeLangExpr}{%
@@ -44,14 +55,6 @@ data Expr (Γ : Ctx) : (σ : U) → Set where
 
 \newcommand{\CodeLangSemantics}{%
 \begin{code}
-data Env : Ctx → Set where
-  Nil   : Env []
-  Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
-
-lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
-lookup Top      (Cons v env)   = v
-lookup (Pop i)  (Cons v env)   = lookup i env
-
 eval : Expr Γ σ → Env Γ → ⟦ σ ⟧
 eval (Val v)       env  = v
 eval (Plus e₁ e₂)  env  = eval e₁ env + eval e₂ env

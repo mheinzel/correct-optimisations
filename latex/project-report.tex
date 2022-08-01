@@ -14,12 +14,9 @@
 
 %\newcommand{\Draft}[1]{}
 %\newcommand{\Todo}[1]{}
-\newcommand{\Draft}[1]{{\color{gray}(#1)}}
+\newcommand{\Draft}[1]{\todo[inline,bordercolor=gray,textcolor=gray,backgroundcolor=gray!20]{#1}}
 \newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
 
-\newcommand{\I}[1]{\texttt{#1}\xspace}
-\newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
-\newcommand{\Interpret}[1]{\llbracket #1 \rrbracket\xspace}
 \newcommand{\Floor}[1]{\lfloor #1 \rfloor\xspace}
 \newcommand{\Existential}[2]{\Sigma[ #1 \in #2 ]\xspace}
 
@@ -54,6 +51,8 @@
 \include{generated/Recursion}
 \include{generated/Live}
 
+\newcommand{\AgdaFloor}[1]{\AgdaFunction{$\lfloor$}\AgdaSpace{}#1\AgdaSpace{}\AgdaFunction{$\rfloor$}}
+
 \title{Provingly Correct Optimizations in an Intrinsically Typed Compiler\\
   \vspace{1cm}
   \large Experimentation Project Report}
@@ -64,15 +63,16 @@
 
 \maketitle
 \tableofcontents
-
+\pagebreak
 
 \section{Introduction}
-% TODO: make this more high-level and move citations to other sections?
+% MAYBE: make this more high-level and move citations to other sections?
 
 When writing a compiler for a functional programming language,
 an important consideration is the treatment of binders and variables.
-%\Draft{many possible representations (string, de Bruijn)}
-%\Draft{naive implementation is not scope-safe, therefore partial}
+% MAYBE:
+% \Draft{many possible representations (string, de Bruijn)}
+% \Draft{naive implementation is not scope-safe, therefore partial}
 A well-known technique when using dependently typed programming languages such as Agda
 \cite{norell2007agda}
 is to define an intrinsically typed syntax tree,
@@ -84,7 +84,7 @@ basic operations like renaming and substitution
 as well as compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
-% MATTHIAS - re-order this paragraph, so it connects more neatly to the previous one?
+% MAYBE: re-order this paragraph, so it connects more neatly to the previous one?
 Optimisations play an important role in compilers, but
 establishing their correctness is often not trivial,
 with ample opportunity for mistakes.
@@ -93,38 +93,33 @@ However, there has been little focus on performing optimisations on intrinsicall
 In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
 but provide a proof witness that the optimisation is safe,
 e.g. that some dead code is indeed not used.
-For \emph{transformations} on intrinsically typed programs,
-the programmer can rely on the compiler to check the relevant invariants,
+For the \emph{transformation} of the intrinsically typed program,
+the programmer can then rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
 especially when manipulating binders and variables.
 
+% MAYBE:
 % WOUTER - you may want to cite Graham's (draft) paper - it's as easy
 % as 1,2,3 that argues that studying semantics is best done in a
 % setting that is as simple as possible.
 As a first step towards a more general treatment of optimisations of intrinsically typed programs,
 we present an implementation of \emph{dead binding elimination} for a simple language.
-It is implemented by first annotating expressions with variable usage information
-and then removing bindings that turn out to be unused.
+It starts by annotating expressions with variable usage information
+and then removes bindings that turn out to be unused.
 We further prove that the optimisation is semantics-preserving.
 The Agda source code is available online at
 \url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}.
+% TODO: different URL?
 
 \section{A Simple Expression Language}
 
 \subsection{Expressions with Bindings}
 
-We define a simple typed expression language with let-bindings,
+We define a simple, typed expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
 Since the optimisations we are interested in relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
 Extending the language with further values and operators is trivial.
-
-Expressions can be bound to a variable $v$ using the $\textbf{let}$ construction.
-This gives us a language similar to the simply typed $\lambda$-calculus,
-with $\textbf{let } x = P \textbf{ in } Q$ corresponding to $(\lambda x. Q) P$.
-Forcing $\lambda$-abstraction and application to occur together
-simplifies parts of the analysis and
-avoids the need for functions as values.
 
 \begin{align*}
   P, Q ::=&\ v
@@ -133,30 +128,42 @@ avoids the need for functions as values.
   \\ \big|&\ x
 \end{align*}
 
-\Todo{say something generally about open/closed terms and de Bruijn indices?}
+Expressions can be bound to a variable $v$ using the $\textbf{let}$ construction.
+Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
+where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q) P$.
+Encapsulating this pattern as $\textbf{let } x = P \textbf{ in } Q$
+simplifies parts of the analysis and
+avoids the need for allowing functions as values.
+
+\Todo{say something generally about open/closed terms etc.?}
 
 \subsection{Intrinsically Typed Syntax Trees}
 
-\Todo{unify code listings (syntax highlighting, font, ...)}
+In Agda, \ldots
+
 \Todo{more context? E.g. how some representations are error-prone/partial?}
-
-In Agda, the type of expressions \AgdaDatatype{Expr} is indexed by
-its return type ($\sigma : \AgdaDatatype{U}$)
-and context ($\Gamma : \AgdaDatatype{Ctx}$).
-
-Each free variable is a de Bruijn index into the context and acts as a proof that
-the context contains an element of the matching type.
-We can see how the context changes when introducing a new binding:
 
 \CodeLangTypes
 
+\Draft{de Bruijn}
 \Draft{open vs. closed terms}
 
 \CodeLangCtx
 
-\Draft{de Bruijn}
+\CodeLangEnv
+
+Each free variable is a de Bruijn index into the context and acts as a proof that
+the environment contains an element of the matching type,
+so a $\AgdaDatatype{Ref}\ \sigma\ \Gamma$ always allows us to extract
+a value of type $\sigma$ from $\AgdaDatatype{Env}\ \Gamma$:
 
 \CodeLangRef
+
+The type of expressions \AgdaDatatype{Expr} is indexed by both
+its return type ($\sigma : \AgdaDatatype{U}$)
+and context ($\Gamma : \AgdaDatatype{Ctx}$).
+We can see how the context changes when introducing a new binding
+available in the body of a \AgdaInductiveConstructor{Let}:
 
 \CodeLangExpr
 
@@ -168,7 +175,7 @@ using an environment matching the context:
 \Draft{This is total, because \ldots}
 
 
-\section{Live Variable Analysis}
+\section{Dead Binding Elimination}
 
 Note that an expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new element into the context, but it might never be used.
@@ -196,16 +203,15 @@ We can then define a subset-like order \AgdaFunction{$\subseteq$}:
 
 \Draft{Dealing with these sub-contexts simplifies proofs}
 For example, the witnesses of \AgdaFunction{$\subseteq$} on sub-contexts are unique,
-as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+as opposed to working on contexts directly, e.g. $[\texttt{INT}] \subseteq [\texttt{INT}, \texttt{INT}]$.
 % WOUTER - I'm not sure I understand this remark.. you haven't defined
 % subseteq, which makes it a bit confusing.  Perhaps it suffices to
 % note that these Subsets determine a unique sub-context?
 % why this representation?
 \Todo{Clarify this?}
 
-% TODO: highlighting and spacing of \Floor is off
 From now on, we will only consider expressions
-$\AgdaDatatype{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
+$\AgdaDatatype{Expr}\ \AgdaFloor{\Delta}\ \tau$ in some sub-context.
 Initially, we take $\Delta = \AgdaFunction{all}\ \Gamma : \AgdaDatatype{Subset}\ \Gamma$,
 the complete sub-context of the original context.
 
@@ -235,7 +241,7 @@ The only requirement we have for it is that we can forget the annotations again.
 \CodeLiveAnalysePreservesSignature
 
 
-\subsection{Dead Binding Elimination}
+\subsection{Transformation}
 
 Note that we can evaluate \AgdaDatatype{LiveExpr} directly, with the main difference
 %WOUTER - scrap 'with' in the line above?
@@ -249,14 +255,14 @@ This \emph{optimised semantics} shows that we can do a similar program transform
 and will be useful in its correctness proof.
 The implementation simply maps each constructor to its counterpart in \AgdaDatatype{Expr},
 with some renaming
-(e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$)
+(e.g. from \AgdaFloor{$\Delta_1$} to \AgdaFloor{$\Delta_1$ \AgdaFunction{$\cup$} $\Delta_2$})
 and the abovementioned case distinction.
 
 \CodeLiveDbe
 \CodeLiveRestrictedRefSignature
 
 As opposed to \AgdaFunction{forget}, which stays in the original context,
-here we remove unused variables, only keeping $\Floor{\Delta'}$.
+here we remove unused variables, only keeping \AgdaFloor{$\Delta'$}.
 
 
 \subsection{Correctness}
