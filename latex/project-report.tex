@@ -128,62 +128,92 @@ Extending the language with further values and operators is trivial.
   \\ \big|&\ x
 \end{align*}
 
-Expressions can be bound to a variable $v$ using the $\textbf{let}$ construction.
+Expressions can be bound to a variable $x$ using the $\textbf{let}$ construction.
 Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
 where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q) P$.
 Encapsulating this pattern as $\textbf{let } x = P \textbf{ in } Q$
 simplifies parts of the analysis and
 avoids the need for allowing functions as values.
 
-\Todo{say something generally about open/closed terms etc.?}
+% MAYBE: say something generally about open/closed terms etc.?
+
+
+\subsection{Representing variables}
+
+The syntax specified above treats variables as letters, or more generally strings.
+To prevent complications with bindings of the same variable name shadowing each other
+and to make equality of terms independent of the specific names chosen
+(\emph{$\alpha$-equivalence}),
+compilers often represent variables in a different way.
+A popular choice are \emph{de Bruijn indices},
+where each variable is represented by a natural number,
+counting the number of bindings inbetween variable occurence and its binding:
+$0$ refers to the innermost binding, $1$ to the next-innermost etc.
+
+Still, there might be \emph{free variables},
+where the de Bruijn index is larger than the number of bindings it has access to
+(\emph{in scope}).
+If this happens unexpectedly during evaluation, an error is raised.
+Similarly, the type of a bound expression might not match the expected type at the variable occurence
+where it is referenced.
+This makes the evaluation function partial;
+it should only be called after validating type and scope safety.
+
 
 \subsection{Intrinsically Typed Syntax Trees}
 
-In Agda, \ldots
-
-\Todo{more context? E.g. how some representations are error-prone/partial?}
+When implementing a compiler in a dependently typed programming language,
+one does not need to accept partiality and the need for human vigilance.
+With \emph{intrinsically typed syntax trees}, type and scope safety invariants
+are specified on the type level and verified by the type checker.
+We will demonstrate the approach in Agda and start by defining the types that terms can have.
 
 \CodeLangTypes
 
-\Draft{de Bruijn}
-\Draft{open vs. closed terms}
+To know if a variable occurence is valid, we must consider its \emph{context},
+the bindings that are in scope.
+With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
+In a typed settings, we also need to know the type of each binding,
+so we represent the context by a list of types: One for each binding in scope, from innermost to outermost.
 
 \CodeLangCtx
 
+During evaluation, each variable in scope has a value.
+Together, we call these an \emph{environment} in a given context.
+
 \CodeLangEnv
 
-Each free variable is a de Bruijn index into the context and acts as a proof that
-the environment contains an element of the matching type,
-so a $\AgdaDatatype{Ref}\ \sigma\ \Gamma$ always allows us to extract
-a value of type $\sigma$ from $\AgdaDatatype{Env}\ \Gamma$:
+A variable then is an index into its context,
+also guaranteeing that its type matches that of the binding.
+Since variable $\AgdaDatatype{Ref}\ \sigma\ \Gamma$ acts as a proof that
+the environment $\AgdaDatatype{Env}\ \Gamma$ contains an element of the matching type $\sigma$,
+variable lookup is total.
 
 \CodeLangRef
 
-The type of expressions \AgdaDatatype{Expr} is indexed by both
-its return type ($\sigma : \AgdaDatatype{U}$)
+Now we can define intrinsically typed expressions,
+where an \AgdaDatatype{Expr} is indexed by both
+its type ($\sigma : \AgdaDatatype{U}$)
 and context ($\Gamma : \AgdaDatatype{Ctx}$).
 We can see how the context changes when introducing a new binding
-available in the body of a \AgdaInductiveConstructor{Let}:
+available in the body of a \AgdaInductiveConstructor{Let}.
 
 \CodeLangExpr
 
 This allows the definition of a total evaluator
-using an environment matching the context:
+using an environment matching the context.
 
 \CodeLangSemantics
-
-\Draft{This is total, because \ldots}
 
 
 \section{Dead Binding Elimination}
 
 Note that an expression is not forced to make use of the whole context to which it has access.
-Specifically, a let-binding introduces a new element into the context, but it might never be used.
-\Draft{
-We to annotate terms with variables actually used,
-then remove unused bindings
-}
-\cite{nielsen1999analysis}
+Specifically, a let-binding introduces a new element into the context, but it might never be used
+in the body.
+One commonly wants to identy such unused bindings so they can be removed from the program
+\cite[Live Variable Analysis]{nielsen1999analysis}.
+To that end, we annotate terms with the subset of its context that they actually use.
 
 \subsection{Subsets of a Context}
 
@@ -243,11 +273,13 @@ The only requirement we have for it is that we can forget the annotations again.
 
 \subsection{Transformation}
 
-Note that we can evaluate \AgdaDatatype{LiveExpr} directly, with the main difference
-%WOUTER - scrap 'with' in the line above?
-that in the \AgdaInductiveConstructor{Let}-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+Note that we can evaluate \AgdaDatatype{LiveExpr} directly,
+almost identically to the previous \AgdaFunction{eval} function.
+The main difference is in the \AgdaInductiveConstructor{Let}-case,
+where we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
+% MAYBE: This avoids projecting the environment at each constructur, e.g. ...
 
 \CodeLiveEvalLive
 
@@ -311,7 +343,6 @@ While in our simple setting all these bindings could be identified in a single p
 using \emph{strong live variable analysis},
 in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
 
-% NOTE: number of iterations not statically known
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
 We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
