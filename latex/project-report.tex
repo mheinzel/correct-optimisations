@@ -339,8 +339,14 @@ Both proofs work inductively on the expression, with most cases being a straight
 The interesting one is again \AgdaInductiveConstructor{Let},
 where we split cases on the variable being used or not
 and need some auxiliary facts about evaluation, renaming and sub-contexts.
+% MAYBE: more details?
 
-\Todo{More details? E.g. about using irrelevant arguments?}
+An important detail is that the \AgdaFunction{$\subseteq$} proofs
+are \emph{irrelevant arguments}, indicated by the preceding dot.
+This is possible since their witnesses are unique
+and makes it clear to the Agda type checker that e.g.
+$\AgdaFunction{prjEnv}\ \Delta'\ \Delta\ H$ and
+$\AgdaFunction{prjEnv}\ \Delta'\ \Delta\ H'$ are equal.
 
 
 \subsection{Iterating the Analysis}
