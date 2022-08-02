@@ -251,7 +251,6 @@ conceptually accumulating all defined variables top-down.
 On the other hand, $\Delta'$ accumulates used variables bottom-up,
 starting with a singleton sub-context at the variable occurences.
 
-% TODO: formatting of with-clause
 \CodeLiveExpr
 
 To create such annotated expressions, we need to perform
@@ -259,6 +258,9 @@ some static analysis of our source programs.
 The function \AgdaFunction{analyse} computes the live sub-context $\Delta'$
 together with a matching annotated expression.
 
+% Horizontal bars in with-abstraction are broken...
+% https://tex.stackexchange.com/questions/193216/vertical-bar-turning-horizontal
+% Can be fixed in latex/generated/Live.tex with :%s/\\AgdaSymbol{|}/\\AgdaSymbol{\\textbar}/g
 \CodeLiveAnalyse
 
 The only requirement we have for it is that we can forget the annotations again.

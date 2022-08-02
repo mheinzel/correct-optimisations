@@ -19,10 +19,20 @@ open import Recursion
 \newcommand{\CodeLiveExpr}{%
 \begin{code}
 data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
-  Val : ⟦ σ ⟧ → LiveExpr Δ ∅ σ
-  Plus : LiveExpr Δ Δ₁ NAT → LiveExpr Δ Δ₂ NAT → LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
-  Let : LiveExpr Δ Δ₁ σ → LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ → LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
-  Var : (x : Ref σ ⌊ Δ ⌋) → LiveExpr Δ (sing Δ x) σ
+  Val :
+    ⟦ σ ⟧ →
+    LiveExpr Δ ∅ σ
+  Plus :
+    LiveExpr Δ Δ₁ NAT →
+    LiveExpr Δ Δ₂ NAT →
+    LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
+  Let :
+    LiveExpr Δ Δ₁ σ →
+    LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ →
+    LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
+  Var :
+    (x : Ref σ ⌊ Δ ⌋) →
+    LiveExpr Δ (sing Δ x) σ
 \end{code}}
 
 \newcommand{\CodeLiveForgetSignature}{%
@@ -40,7 +50,7 @@ forget (Var x) = Var x
 \newcommand{\CodeLiveAnalyse}{%
 \begin{code}
 -- decide which variables are used or not
-analyse : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] LiveExpr Δ Δ' σ
+analyse : ∀ Δ → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] LiveExpr Δ Δ' σ
 analyse Δ (Val v) = ∅ , Val v
 analyse Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , Plus le₁ le₂
@@ -79,7 +89,7 @@ lookupLive (Keep Δ) (Keep Δᵤ) (Pop x) (Cons v env) H = lookupLive Δ Δᵤ x
 
 \newcommand{\CodeLiveEvalLive}{%
 \begin{code}
-evalLive : (Δᵤ : Subset Γ) → LiveExpr Δ Δ' τ → Env ⌊ Δᵤ ⌋ → .(Δ' ⊆ Δᵤ) → ⟦ τ ⟧
+evalLive : ∀ Δᵤ → LiveExpr Δ Δ' τ → Env ⌊ Δᵤ ⌋ → .(Δ' ⊆ Δᵤ) → ⟦ τ ⟧
 evalLive Δᵤ (Val v) env H = v
 evalLive Δᵤ (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
     evalLive Δᵤ e₁ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H)
