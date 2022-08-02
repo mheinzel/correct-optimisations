@@ -251,13 +251,16 @@ the complete sub-context of the original context.
 
 \subsection{Live Variable Analysis}
 
-Now we can annotate each expression with its \emph{live variables},
+The next step is to annotate each expression with its \emph{live variables},
 the sub-context $\Delta'$ that is really used.
 To that end, we define annotated expressions
 $\AgdaDatatype{LiveExpr}\ \Delta\ \Delta'\ \tau$.
-While $\Delta$ is treated as $\Gamma$ before, $\Delta'$ now only contains live variables,
-starting with a singleton sub-context at the variable usage sites.
+Note that $\Delta$ is treated as $\Gamma$ before,
+conceptually accumulating all defined variables top-down.
+On the other hand, $\Delta'$ accumulates used variables bottom-up,
+starting with a singleton sub-context at the variable occurences.
 
+% TODO: formatting of with-clause
 \CodeLiveExpr
 
 To create such annotated expressions, we need to perform
