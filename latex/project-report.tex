@@ -376,14 +376,20 @@ The overall correctness follows directly from the correctness of each individual
 
 \subsection{Extending the Language}
 
-While our language only contains let-bindings,
-one might want to show that our work is also applicable to languages with $\lambda$-abstractions.
+Since our language only contains let-bindings,
+it might be of interest to extend it with $\lambda$-abstractions
+(forming a simply-typed $\lambda$-calculus).
+Some increase in complexity seems necessary to eliminate applications of
+functions that do not use their argument,
+but we hope that our work is still largely applicable.
+The problem gets more challenging when introducing recursive bindings.
+Conversely, adding sum and product types might require more extensive bookkeeping,
+but should not pose fundamental difficulties.
 
-\Todo{brief look at recursion, data types etc.?}
 
 \subsection{Other Analyses}
 
-Furthermore, there are several other binding-related transformations to explore,
+There are several other binding-related transformations to explore,
 such as moving bindings up or down in the syntax tree.
 Another interesting type of optimisation is avoidance of redundant computations
 using \emph{available expression analysis}.
@@ -393,8 +399,6 @@ where subexpressions get replaced by variables bound to equivalent declarations
 
 Ideally, further exploration will lead to the discovery of common patterns
 and useful strategies for performing optimisations on intrinsically typed syntax trees.
-
-\Todo{Generally, keep this about optimisations sepcifically, or relax to transformation/manipulation?}
 
 
 \bibliographystyle{plain}
