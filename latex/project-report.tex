@@ -66,13 +66,11 @@
 \pagebreak
 
 \section{Introduction}
+% MAYBE: Use "I" instead of "we"?
 % MAYBE: make this more high-level and move citations to other sections?
 
-When writing a compiler for a functional programming language,
+When writing a compiler for a programming language,
 an important consideration is the treatment of binders and variables.
-% MAYBE:
-% \Draft{many possible representations (string, de Bruijn)}
-% \Draft{naive implementation is not scope-safe, therefore partial}
 A well-known technique when using dependently typed programming languages such as Agda
 \cite{norell2007agda}
 is to define an intrinsically typed syntax tree,
@@ -84,11 +82,11 @@ basic operations like renaming and substitution
 as well as compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
-% MAYBE: re-order this paragraph, so it connects more neatly to the previous one?
-Optimisations play an important role in compilers, but
-establishing their correctness is often not trivial,
+Performing optimisations on intrinsically typed programs, on the other hand,
+has not seen as much focus.
+However, optimisations play an important role in compilers
+and establishing their correctness is often not trivial,
 with ample opportunity for mistakes.
-However, there has been little focus on performing optimisations on intrinsically typed programs.
 %
 In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
 but provide a proof witness that the optimisation is safe,
@@ -98,18 +96,13 @@ the programmer can then rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
 especially when manipulating binders and variables.
 
-% MAYBE:
-% WOUTER - you may want to cite Graham's (draft) paper - it's as easy
-% as 1,2,3 that argues that studying semantics is best done in a
-% setting that is as simple as possible.
-As a first step towards a more general treatment of optimisations of intrinsically typed programs,
+As a step towards a more general treatment of optimisations of intrinsically typed programs,
 we present an implementation of \emph{dead binding elimination} for a simple language.
-It starts by annotating expressions with variable usage information
+It first annotates expressions with variable usage information
 and then removes bindings that turn out to be unused.
 We further prove that the optimisation is semantics-preserving.
 The Agda source code is available online at
 \url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}.
-% TODO: different URL?
 
 \section{A Simple Expression Language}
 
@@ -134,8 +127,6 @@ where $\lambda$-abstraction and application can only occur together as $(\lambda
 Encapsulating this pattern as $\textbf{let } x = P \textbf{ in } Q$
 simplifies parts of the analysis and
 avoids the need for allowing functions as values.
-
-% MAYBE: say something generally about open/closed terms etc.?
 
 
 \subsection{Representing variables}
@@ -284,8 +275,15 @@ almost identically to the previous \AgdaFunction{eval} function.
 The main difference is in the \AgdaInductiveConstructor{Let}-case,
 where we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we can directly evaluate the body, ignoring the bound declaration.
-Another important detail is that evaluation works under any environment containing (at least) the live context.
-% MAYBE: This avoids projecting the environment at each constructur, e.g. ...
+
+Another important detail is that evaluation works under an environment
+for any sub-context $\Delta_u$
+containing (at least) the used variables $\Delta'$.
+Requiring an $\AgdaDatatype{Env}\ \AgdaFloor{\Delta}$ would force us
+to provide a value even for unused variables.
+Fixing it to exactly $\AgdaDatatype{Env}\ \AgdaFloor{\Delta'}$, however,
+would make it necessary to project the environment for each recursive call,
+since the subexpressions generally only use parts of the context.
 
 \CodeLiveEvalLive
 
