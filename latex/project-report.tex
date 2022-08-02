@@ -279,28 +279,30 @@ The only requirement we have for it is that we can forget the annotations again.
 
 \subsection{Transformation}
 
-Note that we can evaluate \AgdaDatatype{LiveExpr} directly,
+It is useful to consider that we can evaluate \AgdaDatatype{LiveExpr} directly,
 almost identically to the previous \AgdaFunction{eval} function.
 The main difference is in the \AgdaInductiveConstructor{Let}-case,
 where we match on $\Delta_2$ to distinguish whether the bound variable is live.
-If it is not, we directly evaluate the body, ignoring the bound declaration.
+If it is not, we can directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
 % MAYBE: This avoids projecting the environment at each constructur, e.g. ...
 
 \CodeLiveEvalLive
 
-This \emph{optimised semantics} shows that we can do a similar program transformation
-and will be useful in its correctness proof.
-The implementation simply maps each constructor to its counterpart in \AgdaDatatype{Expr},
-with some renaming
+This \emph{optimised semantics} hints at a similar program transformation
+and will be useful when proving it to be correct.
+The transformation simply maps each constructor to its counterpart in \AgdaDatatype{Expr},
+with some variable renaming
 (e.g. from \AgdaFloor{$\Delta_1$} to \AgdaFloor{$\Delta_1$ \AgdaFunction{$\cup$} $\Delta_2$})
-and the abovementioned case distinction.
+and the abovementioned case distinction,
+where we can omit unused bindings.
 
 \CodeLiveDbe
 \CodeLiveRestrictedRefSignature
 
-As opposed to \AgdaFunction{forget}, which stays in the original context,
-here we remove unused variables, only keeping \AgdaFloor{$\Delta'$}.
+As opposed to the type signature of \AgdaFunction{forget},
+which returns to the original context,
+in \AgdaFunction{dbe} we drop unused variables, only keeping \AgdaFloor{$\Delta'$}.
 
 
 \subsection{Correctness}
@@ -326,7 +328,7 @@ The proof gets simpler if we split it up using the optimised semantics.
 The actual proof statements are more involved,
 since they quantify over the expression and environment used.
 As foreshadowed in the definition of \AgdaFunction{evalLive}, the statements are also generalised
-to evaluation under any $\AgdaDatatype{Env}\ \Floor{\Delta_u}$,
+to evaluation under any $\AgdaDatatype{Env}\ \AgdaFloor{\Delta_u}$,
 as long as it contains the live sub-centext.
 This gives us more flexibility when using the inductive hypothesis.
 
