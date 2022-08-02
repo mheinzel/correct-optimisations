@@ -211,19 +211,20 @@ using an environment matching the context.
 Note that an expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new element into the context, but it might never be used
 in the body.
-One commonly wants to identy such unused bindings so they can be removed from the program
+One commonly wants to identify such unused bindings so they can be removed from the program
 \cite[Live Variable Analysis]{nielsen1999analysis}.
-To that end, we annotate terms with the subset of its context that they actually use.
+To that end, we annotate terms with the subset of their context that they actually use.
+
 
 \subsection{Subsets of a Context}
 
-To reason about the \emph{sub-contexts} that are live (actually used),
-we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
-For each element of a context, a sub-context specifies whether to keep it or not.
-
-\Draft{
-  Subset = Ctx + OPE
-}
+A \emph{sub-context} is not just any context.
+All its elements must come from the original context and we also require that their order is unchanged.
+This notion is known as a \emph{thinning} or \emph{order-preserving embedding} (OPE) \cite{chapman2009type}
+between the two contexts.
+We combine the sub-context with its OPE in a single data type \AgdaDatatype{Subset},
+which for each element of the context specifies whether to keep it or not.
+The uniquely determined sub-context can be extracted using \AgdaFunction{$\Floor{\_}$}.
 
 \CodeSubsetSubset
 
@@ -231,14 +232,16 @@ We can then define a subset-like order \AgdaFunction{$\subseteq$}:
 
 \CodeSubsetOpSubseteq
 
-\Draft{Dealing with these sub-contexts simplifies proofs}
-For example, the witnesses of \AgdaFunction{$\subseteq$} on sub-contexts are unique,
-as opposed to working on contexts directly, e.g. $[\texttt{INT}] \subseteq [\texttt{INT}, \texttt{INT}]$.
-% WOUTER - I'm not sure I understand this remark.. you haven't defined
-% subseteq, which makes it a bit confusing.  Perhaps it suffices to
-% note that these Subsets determine a unique sub-context?
-% why this representation?
-\Todo{Clarify this?}
+Dealing with \AgdaDatatype{Subset} simplifies our task, especially the correctness proofs.
+While an OPE itself could be used to express a similar relation between contexts,
+its inhabitants are not unique.
+For example, $\AgdaInductiveConstructor{[\ NAT\ ]}$
+can be embedded into $\AgdaInductiveConstructor{[\ NAT\ ,\ NAT\ ]}$
+either by keeping the first element or the second.
+This would complicate equality proofs on terms including witnesses of the relation.
+For similar reasons, it is unclear how we would want to define a union operator
+$\AgdaFunction{$\_\cup\_$} : \AgdaDatatype{Ctx} \to \AgdaDatatype{Ctx} \to \AgdaDatatype{Ctx}$,
+but it is trivial on \AgdaDatatype{Subset}s.
 
 From now on, we will only consider expressions
 $\AgdaDatatype{Expr}\ \AgdaFloor{\Delta}\ \tau$ in some sub-context.

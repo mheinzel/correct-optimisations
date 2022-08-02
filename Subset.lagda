@@ -21,6 +21,11 @@ data Subset : Ctx → Set where
 
 variable
   Δ Δ' Δ₁ Δ₂ : Subset Γ
+
+⌊_⌋ : Subset Γ → Ctx
+⌊ Empty ⌋              = []
+⌊ Drop Δ ⌋             = ⌊ Δ ⌋
+⌊ Keep {Γ} {τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 \end{code}}
 
 \begin{code}[hide]
@@ -38,11 +43,6 @@ Drop Δ₁ ∪ Drop Δ₂ = Drop (Δ₁ ∪ Δ₂)
 Drop Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
 Keep Δ₁ ∪ Drop Δ₂ = Keep (Δ₁ ∪ Δ₂)
 Keep Δ₁ ∪ Keep Δ₂ = Keep (Δ₁ ∪ Δ₂)
-
-⌊_⌋ : Subset Γ → Ctx
-⌊ Empty ⌋              = []
-⌊ Drop Δ ⌋             = ⌊ Δ ⌋
-⌊ Keep {τ = τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
 
 sing : (Δ : Subset Γ) → Ref τ ⌊ Δ ⌋ → Subset Γ
 sing (Drop Δ) x       = Drop (sing Δ x)
