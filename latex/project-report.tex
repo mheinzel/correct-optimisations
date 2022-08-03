@@ -25,6 +25,7 @@
 \newunicodechar{∀}{\ensuremath{\mathnormal\forall}}
 \newunicodechar{⊤}{\ensuremath{\mathnormal\top}}
 \newunicodechar{⊥}{\ensuremath{\mathnormal\bot}}
+\newunicodechar{∘}{\ensuremath{\mathnormal\circ}}
 \newunicodechar{≡}{\ensuremath{\mathnormal\equiv}}
 \newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
 \newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
@@ -83,7 +84,7 @@ as well as compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
 Performing optimisations on intrinsically typed programs, on the other hand,
-has not seen as much focus.
+has not received as much attention.
 However, optimisations play an important role in compilers
 and establishing their correctness is often not trivial,
 with ample opportunity for mistakes.
@@ -129,7 +130,7 @@ simplifies parts of the analysis and
 avoids the need for allowing functions as values.
 
 
-\subsection{Representing variables}
+\subsection{Representing Variables}
 
 The syntax specified above treats variables as letters, or more generally strings.
 To prevent complications with bindings of the same variable name shadowing each other
@@ -138,7 +139,7 @@ and to make equality of terms independent of the specific names chosen
 compilers often represent variables in a different way.
 A popular choice are \emph{de Bruijn indices},
 where each variable is represented by a natural number,
-counting the number of bindings inbetween variable occurence and its binding:
+counting the number of bindings between variable occurence and its binding:
 $0$ refers to the innermost binding, $1$ to the next-innermost etc.
 
 Still, there might be \emph{free variables},
@@ -148,14 +149,14 @@ If this happens unexpectedly during evaluation, an error is raised.
 Similarly, the type of a bound expression might not match the expected type at the variable occurence
 where it is referenced.
 This makes the evaluation function partial;
-it should only be called after validating type and scope safety.
+it should only be called after validating type- and scope-safety.
 
 
 \subsection{Intrinsically Typed Syntax Trees}
 
 When implementing a compiler in a dependently typed programming language,
 one does not need to accept partiality and the need for human vigilance.
-With \emph{intrinsically typed syntax trees}, type and scope safety invariants
+With \emph{intrinsically typed syntax trees}, type- and scope-safety invariants
 are specified on the type level and verified by the type checker.
 We will demonstrate the approach in Agda and start by defining the types that terms can have.
 
@@ -177,7 +178,7 @@ Together, we call these an \emph{environment} in a given context.
 A variable then is an index into its context,
 also guaranteeing that its type matches that of the binding.
 Since variable $\AgdaDatatype{Ref}\ \sigma\ \Gamma$ acts as a proof that
-the environment $\AgdaDatatype{Env}\ \Gamma$ contains an element of the matching type $\sigma$,
+the environment $\AgdaDatatype{Env}\ \Gamma$ contains an element of type $\sigma$,
 variable lookup is total.
 
 \CodeLangRef
@@ -187,12 +188,12 @@ where an \AgdaDatatype{Expr} is indexed by both
 its type ($\sigma : \AgdaDatatype{U}$)
 and context ($\Gamma : \AgdaDatatype{Ctx}$).
 We can see how the context changes when introducing a new binding
-available in the body of a \AgdaInductiveConstructor{Let}.
+that is then available in the body of a \AgdaInductiveConstructor{Let}.
 
 \CodeLangExpr
 
 This allows the definition of a total evaluator
-using an environment matching the context.
+using an environment matching the expression's context.
 
 \CodeLangSemantics
 
@@ -223,7 +224,7 @@ We can then define a subset-like order \AgdaFunction{$\subseteq$}:
 
 \CodeSubsetOpSubseteq
 
-Dealing with \AgdaDatatype{Subset} simplifies our task, especially the correctness proofs.
+Dealing with \AgdaDatatype{Subset} will simplify our task, especially the correctness proofs.
 While an OPE itself could be used to express a similar relation between contexts,
 its inhabitants are not unique.
 For example, $\AgdaInductiveConstructor{[\ NAT\ ]}$
@@ -235,7 +236,7 @@ $\AgdaFunction{$\_\cup\_$} : \AgdaDatatype{Ctx} \to \AgdaDatatype{Ctx} \to \Agda
 but it is trivial on \AgdaDatatype{Subset}s.
 
 From now on, we will only consider expressions
-$\AgdaDatatype{Expr}\ \AgdaFloor{\Delta}\ \tau$ in some sub-context.
+$\AgdaDatatype{Expr}\ \AgdaFloor{\Delta}\ \sigma$ in some sub-context.
 Initially, we take $\Delta = \AgdaFunction{all}\ \Gamma : \AgdaDatatype{Subset}\ \Gamma$,
 the complete sub-context of the original context.
 
@@ -245,7 +246,7 @@ the complete sub-context of the original context.
 The next step is to annotate each expression with its \emph{live variables},
 the sub-context $\Delta'$ that is really used.
 To that end, we define annotated expressions
-$\AgdaDatatype{LiveExpr}\ \Delta\ \Delta'\ \tau$.
+$\AgdaDatatype{LiveExpr}\ \Delta\ \Delta'\ \sigma$.
 Note that $\Delta$ is treated as $\Gamma$ before,
 conceptually accumulating all defined variables top-down.
 On the other hand, $\Delta'$ accumulates used variables bottom-up,
@@ -272,7 +273,7 @@ The only requirement we have for it is that we can forget the annotations again.
 
 \subsection{Transformation}
 
-It is useful to consider that we can evaluate \AgdaDatatype{LiveExpr} directly,
+It is useful to realise that we can evaluate \AgdaDatatype{LiveExpr} directly,
 almost identically to the previous \AgdaFunction{eval} function.
 The main difference is in the \AgdaInductiveConstructor{Let}-case,
 where we match on $\Delta_2$ to distinguish whether the bound variable is live.
@@ -280,7 +281,7 @@ If it is not, we can directly evaluate the body, ignoring the bound declaration.
 
 Another important detail is that evaluation works under an environment
 for any sub-context $\Delta_u$
-containing (at least) the used variables $\Delta'$.
+containing (at least) the live variables $\Delta'$.
 Requiring an $\AgdaDatatype{Env}\ \AgdaFloor{\Delta}$ would force us
 to provide a value even for unused variables.
 Fixing it to exactly $\AgdaDatatype{Env}\ \AgdaFloor{\Delta'}$, however,
@@ -309,15 +310,11 @@ in \AgdaFunction{dbe} we drop unused variables, only keeping \AgdaFloor{$\Delta'
 
 We want to show that dead binding elimination preserves semantics:
 $\AgdaFunction{eval} \circ \AgdaFunction{dbe} \circ \AgdaFunction{analyse} \equiv \AgdaFunction{eval}$.
-Since we know that $\AgdaFunction{forget} \circ \AgdaFunction{analyse} \equiv \AgdaFunction{id}$,
-it is sufficient to show the following:
-
-\begin{align*}
-  \AgdaFunction{eval} \circ \AgdaFunction{dbe}
-    \equiv \AgdaFunction{eval} \circ \AgdaFunction{forget}
-\end{align*}
-
-The proof gets simpler if we split it up using the optimised semantics.
+Since we know that
+$\AgdaFunction{forget} \circ \AgdaFunction{analyse} \equiv \AgdaFunction{id}$,
+it is sufficient to show
+$\AgdaFunction{eval} \circ \AgdaFunction{dbe} \equiv \AgdaFunction{eval} \circ \AgdaFunction{forget}$.
+The proof gets simpler if we split it up using the optimised semantics:
 
 \begin{align*}
   \AgdaFunction{eval} \circ \AgdaFunction{dbe}
@@ -329,7 +326,7 @@ The actual proof statements are more involved,
 since they quantify over the expression and environment used.
 As foreshadowed in the definition of \AgdaFunction{evalLive}, the statements are also generalised
 to evaluation under any $\AgdaDatatype{Env}\ \AgdaFloor{\Delta_u}$,
-as long as it contains the live sub-centext.
+as long as it contains the live sub-context.
 This gives us more flexibility when using the inductive hypothesis.
 
 \CodeLiveDbeCorrectSignature
@@ -345,8 +342,8 @@ An important detail is that the \AgdaFunction{$\subseteq$} proofs
 are \emph{irrelevant arguments}, indicated by the preceding dot.
 This is possible since their witnesses are unique
 and makes it clear to the Agda type checker that e.g.
-$\AgdaFunction{prjEnv}\ \Delta'\ \Delta\ H$ and
-$\AgdaFunction{prjEnv}\ \Delta'\ \Delta\ H'$ are equal.
+$\AgdaFunction{prjEnv}\ \Delta'\ \Delta\ H_1$ and
+$\AgdaFunction{prjEnv}\ \Delta'\ \Delta\ H_2$ are equal.
 
 
 \subsection{Iterating the Analysis}
@@ -360,7 +357,7 @@ in general it can be useful to simply iterate the optimisation until a fixpoint 
 
 This approach is not structurally recursive and the number of iterations is not known upfront,
 so Agda's termination checker needs our help.
-We observe that the algorithm must terminate
+We observe that the algorithm must terminate,
 since the number of bindings decreases with each iteration
 (except for the last) and cannot become negative.
 This corresponds to the ascending chain condition in program analysis literature
@@ -401,6 +398,7 @@ Ideally, further exploration will lead to the discovery of common patterns
 and useful strategies for performing optimisations on intrinsically typed syntax trees.
 
 
+\pagebreak
 \bibliographystyle{plain}
 \bibliography{bibliography}{}
 

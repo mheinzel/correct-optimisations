@@ -69,7 +69,7 @@ analyse Δ (Var x) = sing Δ x , Var x
 
 \newcommand{\CodeLiveAnalysePreservesSignature}{%
 \begin{code}
--- forget . analyse = id
+-- forget ∘ analyse ≡ id
 analyse-preserves : (e : Expr ⌊ Δ ⌋ σ) → forget (proj₂ (analyse Δ e)) ≡ e
 \end{code}}
 \begin{code}[hide]
@@ -115,7 +115,7 @@ lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) 
 
 \newcommand{\CodeLiveEvalLiveCorrectSignature}{%
 \begin{code}
--- evalLive = eval . forget
+-- evalLive ≡ eval ∘ forget
 evalLive-correct :
   (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) →
   .(H' : Δ' ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
@@ -172,7 +172,7 @@ dbe {Γ} {Δ} (Var x) =
 
 \newcommand{\CodeLiveDbeCorrectSignature}{%
 \begin{code}
--- eval . dbe ≡ evalLive
+-- eval ∘ dbe ≡ evalLive
 dbe-correct :
   (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δᵤ ⌋) →
   .(H : Δ' ⊆ Δᵤ) →
@@ -244,11 +244,11 @@ optimize-correct {Γ} Δ e env =
     eval (dbe le) (prjEnv Δ' Δ H env)
   ≡⟨ cong (λ e → eval e (prjEnv Δ' Δ H env)) (sym (renameExpr-id Δ' (dbe le))) ⟩
     eval (renameExpr Δ' Δ' (⊆-refl Δ') (dbe le)) (prjEnv Δ' Δ H env)
-  ≡⟨ dbe-correct le Δ' (prjEnv Δ' Δ H env) (⊆-refl Δ') ⟩  -- eval . dbe ≡ evalLive
+  ≡⟨ dbe-correct le Δ' (prjEnv Δ' Δ H env) (⊆-refl Δ') ⟩  -- eval ∘ dbe ≡ evalLive
     evalLive Δ' le (prjEnv Δ' Δ H env) (⊆-refl Δ')
-  ≡⟨ evalLive-correct le Δ' env (⊆-refl Δ') H ⟩  -- evalLive ≡ eval . forget
+  ≡⟨ evalLive-correct le Δ' env (⊆-refl Δ') H ⟩  -- evalLive ≡ eval ∘ forget
     eval (forget le) env
-  ≡⟨ cong (λ e → eval e env) (analyse-preserves {Γ} {Δ} e) ⟩  -- forget . analyse ≡ id
+  ≡⟨ cong (λ e → eval e env) (analyse-preserves {Γ} {Δ} e) ⟩  -- forget ∘ analyse ≡ id
     eval e env
   ∎
 

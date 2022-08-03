@@ -10,7 +10,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 \newcommand{\CodeLangTypes}{%
 \begin{code}
 data U : Set where
-  BOOL NAT : U
+  BOOL  : U
+  NAT   : U
 
 ⟦_⟧ : U → Set
 ⟦ BOOL ⟧  = Bool
