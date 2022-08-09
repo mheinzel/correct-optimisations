@@ -1,18 +1,18 @@
-.PHONY: all clean check icfp-tyde-abstract
+.PHONY: all clean check
 
-all: check icfp-tyde-abstract.pdf
+all: check tyde-ext-abstract.pdf
 
 check:
 	agda src/Examples.lagda
 
 # TODO: temporary working directory
-icfp-tyde-abstract.pdf: icfp-tyde-abstract.tex correct-optimisations.bib
-	pdflatex icfp-tyde-abstract
-	bibtex icfp-tyde-abstract
-	pdflatex icfp-tyde-abstract
-	pdflatex icfp-tyde-abstract
+tyde-ext-abstract.pdf: tyde-ext-abstract.tex correct-optimisations.bib
+	pdflatex tyde-ext-abstract
+	bibtex tyde-ext-abstract
+	pdflatex tyde-ext-abstract
+	pdflatex tyde-ext-abstract
 
 clean:
 	rm -f src/*.agdai *.agda~
 	rm -f *.{aux,bbl,blg,log,out,ptb,toc}
-	rm -f icfp-tyde-abstract.pdf
+	rm -f tyde-ext-abstract.pdf
