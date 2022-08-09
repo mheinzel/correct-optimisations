@@ -1,5 +1,7 @@
 \begin{code}[hide]
 -- Strong live variable analysis
+--
+-- Incomplete and unused, currently not checked by default.
 module StrongLive where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
