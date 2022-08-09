@@ -7,12 +7,9 @@ check:
 
 # TODO: temporary working directory
 tyde-ext-abstract.pdf: tyde-ext-abstract.tex correct-optimisations.bib
-	pdflatex tyde-ext-abstract
-	bibtex tyde-ext-abstract
-	pdflatex tyde-ext-abstract
-	pdflatex tyde-ext-abstract
+	latexmk -pdf tyde-ext-abstract.tex
 
 clean:
 	rm -f src/*.agdai *.agda~
-	rm -f *.{aux,bbl,blg,log,out,ptb,toc}
+	rm -f *.{aux,bbl,blg,dvi,fdb_latexmk,fls,log,out,ptb,toc,xcp}
 	rm -f tyde-ext-abstract.pdf
