@@ -1,9 +1,12 @@
-.PHONY: all clean check
+.PHONY: default clean check
 
-all: check tyde-ext-abstract.pdf
+default: tyde-ext-abstract.pdf
 
-check:
-	agda src/Examples.lagda
+# Should import everything important
+check: check-Examples
+
+check-%: src/%.agda
+	agda $<
 
 # TODO: temporary working directory
 tyde-ext-abstract.pdf: tyde-ext-abstract.tex correct-optimisations.bib

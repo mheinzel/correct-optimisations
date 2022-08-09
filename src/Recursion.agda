@@ -1,4 +1,3 @@
-\begin{code}[hide]
 -- Adapted from http://blog.ezyang.com/2010/06/well-founded-recursion-in-agda/
 module Recursion where
 
@@ -86,4 +85,3 @@ iter-while-decreasing' x f (WF.acc g) with f x <? x
 
 iter-while-decreasing : (x : ℕ) (f : ℕ → ℕ) → ℕ
 iter-while-decreasing x f = iter-while-decreasing' x f (<-ℕ-wf x)
-\end{code}

@@ -1,4 +1,3 @@
-\begin{code}[hide]
 -- Live variable analysis
 module Live where
 
@@ -15,9 +14,6 @@ open import Recursion
 
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
 -- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?
-\end{code}
-\newcommand{\CodeLiveExpr}{%
-\begin{code}
 data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
   Val :
     ⟦ σ ⟧ →
@@ -33,22 +29,14 @@ data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
   Var :
     (x : Ref σ ⌊ Δ ⌋) →
     LiveExpr Δ (sing Δ x) σ
-\end{code}}
 
-\newcommand{\CodeLiveForgetSignature}{%
-\begin{code}
 -- forget the information about variable usage
 forget : LiveExpr Δ Δ' σ → Expr ⌊ Δ ⌋ σ
-\end{code}}
-\begin{code}[hide]
 forget (Val v) = Val v
 forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
 forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
 forget (Var x) = Var x
-\end{code}
 
-\newcommand{\CodeLiveAnalyse}{%
-\begin{code}
 -- decide which variables are used or not
 analyse : ∀ Δ → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] LiveExpr Δ Δ' σ
 analyse Δ (Val v) = ∅ , Val v
@@ -57,22 +45,15 @@ analyse Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 analyse Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ pop Δ₂) , Let le₁ le₂
 analyse Δ (Var x) = sing Δ x , Var x
-\end{code}}
 
-\begin{code}[hide]
 Δ'⊆Δ : LiveExpr Δ Δ' σ → Δ' ⊆ Δ
 Δ'⊆Δ {Γ} {Δ} (Val v) = ∅⊆ Γ Δ
 Δ'⊆Δ {Γ} {Δ} (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
 Δ'⊆Δ {Γ} {Δ} (Let {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ (pop Δ₂) Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
 Δ'⊆Δ {Γ} {Δ} (Var x) = sing⊆ Γ Δ x
-\end{code}
 
-\newcommand{\CodeLiveAnalysePreservesSignature}{%
-\begin{code}
 -- forget ∘ analyse ≡ id
 analyse-preserves : (e : Expr ⌊ Δ ⌋ σ) → forget (proj₂ (analyse Δ e)) ≡ e
-\end{code}}
-\begin{code}[hide]
 analyse-preserves (Val v) = refl
 analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analyse-preserves e₂)
@@ -85,10 +66,7 @@ lookupLive (Drop Δ) (Keep Δᵤ) x (Cons v env) H = lookupLive Δ Δᵤ x env H
 lookupLive (Keep Δ) (Drop Δᵤ) (Pop x) env H = lookupLive Δ Δᵤ x env H
 lookupLive (Keep Δ) (Keep Δᵤ) Top (Cons v env) H = v
 lookupLive (Keep Δ) (Keep Δᵤ) (Pop x) (Cons v env) H = lookupLive Δ Δᵤ x env H
-\end{code}
 
-\newcommand{\CodeLiveEvalLive}{%
-\begin{code}
 evalLive : ∀ Δᵤ → LiveExpr Δ Δ' τ → Env ⌊ Δᵤ ⌋ → .(Δ' ⊆ Δᵤ) → ⟦ τ ⟧
 evalLive Δᵤ (Val v) env H = v
 evalLive Δᵤ (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
@@ -101,9 +79,7 @@ evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) en
     (Cons (evalLive Δᵤ e₁ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H)) env)
     (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
 evalLive {Γ} {Δ} Δᵤ (Var x) env H = lookupLive Δ Δᵤ x env H
-\end{code}}
 
-\begin{code}[hide]
 lookupLive-correct : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) → .(H' : sing Δ x ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
   lookupLive Δ Δᵤ x (prjEnv Δᵤ Δ H env) H' ≡ lookup x env
 lookupLive-correct {σ} {[]} {Empty} () Δᵤ Nil H' H
@@ -111,17 +87,12 @@ lookupLive-correct {σ} {τ ∷ Γ} {Drop Δ} x (Drop Δᵤ) env H' H = lookupLi
 lookupLive-correct {.τ} {τ ∷ Γ} {Keep Δ} Top (Keep Δᵤ) (Cons v env) H' H = refl
 lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Drop Δᵤ) (Cons v env) H' H = lookupLive-correct x Δᵤ env H' H
 lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) H' H = lookupLive-correct x Δᵤ env H' H
-\end{code}
 
-\newcommand{\CodeLiveEvalLiveCorrectSignature}{%
-\begin{code}
 -- evalLive ≡ eval ∘ forget
 evalLive-correct :
   (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) →
   .(H' : Δ' ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
   evalLive Δᵤ e (prjEnv Δᵤ Δ H env) H' ≡ eval (forget e) env
-\end{code}}
-\begin{code}[hide]
 evalLive-correct (Val v) Δᵤ env H' H = refl
 evalLive-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H' H =
   cong₂ _+_
@@ -140,21 +111,13 @@ evalLive-correct (Var x) Δᵤ env H' H =
   lookupLive-correct x Δᵤ env H' H
 
 -- dead binding elimination
-\end{code}
 
-\newcommand{\CodeLiveRestrictedRefSignature}{%
-\begin{code}
 sing-ref : (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ sing Δ x ⌋
-\end{code}}
-\begin{code}[hide]
 sing-ref {[]} Empty ()
 sing-ref {τ ∷ Γ} (Drop Δ) x = sing-ref Δ x
 sing-ref {τ ∷ Γ} (Keep Δ) Top = Top
 sing-ref {τ ∷ Γ} (Keep Δ) (Pop x) = sing-ref Δ x
-\end{code}
 
-\newcommand{\CodeLiveDbe}{%
-\begin{code}
 dbe : LiveExpr Δ Δ' σ → Expr ⌊ Δ' ⌋ σ
 dbe (Val v) =
   Val v
@@ -168,17 +131,12 @@ dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
     (renameExpr (Keep Δ₂) (Keep (Δ₁ ∪ Δ₂)) (⊆∪₂ Δ₁ Δ₂) (dbe e₂))
 dbe {Γ} {Δ} (Var x) =
   Var (sing-ref Δ x)
-\end{code}}
 
-\newcommand{\CodeLiveDbeCorrectSignature}{%
-\begin{code}
 -- eval ∘ dbe ≡ evalLive
 dbe-correct :
   (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δᵤ ⌋) →
   .(H : Δ' ⊆ Δᵤ) →
   eval (renameExpr Δ' Δᵤ H (dbe e)) env ≡ evalLive Δᵤ e env H
-\end{code}}
-\begin{code}[hide]
 dbe-correct (Val v) Δᵤ env H = refl
 dbe-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H
   rewrite renameExpr-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H (dbe e₁)
@@ -311,4 +269,3 @@ fix-optimise-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ 
   let Δ' , (H' , e') = fix-optimise Δ e
   in eval e' (prjEnv Δ' Δ H' env) ≡ eval e env
 fix-optimise-correct Δ e env = fix-optimise-wf-correct Δ e env (<-bindings-wf (Δ , e))
-\end{code}

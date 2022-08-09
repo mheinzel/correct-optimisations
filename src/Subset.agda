@@ -1,4 +1,3 @@
-\begin{code}[hide]
 module Subset where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat)
@@ -11,9 +10,6 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open import Lang
 
 -- Subsets of our context and operations on them 
-\end{code}
-\newcommand{\CodeSubsetSubset}{%
-\begin{code}
 data Subset : Ctx → Set where
   Empty  : Subset []
   Drop   : Subset Γ → Subset (τ ∷ Γ)
@@ -26,9 +22,7 @@ variable
 ⌊ Empty ⌋              = []
 ⌊ Drop Δ ⌋             = ⌊ Δ ⌋
 ⌊ Keep {Γ} {τ} Δ ⌋     = τ ∷ ⌊ Δ ⌋
-\end{code}}
 
-\begin{code}[hide]
 ∅ : {Γ : Ctx} → Subset Γ
 ∅ {[]} = Empty
 ∅ {x ∷ Γ} = Drop ∅
@@ -54,18 +48,13 @@ pop (Drop Δ) = Δ
 pop (Keep Δ) = Δ
 
 -- Relating subsets and environments
-\end{code}
 
-\newcommand{\CodeSubsetOpSubseteq}{%
-\begin{code}
 _⊆_ : Subset Γ → Subset Γ → Set
 Δ₁ ⊆ Keep Δ₂ = pop Δ₁ ⊆ Δ₂
 Empty ⊆ Empty = ⊤
 Drop Δ₁ ⊆ Drop Δ₂ = Δ₁ ⊆ Δ₂
 Keep Δ₁ ⊆ Drop Δ₂ = ⊥
-\end{code}}
 
-\begin{code}[hide]
 ⊆-refl : (Δ : Subset Γ) → Δ ⊆ Δ
 ⊆-refl Empty = tt
 ⊆-refl (Drop Δ) = ⊆-refl Δ
@@ -217,4 +206,3 @@ renameExpr-preserves Δ₁ Δ₂ H (Let e₁ e₂) env =
   where
     open Relation.Binary.PropositionalEquality.≡-Reasoning
 renameExpr-preserves Δ₁ Δ₂ H (Var x) env = renameVar-preserves Δ₁ Δ₂ H x env
-\end{code}
