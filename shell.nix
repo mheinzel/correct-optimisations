@@ -23,5 +23,6 @@ pkgs.stdenv.mkDerivation {
     emacs
     agda
     pkgs.texlive.combined.scheme-full
+    pkgs.haskellPackages.lhs2tex
   ];
 }

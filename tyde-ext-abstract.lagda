@@ -1,5 +1,10 @@
 \documentclass[sigplan,nonacm,screen]{acmart}
 
+% workaround, see https://github.com/kosmikus/lhs2tex/issues/82
+\let\Bbbk\undefined
+
+%include polycode.fmt
+
 % https://icfp22.sigplan.org/home/tyde-2022#Call-for-Papers
 
 \usepackage[utf8]{inputenc}
@@ -27,7 +32,7 @@
   \institution{Utrecht University}
   \city{Utrecht}
   \country{Netherlands}}
-\email{m.h.heinzel@students.uu.nl}
+\email{m.h.heinzel@@students.uu.nl}
 
 \acmConference[TyDe’22]{Workshop on Type-Driven Development}{September 11}{Ljubljana, Slovenia}
 
@@ -89,10 +94,10 @@ the choice of possible values and additional primitive operations on them is mos
 
 \begin{align*}
   P, Q ::= v
-  \ \big|\  P + Q
-  \ \big|\  \ldots
-  \ \big|\  \textbf{let } x = P \textbf{ in } Q
-  \ \big|\  x
+  \ \big||\  P + Q
+  \ \big||\  \ldots
+  \ \big||\  \textbf{let } x = P \textbf{ in } Q
+  \ \big||\  x
 \end{align*}
 
 In Agda, the type of expressions $\I{Expr}$ is indexed by its return type ($\tau : \I{U}$)
