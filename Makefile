@@ -1,7 +1,7 @@
 AGDA = agda
 
 GEN_DIR = latex/generated
-GEN_TEX_FILES = $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex
+GEN_TEX_FILES = $(GEN_DIR)/Recursion.tex $(GEN_DIR)/Lang.tex $(GEN_DIR)/Subset.tex $(GEN_DIR)/Live.tex $(GEN_DIR)/Examples.tex
 
 .PHONY: all clean project-report icfp-tyde-abstract icfp-src-abstract
 
@@ -40,6 +40,9 @@ $(GEN_DIR)/Recursion.tex: Recursion.lagda Lang.lagda Subset.lagda
 
 $(GEN_DIR)/Live.tex: Live.lagda Lang.lagda Subset.lagda Recursion.lagda
 	$(AGDA) --latex-dir=$(GEN_DIR) --latex Live.lagda
+
+$(GEN_DIR)/Examples.tex: Examples.lagda Live.lagda Lang.lagda Subset.lagda Recursion.lagda
+	$(AGDA) --latex-dir=$(GEN_DIR) --latex Examples.lagda
 
 clean:
 	rm -f *.agdai *.agda~

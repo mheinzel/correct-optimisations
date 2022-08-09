@@ -23,13 +23,13 @@ count-ex-unused : num-bindings (ex-unused {Γ}) ≡ 2
 count-ex-unused = refl
 
 optimise-ex-unused :
-  let (Δ , (H , e)) = optimise Empty (ex-unused {[]}) in
+  let Δ , e = optimise Empty (ex-unused {[]}) in
     e ≡ Let (Val 1) (Val 2)
 optimise-ex-unused = refl
 
 optimise²-ex-unused :
-  let (Δ , (H , e)) = optimise Empty (ex-unused {[]}) in
-  let (Δ' , (H' , e')) = optimise Δ e in
+  let Δ , e = optimise Empty (ex-unused {[]}) in
+  let Δ' , e' = optimise Δ e in
     e' ≡ Val 2
 optimise²-ex-unused = refl
 
