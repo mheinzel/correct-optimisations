@@ -230,14 +230,14 @@ dbe-correct (Var x) Δᵤ env H =
     lemma-lookupLive {Δ = Keep Δ} Top (Keep Δᵤ) (Cons v env) H = refl
     lemma-lookupLive {Δ = Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) H = lemma-lookupLive x Δᵤ env H
 
-optimize : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] (Expr ⌊ Δ' ⌋ σ)
-optimize Δ e = let Δ' , e' = analyse Δ e in Δ' , dbe e'
+optimise : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] (Expr ⌊ Δ' ⌋ σ)
+optimise Δ e = let Δ' , e' = analyse Δ e in Δ' , dbe e'
 
-optimize-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
-  let Δ' , e' = optimize Δ e
+optimise-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
+  let Δ' , e' = optimise Δ e
       H = Δ'⊆Δ (proj₂ (analyse Δ e))
   in eval e' (prjEnv Δ' Δ H env) ≡ eval e env
-optimize-correct {Γ} Δ e env =
+optimise-correct {Γ} Δ e env =
   let Δ' , le = analyse Δ e
       H = Δ'⊆Δ le
   in
@@ -253,62 +253,62 @@ optimize-correct {Γ} Δ e env =
   ∎
 
 mutual
-  -- Keep optimizing as long as the number of bindings decreases.
+  -- Keep optimising as long as the number of bindings decreases.
   -- This is not structurally recursive, but we have a Well-Foundedness proof.
-  fix-optimize-wf : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ (Δ , e) →
+  fix-optimise-wf : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ (Δ , e) →
     Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
-  fix-optimize-wf {Γ} Δ e accu =
-    let Δ' , e' = optimize Δ e
+  fix-optimise-wf {Γ} Δ e accu =
+    let Δ' , e' = optimise Δ e
         H = Δ'⊆Δ (proj₂ (analyse Δ e))
-    in fix-optimize-wf-helper Δ Δ' e e' H accu
+    in fix-optimise-wf-helper Δ Δ' e e' H accu
 
   -- Without the helper, there were issues with the with-abstraction using a
   -- result of the let-binding.
-  fix-optimize-wf-helper :
+  fix-optimise-wf-helper :
     (Δ Δ' : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) →
     (H' : Δ' ⊆ Δ) → WF.Acc _<-bindings_ (Δ , e) →
     Σ[ Δ'' ∈ Subset Γ ] ((Δ'' ⊆ Δ) × Expr ⌊ Δ'' ⌋ σ)
-  fix-optimize-wf-helper Δ Δ' e e' H' (WF.acc g) with num-bindings e' <? num-bindings e
+  fix-optimise-wf-helper Δ Δ' e e' H' (WF.acc g) with num-bindings e' <? num-bindings e
   ... | inj₂ p = Δ' , (H' , e')
-  ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimize-wf Δ' e' (g (Δ' , e') p)
+  ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimise-wf Δ' e' (g (Δ' , e') p)
                  in Δ'' , (⊆-trans Δ'' Δ' Δ H'' H') , e''
 
-fix-optimize : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
-fix-optimize {Γ} Δ e = fix-optimize-wf Δ e (<-bindings-wf (Δ , e))
+fix-optimise : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
+fix-optimise {Γ} Δ e = fix-optimise-wf Δ e (<-bindings-wf (Δ , e))
 
 mutual
   -- Not pretty, but it works.
-  fix-optimize-wf-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) (accu : WF.Acc _<-bindings_ (Δ , e)) →
-    let Δ'' , (H'' , e'') = fix-optimize-wf Δ e accu
+  fix-optimise-wf-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) (accu : WF.Acc _<-bindings_ (Δ , e)) →
+    let Δ'' , (H'' , e'') = fix-optimise-wf Δ e accu
     in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e env
-  fix-optimize-wf-correct Δ e env accu =
-    let Δ' , e' = optimize Δ e
+  fix-optimise-wf-correct Δ e env accu =
+    let Δ' , e' = optimise Δ e
         H' = Δ'⊆Δ (proj₂ (analyse Δ e))
-        Δ'' , (H'' , e'') = fix-optimize-wf-helper Δ Δ' e e' H' accu
+        Δ'' , (H'' , e'') = fix-optimise-wf-helper Δ Δ' e e' H' accu
     in eval e'' (prjEnv Δ'' Δ H'' env)
-     ≡⟨ fix-optimize-wf-helper-correct Δ Δ' e e' env H' accu ⟩
+     ≡⟨ fix-optimise-wf-helper-correct Δ Δ' e e' env H' accu ⟩
        eval e' (prjEnv Δ' Δ H' env)
-     ≡⟨ optimize-correct Δ e env ⟩
+     ≡⟨ optimise-correct Δ e env ⟩
        eval e env
      ∎
 
-  fix-optimize-wf-helper-correct :
+  fix-optimise-wf-helper-correct :
     (Δ Δ' : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) (env : Env ⌊ Δ ⌋) →
     (H' : Δ' ⊆ Δ) (accu : WF.Acc _<-bindings_ (Δ , e)) →
-    let Δ'' , (H'' , e'') = fix-optimize-wf-helper Δ Δ' e e' H' accu
+    let Δ'' , (H'' , e'') = fix-optimise-wf-helper Δ Δ' e e' H' accu
     in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e' (prjEnv Δ' Δ H' env)
-  fix-optimize-wf-helper-correct Δ Δ' e e' env H' (WF.acc g) with num-bindings e' <? num-bindings e
+  fix-optimise-wf-helper-correct Δ Δ' e e' env H' (WF.acc g) with num-bindings e' <? num-bindings e
   ... | inj₂ p = refl
-  ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimize-wf Δ' e' (g (Δ' , e') p)
+  ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimise-wf Δ' e' (g (Δ' , e') p)
                  in eval e'' (prjEnv Δ'' Δ (⊆-trans Δ'' Δ' Δ H'' H') env)
                   ≡⟨ cong (eval e'') (sym (prjEnv-trans Δ'' Δ' Δ H'' H' env)) ⟩
                     eval e'' (prjEnv Δ'' Δ' H'' (prjEnv Δ' Δ H' env))
-                  ≡⟨ fix-optimize-wf-correct Δ' e' (prjEnv Δ' Δ H' env) (g (Δ' , e') p) ⟩
+                  ≡⟨ fix-optimise-wf-correct Δ' e' (prjEnv Δ' Δ H' env) (g (Δ' , e') p) ⟩
                     eval e' (prjEnv Δ' Δ H' env)
                   ∎
 
-fix-optimize-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
-  let Δ' , (H' , e') = fix-optimize Δ e
+fix-optimise-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
+  let Δ' , (H' , e') = fix-optimise Δ e
   in eval e' (prjEnv Δ' Δ H' env) ≡ eval e env
-fix-optimize-correct Δ e env = fix-optimize-wf-correct Δ e env (<-bindings-wf (Δ , e))
+fix-optimise-correct Δ e env = fix-optimise-wf-correct Δ e env (<-bindings-wf (Δ , e))
 \end{code}

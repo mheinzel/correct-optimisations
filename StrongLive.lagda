@@ -73,19 +73,19 @@ helper : (Δ₁ : Subset (σ ∷ Γ)) (Δ₂ : Subset Γ) → Expr ⌊ Keep {Γ}
 helper (Drop Δ₁) Δ₂ e = injExpr₂ (Drop Δ₁) (Keep Δ₂) e
 helper (Keep Δ₁) Δ₂ e = injExpr₂ (Keep Δ₁) (Keep Δ₂) e
 
-optimize : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
-optimize (Val x) = Val x
-optimize (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (optimize e₁)) (injExpr₂ Δ₁ Δ₂ (optimize e₂))
-optimize {Γ} (Var i) = Var (restrictedRef i)
-optimize (Eliminated _ e) = optimize e
-optimize {Γ} (Let {σ} {τ} {Δ₁} {Δ₂} e₁ e₂) =
+optimise : LiveExpr Γ Δ σ → Expr ⌊ Δ ⌋ σ
+optimise (Val x) = Val x
+optimise (Plus {Δ₁} {Δ₂} e₁ e₂) = Plus (injExpr₁ Δ₁ Δ₂ (optimise e₁)) (injExpr₂ Δ₁ Δ₂ (optimise e₂))
+optimise {Γ} (Var i) = Var (restrictedRef i)
+optimise (Eliminated _ e) = optimise e
+optimise {Γ} (Let {σ} {τ} {Δ₁} {Δ₂} e₁ e₂) =
   Let {_} {σ}
-    (injExpr₁ Δ₁ Δ₂ (optimize e₁))
-    (helper {σ} {Γ} (Drop Δ₁) Δ₂ (optimize e₂))
+    (injExpr₁ Δ₁ Δ₂ (optimise e₁))
+    (helper {σ} {Γ} (Drop Δ₁) Δ₂ (optimise e₂))
 
 sdbe : Expr Γ σ → Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ
 sdbe e with analyse e
-...       | liveVars , analysed = liveVars , (optimize analysed)
+...       | liveVars , analysed = liveVars , (optimise analysed)
 
 
 ⌊allΓ⌋≡Γ : (Γ : Ctx) →
@@ -97,7 +97,7 @@ liftRename : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Expr Γ σ
 liftRename {Γ} {σ} Δ e = subst (λ Γ' → Expr Γ' σ) (⌊allΓ⌋≡Γ Γ) (renameExpr Δ (all Γ) (⊆all Γ Δ) e)
 
 sdbe' : Expr Γ σ → Expr Γ σ
-sdbe' e = let liveVars , analysed = analyse e in liftRename liveVars (optimize analysed)
+sdbe' e = let liveVars , analysed = analyse e in liftRename liveVars (optimise analysed)
 
 lemma-lookup : (Δ₁ Δ₂ : Subset Γ) (i : Ref σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) → (subset : Δ₁ ⊆ Δ₂) →
   lookup (renameVar Δ₁ Δ₂ subset i) env ≡ lookup i (prjEnv Δ₁ Δ₂ subset env)
@@ -114,42 +114,42 @@ lemma Δ₁ Δ₂ (Let e₁ e₂) env subset = {!!} -- should be doable, just a 
 lemma Δ₁ Δ₂ (Var i) env subset = lemma-lookup Δ₁ Δ₂ i env subset
 
 lemma₁ : (e : LiveExpr Γ Δ₁ σ) (env : Env ⌊ Δ₁ ∪ Δ₂ ⌋)
-  → (eval (optimize e) (prjEnv₁ Δ₁ Δ₂ env) ≡ evalLive e (prjEnv₁ Δ₁ Δ₂ env))
-  → eval (injExpr₁ Δ₁ Δ₂ (optimize e)) env ≡ evalLive e (prjEnv₁ Δ₁ Δ₂ env)
-lemma₁ {Γ} {Δ₁} {σ} {Δ₂} e env prf = trans (lemma Δ₁ (Δ₁ ∪ Δ₂) (optimize e) env (⊆∪₁ Δ₁ Δ₂)) prf
+  → (eval (optimise e) (prjEnv₁ Δ₁ Δ₂ env) ≡ evalLive e (prjEnv₁ Δ₁ Δ₂ env))
+  → eval (injExpr₁ Δ₁ Δ₂ (optimise e)) env ≡ evalLive e (prjEnv₁ Δ₁ Δ₂ env)
+lemma₁ {Γ} {Δ₁} {σ} {Δ₂} e env prf = trans (lemma Δ₁ (Δ₁ ∪ Δ₂) (optimise e) env (⊆∪₁ Δ₁ Δ₂)) prf
 
 lemma₂ : (e : LiveExpr Γ Δ₂ σ) (env : Env ⌊ Δ₁ ∪ Δ₂ ⌋)
-  → (eval (optimize e) (prjEnv₂ Δ₁ Δ₂ env) ≡ evalLive e (prjEnv₂ Δ₁ Δ₂ env))
-  → eval (injExpr₂ Δ₁ Δ₂ (optimize e)) env ≡ evalLive e (prjEnv₂ Δ₁ Δ₂ env)
-lemma₂ {Γ} {Δ₂} {σ} {Δ₁} e env prf = trans (lemma Δ₂ (Δ₁ ∪ Δ₂) (optimize e) env (⊆∪₂ Δ₁ Δ₂)) prf
+  → (eval (optimise e) (prjEnv₂ Δ₁ Δ₂ env) ≡ evalLive e (prjEnv₂ Δ₁ Δ₂ env))
+  → eval (injExpr₂ Δ₁ Δ₂ (optimise e)) env ≡ evalLive e (prjEnv₂ Δ₁ Δ₂ env)
+lemma₂ {Γ} {Δ₂} {σ} {Δ₁} e env prf = trans (lemma Δ₂ (Δ₁ ∪ Δ₂) (optimise e) env (⊆∪₂ Δ₁ Δ₂)) prf
 
 lemma-ref : (i : Ref σ Γ) (env : Env ⌊ all[ i ] ⌋) →
   lookup (restrictedRef i) env ≡ lookupSingle i env
 lemma-ref Top (Cons x env) = refl
 lemma-ref (Pop i) env = lemma-ref i env
 
-optimize-correct : (analysed : LiveExpr Γ Δ σ) (env : Env ⌊ Δ ⌋) →
-   eval (optimize analysed) env ≡ evalLive analysed env
-optimize-correct (Val x) env = refl
-optimize-correct (Plus {Δ₁} {Δ₂} e₁ e₂) env =
+optimise-correct : (analysed : LiveExpr Γ Δ σ) (env : Env ⌊ Δ ⌋) →
+   eval (optimise analysed) env ≡ evalLive analysed env
+optimise-correct (Val x) env = refl
+optimise-correct (Plus {Δ₁} {Δ₂} e₁ e₂) env =
   cong₂ _+_
-    (lemma₁ e₁ env (optimize-correct e₁ (prjEnv₁ Δ₁ Δ₂ env)))
-    (lemma₂ e₂ env (optimize-correct e₂ (prjEnv₂ Δ₁ Δ₂ env)))
-optimize-correct (Var i) env = lemma-ref i env
-optimize-correct (Eliminated decl e) env = optimize-correct e env
-optimize-correct {Γ} (Let {τ} {σ} {Δ₁} {Δ₂} e₁ e₂) env =
-  let h₁ = optimize-correct e₁ (prjEnv₁ Δ₁ Δ₂ env)
+    (lemma₁ e₁ env (optimise-correct e₁ (prjEnv₁ Δ₁ Δ₂ env)))
+    (lemma₂ e₂ env (optimise-correct e₂ (prjEnv₂ Δ₁ Δ₂ env)))
+optimise-correct (Var i) env = lemma-ref i env
+optimise-correct (Eliminated decl e) env = optimise-correct e env
+optimise-correct {Γ} (Let {τ} {σ} {Δ₁} {Δ₂} e₁ e₂) env =
+  let h₁ = optimise-correct e₁ (prjEnv₁ Δ₁ Δ₂ env)
       H₁ = lemma₁ e₁ env h₁ 
-      h₂ = optimize-correct {τ ∷ Γ} {Keep Δ₂} e₂ (Cons (evalLive e₁ (prjEnv₁ Δ₁ Δ₂ env)) (prjEnv₂ Δ₁ Δ₂ env))
+      h₂ = optimise-correct {τ ∷ Γ} {Keep Δ₂} e₂ (Cons (evalLive e₁ (prjEnv₁ Δ₁ Δ₂ env)) (prjEnv₂ Δ₁ Δ₂ env))
       -- not sure why this doesn't work?
       H₂ = lemma₂ {τ ∷ Γ} {Keep Δ₂} {σ} {Drop Δ₁} e₂ (Cons (evalLive e₁ (prjEnv₁ Δ₁ Δ₂ env)) env) {!h₂!}
   in
     eval
-      (injExpr₂ (Drop Δ₁) (Keep Δ₂) (optimize e₂))
-      (Cons (eval (injExpr₁ Δ₁ Δ₂ (optimize e₁)) env) env)
-  ≡⟨ cong (λ x → eval (injExpr₂ (Drop Δ₁) (Keep Δ₂) (optimize e₂)) (Cons x env)) H₁ ⟩
+      (injExpr₂ (Drop Δ₁) (Keep Δ₂) (optimise e₂))
+      (Cons (eval (injExpr₁ Δ₁ Δ₂ (optimise e₁)) env) env)
+  ≡⟨ cong (λ x → eval (injExpr₂ (Drop Δ₁) (Keep Δ₂) (optimise e₂)) (Cons x env)) H₁ ⟩
     eval
-      (injExpr₂ (Drop Δ₁) (Keep Δ₂) (optimize e₂))
+      (injExpr₂ (Drop Δ₁) (Keep Δ₂) (optimise e₂))
       (Cons (evalLive e₁ (prjEnv₁ Δ₁ Δ₂ env)) env)
   ≡⟨ H₂ ⟩
     evalLive
@@ -162,7 +162,7 @@ optimize-correct {Γ} (Let {τ} {σ} {Δ₁} {Δ₂} e₁ e₂) env =
   ≡⟨ cong (λ x → evalLive e₂ (Cons x (prjEnv₂ Δ₁ Δ₂ env)) ) (sym H₁) ⟩
     evalLive
       e₂
-      (Cons (eval (injExpr₁ Δ₁ Δ₂ (optimize e₁)) env) (prjEnv₂ Δ₁ Δ₂ env))
+      (Cons (eval (injExpr₁ Δ₁ Δ₂ (optimise e₁)) env) (prjEnv₂ Δ₁ Δ₂ env))
   ≡⟨ cong (λ v → evalLive e₂ (Cons v (prjEnv₂ Δ₁ Δ₂ env))) H₁ ⟩
     evalLive
       e₂
@@ -191,10 +191,10 @@ analyse-preserves (Var x) = refl
 
 -- This is what we wanted to achieve, right? Broken down into subproofs.
 opt-correct : (e : Expr Γ σ) (env : Env Γ) →
-   eval (optimize (proj₂ (analyse e))) (prjEnv' (proj₁ (analyse e)) env) ≡ eval e env
+   eval (optimise (proj₂ (analyse e))) (prjEnv' (proj₁ (analyse e)) env) ≡ eval e env
 opt-correct e env =
-    eval (optimize (proj₂ (analyse e))) (prjEnv' (proj₁ (analyse e)) env)
-  ≡⟨ optimize-correct (proj₂ (analyse e)) (prjEnv' (proj₁ (analyse e)) env) ⟩
+    eval (optimise (proj₂ (analyse e))) (prjEnv' (proj₁ (analyse e)) env)
+  ≡⟨ optimise-correct (proj₂ (analyse e)) (prjEnv' (proj₁ (analyse e)) env) ⟩
     evalLive (proj₂ (analyse e)) (prjEnv' (proj₁ (analyse e)) env)
   ≡⟨ evalLive-correct (proj₂ (analyse e)) env ⟩
     eval (forget (proj₂ (analyse e))) env

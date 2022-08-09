@@ -22,21 +22,21 @@ test-ex-unused = refl
 count-ex-unused : num-bindings (ex-unused {Γ}) ≡ 2
 count-ex-unused = refl
 
-optimize-ex-unused :
-  let (Δ , (H , e)) = optimize Empty (ex-unused {[]}) in
+optimise-ex-unused :
+  let (Δ , (H , e)) = optimise Empty (ex-unused {[]}) in
     e ≡ Let (Val 1) (Val 2)
-optimize-ex-unused = refl
+optimise-ex-unused = refl
 
-optimize²-ex-unused :
-  let (Δ , (H , e)) = optimize Empty (ex-unused {[]}) in
-  let (Δ' , (H' , e')) = optimize Δ e in
+optimise²-ex-unused :
+  let (Δ , (H , e)) = optimise Empty (ex-unused {[]}) in
+  let (Δ' , (H' , e')) = optimise Δ e in
     e' ≡ Val 2
-optimize²-ex-unused = refl
+optimise²-ex-unused = refl
 
-fix-optimize-ex-unused :
-  let (Δ , (H , e)) = fix-optimize Empty (ex-unused {[]}) in
+fix-optimise-ex-unused :
+  let (Δ , (H , e)) = fix-optimise Empty (ex-unused {[]}) in
     e ≡ Val 2
-fix-optimize-ex-unused = refl
+fix-optimise-ex-unused = refl
 
 
 -- λ a → let x = a in let y = 1 in let z = x + 5 in y + a
@@ -59,8 +59,8 @@ test-ex-unused-2 env n = refl
 count-ex-unused-2 : num-bindings (ex-unused-2 {Γ}) ≡ 3
 count-ex-unused-2 = refl
 
-count-fix-optimize-ex-unused-2 :
-  let (Δ , (H , e)) = fix-optimize (Keep Empty) (ex-unused-2 {[]}) in
+count-fix-optimise-ex-unused-2 :
+  let (Δ , (H , e)) = fix-optimise (Keep Empty) (ex-unused-2 {[]}) in
     e ≡ ex-unused-2-opt {[]}
-count-fix-optimize-ex-unused-2 = refl
+count-fix-optimise-ex-unused-2 = refl
 \end{code}
