@@ -10,14 +10,8 @@
 \usepackage{xcolor}
 \usepackage{xspace}
 \usepackage{natbib}
-\usepackage{todonotes} % TODO: remove at the end
 
 \citestyle{acmauthoryear}
-
-\newcommand{\Draft}[1]{}
-\newcommand{\Todo}[1]{}
-%\newcommand{\Draft}[1]{{\color{gray} - #1}}
-%\newcommand{\Todo}[1]{\todo[inline,backgroundcolor=orange!30]{TODO: #1}}
 
 \newcommand{\I}[1]{\texttt{#1}\xspace}
 \newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
@@ -27,9 +21,6 @@
 
 \title{Provingly Correct Optimisations on Intrinsically Typed Expressions}
 \subtitle{Extended Abstract}
-
-% TODO: does this make sense?
-% \keywords{dependent types, agda, compiler, type safety, program optimisation}
 
 \author{Matthias Heinzel}
 \affiliation{%
@@ -50,8 +41,6 @@
 
 When writing a compiler for a functional programming language,
 an important consideration is the treatment of binders and variables.
-%\Draft{many possible representations (string, de Bruijn)}
-%\Draft{naive implementation is not scope-safe, therefore partial}
 A well-known technique when using dependently typed programming languages such as Agda
 \cite{norell2007agda}
 is to define an intrinsically typed syntax tree \cite{augustsson1999intrinsic}.
@@ -75,20 +64,11 @@ the programmer can rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
 especially when manipulating binders and variables.
 
-%As a first step of our ongoing work, we present an implementation of dead binding elimination for a simple language
-%Therefore, we are limiting ourselves to a simple expression language
-%and widely applicable optimisations that only require bindings and variables to be present.
-% WOUTER - how about something like - in this abstract we start to
-% explore one optimization for a simple language. You don't need to
-% mention that there are lots of different languages/optimizations out
-% there -- that's kind of obvious -- but instead focus on what you
-% want to tell here.
-
-% WOUTER - you may want to cite Graham's (draft) paper - it's as easy
+% May want to cite Graham's (draft) paper - it's as easy
 % as 1,2,3 that argues that studying semantics is best done in a
 % setting that is as simple as possible.
 
-% \Todo{Not sure how to plug the Nielsen book here, maybe just leave it out}
+% Not sure how to plug the Nielsen book here, maybe just leave it out?
 % list interesting optimisations?
 
 Since our work is still in progress,
@@ -140,7 +120,7 @@ using a matching environment:
 
 \subsection{Sub-contexts}
 
-\Todo{cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.}
+% NOTE: cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.
 
 Note that an expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new element into the context, but it might never be used.
@@ -160,9 +140,7 @@ given by a function $\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$,
 but it contains more information than that.
 For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
 as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
-% WOUTER - I'm not sure I understand this remark.. you haven't defined
-% subseteq, which makes it a bit confusing.  Perhaps it suffices to
-% note that these Subsets determine a unique sub-context?
+% TODO: explain this more clearly, e.g. see project report
 
 From now on, we will only consider expressions
 $\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
@@ -202,16 +180,14 @@ with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
     \to \I{Expr}\ \Floor{\Delta}\ \tau
 \end{align*}
 
-\Todo{
-  Maybe add a note that \I{LiveExpr} is overspecified.
-  Instead of $\Delta_1 \cup \Delta_2$ we could have any $\Delta'$ containing $\Delta_1$ and $\Delta_2$.
-}
+% NOTE:
+% Maybe add a note that \I{LiveExpr} is overspecified.
+% Instead of $\Delta_1 \cup \Delta_2$ we could have any $\Delta'$ containing $\Delta_1$ and $\Delta_2$.
 
 \subsection{Transformation}
 
-Note that we can evaluate $\I{LiveExpr}$ directly, with the main difference
-%WOUTER - scrap 'with' in the line above?
-that in the $\I{Let}$-case we match on $\Delta_2$ to distinguish whether the bound variable is live.
+Note that we can evaluate $\I{LiveExpr}$ directly, differing from $\I{eval}$ mainly
+in the $\I{Let}$-case, where we match on $\Delta_2$ to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
 
@@ -270,20 +246,12 @@ and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \subsection{Iterating the Optimisation}
 
-% When we remove a binding that contains the only occurrences of some other variable,
-% we can run the optimisation again to remove that binding as well.
-% This is common among optimisations, which then can be iteratively applied until a fixpoint is reached.
-% Sometimes (as with \emph{strong live variable analysis} here)
-% it is possible to achieve the same result in a single pass,
-% but at the cost of additional complexity.
-
 A binding that is removed can contain the only occurrences of some other variable.
 This makes another binding dead, allowing further optimisation when running the algorithm again.
 While in our simple setting all these bindings could be identified in a single pass
 using \emph{strong live variable analysis},
 in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
 
-% NOTE: number of iterations not statically known
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
 We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
@@ -321,7 +289,7 @@ where subexpressions get replaced by variables bound to equivalent declarations
 Between the different optimisations,
 we hope to discover common patterns and refine our approach,
 providing useful strategies for performing optimisations in intrinsically typed compilers.
-%WOUTER - or more generally, manipulating well-typed well-scoped syntax trees?
+% or more generally, manipulating well-typed well-scoped syntax trees?
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{correct-optimisations}{}
