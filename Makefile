@@ -39,5 +39,6 @@ $(GEN_DIR)/Examples.tex: Examples.lagda Live.lagda Lang.lagda Subset.lagda Recur
 
 clean:
 	rm -f *.agdai *.agda~
-	rm -f latex/*.{aux,bbl,blg,log,out,pdf,ptb,toc}
+	rm -f latex/*.{aux,bbl,blg,log,out,ptb,toc}
+	rm -f latex{project-report,icfp-tyde-abstract}.pdf
 	rm -f $(GEN_DIR)/*
