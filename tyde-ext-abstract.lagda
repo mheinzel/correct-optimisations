@@ -261,7 +261,7 @@ The correctness follows directly from the correctness of each individual iterati
 
 The implementation and correctness proof of dead binding elimination are complete,
 the Agda source code is available online
-\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations/-/tree/tyde}}.
+\footnote{\url{https://github.com/mheinzel/correct-optimisations}}.
 One interesting observation is that the correctness proof does not rely on how
 \I{analyse} computes the annotations.
 At first, this does not seem particularly useful,
