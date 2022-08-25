@@ -3,11 +3,11 @@
 % workaround, see https://github.com/kosmikus/lhs2tex/issues/82
 \let\Bbbk\undefined
 
-%include polycode.fmt
+%include agda.fmt
+%include tyde-ext-abstract.fmt
 
 % https://icfp22.sigplan.org/home/tyde-2022#Call-for-Papers
 
-\usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{stmaryrd}
@@ -100,28 +100,26 @@ the choice of possible values and additional primitive operations on them is mos
   \ \big||\  x
 \end{align*}
 
-In Agda, the type of expressions $\I{Expr}$ is indexed by its return type ($\tau : \I{U}$)
-and context ($\Gamma : \I{Ctx}$).
+In Agda, the type of expressions |Expr| is indexed by its return type (|tau : U|)
+and context (|Gamma : Ctx|).
 
 Each free variable is a de Bruijn index into the context and acts as a proof that
 the context contains an element of the matching type.
 We can see how the context changes when introducing a new binding:
 
-\begin{align*}
-  \K{data}\ \I{Expr}& : (\Gamma : Ctx) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
-  \I{Let}
-    :\ &\I{Expr}\ \Gamma\ \sigma \to
-        \I{Expr}\ (\sigma :: \Gamma)\ \tau \to
-        \I{Expr}\ \Gamma\ \tau  \\
-    \ldots\ &
-\end{align*}
+\begin{code}
+data Expr (Gamma : Ctx) : (tau : U) -> Set where
+  Let   : Expr Gamma sigma -> Expr (tau ∷ Gamma) tau -> Expr Gamma tau
+  (dots)
+\end{code}
 
 This allows the definition of a total evaluator
 using a matching environment:
 
-\begin{align*}
-  \I{eval} &: \I{Expr}\ \Gamma\ \tau \to \I{Env}\ \Gamma \to \Interpret{\tau}
-\end{align*}
+\begin{code}
+  eval : Expr Gamma tau -> Env Gamma -> (interpret(tau))
+\end{code}
+
 
 \subsection{Sub-contexts}
 
@@ -133,120 +131,112 @@ To reason about the \emph{sub-contexts} that are live (actually used),
 we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
 For each element of a context, a sub-context specifies whether to keep it or not.
 
-\begin{align*}
-  &\K{data}\ \I{Subset} : \I{Ctx} \to \I{Set}\ \K{where}          \\
-  &\ \ \ \ \I{Empty} : \I{Subset}\ []                                    \\
-  &\ \ \ \ \I{Drop}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)  \\
-  &\ \ \ \ \I{Keep}  : \I{Subset}\ \Gamma \to \I{Subset}\ (\tau :: \Gamma)
-\end{align*}
+\begin{code}
+data Subset : Ctx -> Set where
+  Empty  : Subset []
+  Drop   : Subset Gamma → Subset (tau :: Gamma)
+  Keep   : Subset Gamma → Subset (tau :: Gamma)
+\end{code}
 
 Such a sub-context describes a context themselves,
-given by a function $\Floor{\_} : \I{Subset}\ \Gamma \to \I{Ctx}$,
+given by a function |(floor (_)) : Subset Gamma -> Ctx|,
 but it contains more information than that.
-For example, the witnesses of a binary relation $\subseteq$ on sub-contexts are unique,
-as opposed to working on contexts directly, e.g. $[\I{INT}] \subseteq [\I{INT}, \I{INT}]$.
+For example, the witnesses of a binary relation |c=| on sub-contexts are unique,
+as opposed to working on contexts directly, e.g. |[INT] c= [INT, INT]|.
 % TODO: explain this more clearly, e.g. see project report
 
 From now on, we will only consider expressions
-$\I{Expr}\ \Floor{\Delta}\ \tau$ in some sub-context.
-Initially, we take $\Delta = \I{all}\ \Gamma : \I{Subset}\ \Gamma$,
+|Expr (floor(Delta)) tau| in some sub-context.
+Initially, we take |Delta = all Gamma : Subset Gamma|,
 the complete sub-context of the original context.
 
 \subsection{Live Variable Analysis}
 
 Now we can annotate each expression with its \emph{live variables},
-the sub-context $\Delta' \subseteq \Delta$ that is really used.
-To that end, we define annotated expressions $\I{LiveExpr}\ \Delta\ \Delta'\ \tau$.
-While $\Delta$ is treated as $\Gamma$ before, $\Delta'$ now only contains live variables,
+the sub-context |Delta' c= Delta| that is really used.
+To that end, we define annotated expressions |LiveExpr Delta Delta' tau|.
+While |Delta| is treated as |Gamma| was before, |Delta'| now only contains live variables,
 starting with a singleton sub-context at the variable usage sites.
 
-\begin{align*}
-  \K{data}\ \I{LiveExpr}& : (\Delta\ \Delta' : \I{Subset}\ \Gamma) (\tau : \I{U}) \to \I{Set}\ \K{where} \\
-  \I{Let}
-    :\ &\I{LiveExpr}\ \Delta\ \Delta_1\ \sigma \to  \\
-       &\I{LiveExpr}\ (\I{Keep}\ \Delta)\ \Delta_2\ \tau \to  \\
-       &\I{LiveExpr}\ \Delta\ (\Delta_1 \cup \I{pop}\ \Delta_2)\ \tau  \\
-    \ldots\ &
-\end{align*}
+% TODO: too wide?
+\begin{code}
+data LiveExpr : (Delta Delta' : Subset Gamma) (tau : U) -> Set where
+  Let : LiveExpr Delta Delta1 sigma ->
+        LiveExpr (Keep Delta) Delta2 tau ->
+        LiveExpr Delta (Delta2 \/ pop Delta2) tau
+\end{code}
 
 To create such annotated expressions, we need to perform
 some static analysis of our source programs.
-The function \I{analyse} computes the live sub-context $\Delta'$
+The function |analyse| computes the live sub-context |Delta'|
 together with a matching annotated expression.
 The only requirement we have for it is that we can forget the annotations again,
-with $\I{forget} \circ \I{analyse} \equiv \I{id}$.
+with |forget . analyse == id|.
 
-\begin{align*}
-  \I{analyse}
-    &:  \I{Expr}\ \Floor{\Delta}\ \tau
-    \to \Existential{\Delta'}{\I{Subset}\ \Gamma}\ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \\
-  \I{forget}
-    &:  \I{LiveExpr}\ \Delta\ \Delta'\ \tau
-    \to \I{Expr}\ \Floor{\Delta}\ \tau
-\end{align*}
+\begin{code}
+  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (Subset Gamma)) LiveExpr Delta Delta tau
+  forget  : LiveExpr Delta Delta' tau -> Expr (floor(Delta)) tau
+\end{code}
 
 % NOTE:
-% Maybe add a note that \I{LiveExpr} is overspecified.
-% Instead of $\Delta_1 \cup \Delta_2$ we could have any $\Delta'$ containing $\Delta_1$ and $\Delta_2$.
+% Maybe add a note that LiveExpr is overspecified.
+% Instead of |Delta1 \/ Delta2| we could have any |Delta'| containing |Delta1| and |Delta2|.
 
 \subsection{Transformation}
 
-Note that we can evaluate $\I{LiveExpr}$ directly, differing from $\I{eval}$ mainly
-in the $\I{Let}$-case, where we match on $\Delta_2$ to distinguish whether the bound variable is live.
+Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
+in the |Let|-case, where we match on |Delta2| to distinguish whether the bound variable is live.
 If it is not, we directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
 
-\begin{align*}
-  &\I{evalLive} : \\
-  &\ \ \ \ \I{LiveExpr}\ \Delta\ \Delta'\ \tau \to  
-           \I{Env}\ \Floor{\Delta_u} \to  
-           .(\Delta' \subseteq \Delta_u) \to  
-           \Interpret{\tau}
-\end{align*}
+\begin{code}
+  evalLive :
+    LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpret(tau))
+\end{code}
 
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
 The implementation simply maps each constructor to its counterpart in \I{Expr},
 with some renaming
-(e.g. from $\Floor{\Delta_1}$ to $\Floor{\Delta_1 \cup \Delta_2}$)
+(e.g. from |(floor(Delta1))| to |(floor(Delta1 \/ Delta2)|)
 and the abovementioned case distinction.
 
-\begin{align*}
-  &\I{dbe} :  \I{LiveExpr}\ \Delta\ \Delta'\ \tau \to \I{Expr}\ \Floor{\Delta'}\ \tau  \\
-  &\I{dbe}\ (\I{Let}\ \{\Delta_1\}\ \{\I{Drop}\ \Delta_2\}\ e_1\ e_2) =
-      \I{injExpr}_2\ \Delta_1\ \Delta_2\ (\I{dbe}\ e_2)  \\
-  &\I{dbe}\ \ldots
-\end{align*}
+% TODO: slightly too wide?
+\begin{code}
+  dbe : LiveExpr Delta Delta' tau -> Expr (floor(Delta')) tau
+  dbe (Let {Delta1} {Drop Delta2} e1 e2) = injExpr2 Delta1 Delta2 (dbe e2)
+  dbe (dots)
+\end{code}
 
-As opposed to \I{forget}, which stays in the original context,
-here we remove unused variables, only keeping $\Floor{\Delta'}$.
+As opposed to |forget|, which stays in the original context,
+here we remove unused variables, only keeping |(floor(Delta'))|.
 
 \subsection{Correctness}
 
 We want to show that dead binding elimination preserves semantics:
-$\I{eval} \circ \I{dbe} \circ \I{analyse} \equiv \I{eval}$.
-Since we know that $\I{forget} \circ \I{analyse} \equiv \I{id}$,
+|eval . dbe . analyse == eval|.
+Since we know that |forget . analyse == id|,
 it is sufficient to show the following:
 
-\begin{align*}
-  \I{eval} \circ \I{dbe} \equiv \I{eval} \circ \I{forget}
-\end{align*}
+\begin{code}
+  eval . dbe == eval . forget
+\end{code}
 
 The proof gets simpler if we split it up using the optimised semantics.
 
-\begin{align*}
-  \I{eval} \circ \I{dbe} \equiv \I{evalLive} \equiv \I{eval} \circ \I{forget}
-\end{align*}
+\begin{code}
+  eval . dbe == evalLive = eval . forget
+\end{code}
 
 The actual proof statements are more involved,
 since they quantify over the expression and environment used.
-As foreshadowed in the definition of \I{evalLive}, the statements are also generalised
-to evaluation under any $\I{Env}\ \Floor{\Delta_u}$,
-as long as it contains the live sub-centext.
+As foreshadowed in the definition of |evalLive|, the statements are also generalised
+to evaluation under any |Env (floor(DeltaU))|,
+as long as it contains the live sub-context.
 This gives us more flexibility when using the inductive hypothesis.
 
 Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
-The interesting one is again \I{Let}, where we split cases on the variable being used or not
+The interesting one is again |Let|, where we split cases on the variable being used or not
 and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \subsection{Iterating the Optimisation}

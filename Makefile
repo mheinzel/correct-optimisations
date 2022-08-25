@@ -8,7 +8,7 @@ check: check-Examples
 check-%: src/%.agda
 	agda $<
 
-%.tex : %.lagda
+%.tex : %.lagda %.fmt
 	lhs2TeX --agda --poly -o $@ $<
 
 # TODO: temporary working directory
