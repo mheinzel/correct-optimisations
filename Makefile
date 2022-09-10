@@ -1,22 +1,10 @@
-.PHONY: default clean check
+.PHONY: default tyde22 clean
 
-default: tyde-ext-abstract.pdf
+default: tyde22
 
-# Should import everything important
-check: check-Examples
-
-check-%: src/%.agda
-	agda $<
-
-%.tex : %.lagda %.fmt
-	lhs2TeX --agda --poly -o $@ $<
-
-# TODO: temporary working directory
-%.pdf: %.tex correct-optimisations.bib
-	latexmk -pdf $<
+tyde22:
+	cd tyde22; $(MAKE)
 
 clean:
-	rm -f src/*.agdai *.agda~
-	rm -f *.{aux,bbl,blg,dvi,fdb_latexmk,fls,log,out,ptb,toc,xcp}
-	rm -f tyde-ext-abstract.tex
-	rm -f tyde-ext-abstract.pdf
+	rm -f src/*.agdai src/*.agda~
+	cd tyde22; $(MAKE) clean

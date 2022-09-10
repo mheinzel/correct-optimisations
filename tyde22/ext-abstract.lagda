@@ -4,7 +4,7 @@
 \let\Bbbk\undefined
 
 %include agda.fmt
-%include tyde-ext-abstract.fmt
+%include custom.fmt
 
 % https://icfp22.sigplan.org/home/tyde-2022#Call-for-Papers
 
@@ -300,6 +300,6 @@ providing useful strategies for performing optimisations in intrinsically typed 
 % or more generally, manipulating well-typed well-scoped syntax trees?
 
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{correct-optimisations}{}
+\bibliography{../correct-optimisations}{}
 
 \end{document}
