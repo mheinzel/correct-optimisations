@@ -141,17 +141,17 @@ and we capture this notion in a single data type.
 For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
 
 \begin{code}
-data Subset : Ctx -> Set where
-  Empty  : Subset []
-  Drop   : Subset Gamma → Subset (tau :: Gamma)
-  Keep   : Subset Gamma → Subset (tau :: Gamma)
+data SubCtx : Ctx -> Set where
+  Empty  : SubCtx []
+  Drop   : SubCtx Gamma → SubCtx (tau :: Gamma)
+  Keep   : SubCtx Gamma → SubCtx (tau :: Gamma)
 \end{code}
 
 The context uniquely described by a sub-context is
-then given by a function |(floor (_)) : Subset Gamma -> Ctx|,
+then given by a function |(floor (_)) : SubCtx Gamma -> Ctx|,
 and we further know its embedding.
 
-We now define |c= : Subset Gamma -> Subset Gamma -> Set|,
+We now define |c= : SubCtx Gamma -> SubCtx Gamma -> Set|,
 stating that one sub-context is a subset of the other.
 Its witnesses are unique, which simplifies the correctness proofs.
 A similar relation on |Ctx| does not have this property
@@ -160,7 +160,7 @@ which would complicate equality proofs on terms including witnesses of |c=|.
 
 From now on, we will only consider expressions
 |Expr (floor(Delta)) tau| in some sub-context.
-Initially, we take |Delta = all Gamma : Subset Gamma|,
+Initially, we take |Delta = all Gamma : SubCtx Gamma|,
 the complete sub-context of the original context.
 
 \subsection{Live Variable Analysis}
@@ -173,7 +173,7 @@ starting with a singleton sub-context at the variable usage sites.
 
 % TODO: too wide?
 \begin{code}
-data LiveExpr : (Delta Delta' : Subset Gamma) (tau : U) -> Set where
+data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
   Let : LiveExpr Delta Delta1 sigma ->
         LiveExpr (Keep Delta) Delta2 tau ->
         LiveExpr Delta (Delta2 \/ pop Delta2) tau
@@ -181,13 +181,13 @@ data LiveExpr : (Delta Delta' : Subset Gamma) (tau : U) -> Set where
 
 To create such annotated expressions, we need to perform
 some static analysis of our source programs.
-The function |analyse| computes the live sub-context |Delta'|
+The function |analyse| computes an existentially qualified live sub-context |Delta'|
 together with a matching annotated expression.
 The only requirement we have for it is that we can forget the annotations again,
 with |forget . analyse == id|.
 
 \begin{code}
-  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (Subset Gamma)) LiveExpr Delta Delta tau
+  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta tau
   forget  : LiveExpr Delta Delta' tau -> Expr (floor(Delta)) tau
 \end{code}
 
