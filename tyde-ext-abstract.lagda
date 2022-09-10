@@ -48,24 +48,26 @@ When writing a compiler for a functional programming language,
 an important consideration is the treatment of binders and variables.
 A well-known technique when using dependently typed programming languages such as Agda
 \cite{norell2007agda}
-is to define an intrinsically typed syntax tree \cite{augustsson1999intrinsic}.
-Expressions are scope- and type-safe by construction and admit a total evaluation function.
+is to define an intrinsically typed syntax tree,
+where expressions are scope- and type-safe by construction and admit a total evaluation function
+\cite{augustsson1999intrinsic}.
 This construction has featured in several papers, exploring
 basic operations like renaming and substitution
 \cite{allais2018universe}
 as well as compilation to different target languages
 \cite[supplemental material]{pickard2021calculating}.
 
-Optimisations play an important role in compilers, but
-establishing their correctness is often not trivial,
+Performing optimisations on intrinsically typed programs, on the other hand,
+has not received as much attention.
+However, optimisations play an important role in compilers
+and establishing their correctness is often not trivial,
 with ample opportunity for mistakes.
-However, there has been little focus on performing optimisations on intrinsically typed programs.
 %
 In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
 but provide a proof witness that the optimisation is safe,
 e.g. that some dead code is indeed not used.
-For \emph{transformations} on intrinsically typed programs,
-the programmer can rely on the compiler to check the relevant invariants,
+For the \emph{transformation} of the intrinsically typed program,
+the programmer can then rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
 especially when manipulating binders and variables.
 
@@ -87,7 +89,7 @@ We further prove that the optimisation is semantics-preserving.
 
 \subsection{Intrinsically Typed Expressions with Binders}
 
-We define a simple typed expression language with let-bindings,
+We define a simple, typed expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
 Since the optimisations we are interested in relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
@@ -124,12 +126,19 @@ using a matching environment:
 \subsection{Sub-contexts}
 
 % NOTE: cite \emph{A correct-by-construction conversion to combinators}? It's quite similar.
+% TODO: Call it SubCtx?
 
-Note that an expression is not forced to make use of the whole context to which it has access.
-Specifically, a let-binding introduces a new element into the context, but it might never be used.
-To reason about the \emph{sub-contexts} that are live (actually used),
-we use \emph{order-preserving embeddings} (OPE) \cite{chapman2009type}.
-For each element of a context, a sub-context specifies whether to keep it or not.
+Note that an expression is not forced to make use of the whole context
+to which it has access.
+Specifically, a let-binding introduces a new element into the context,
+but it might never be used.
+
+To reason about the part of a context that is live (actually used),
+we introduce \emph{sub-contexts}.
+Conceptually, these are contexts that admit an
+\emph{order-preserving embedding} (OPE) \cite{chapman2009type} into the original context,
+and we capture this notion in a single data type.
+For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
 
 \begin{code}
 data Subset : Ctx -> Set where
@@ -138,12 +147,16 @@ data Subset : Ctx -> Set where
   Keep   : Subset Gamma → Subset (tau :: Gamma)
 \end{code}
 
-Such a sub-context describes a context themselves,
-given by a function |(floor (_)) : Subset Gamma -> Ctx|,
-but it contains more information than that.
-For example, the witnesses of a binary relation |c=| on sub-contexts are unique,
-as opposed to working on contexts directly, e.g. |[INT] c= [INT, INT]|.
-% TODO: explain this more clearly, e.g. see project report
+The context uniquely described by a sub-context is
+then given by a function |(floor (_)) : Subset Gamma -> Ctx|,
+and we further know its embedding.
+
+We now define |c= : Subset Gamma -> Subset Gamma -> Set|,
+stating that one sub-context is a subset of the other.
+Its witnesses are unique, which simplifies the correctness proofs.
+A similar relation on |Ctx| does not have this property
+(e.g. |[NAT]| can be embedded into |[NAT, NAT]| either by keeping the first element or the second),
+which would complicate equality proofs on terms including witnesses of |c=|.
 
 From now on, we will only consider expressions
 |Expr (floor(Delta)) tau| in some sub-context.
