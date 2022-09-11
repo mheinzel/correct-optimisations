@@ -9,15 +9,12 @@ theme: metropolis
 
 # Intrinsically typed syntax trees
 
-## A simple language
+## Intrinsically typed syntax trees
 
-$$
-  P, Q ::= v
-  \ \big|\  P + Q
-  \ \big|\  \ldots
-  \ \big|\  \textbf{let } x = P \textbf{ in } Q
-  \ \big|\  x
-$$
+* use the Agda type system to define expressions that are correct by construction
+
+* type- and scope-safe
+
 
 ## Type-safety by construction
 
@@ -76,12 +73,10 @@ data Env : Ctx → Set where
   Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
 ```
 
+* evaluation is total!
+
 ```agda
 eval : Expr Γ σ → Env Γ → ⟦ σ ⟧
-eval (Val v)       env  = v
-eval (Plus e₁ e₂)  env  = eval e₁ env + eval e₂ env
-eval (Let e₁ e₂)   env  = eval e₂ (Cons (eval e₁ env) env)
-eval (Var x)       env  = lookup x env
 ```
 
 ## Intrinsically typed syntax trees
@@ -97,9 +92,7 @@ eval (Var x)       env  = lookup x env
 
 ## Optimisations on intrinsically typed expressions
 
-* plethora of potential optimisations
-
-* essential for most compilers
+* optimisations are essential for most compilers
 
 * many opportunities to introduce bugs
 
