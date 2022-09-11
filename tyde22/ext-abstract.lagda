@@ -18,12 +18,6 @@
 
 \citestyle{acmauthoryear}
 
-\newcommand{\I}[1]{\texttt{#1}\xspace}
-\newcommand{\K}[1]{\textbf{\texttt{#1}}\xspace}
-\newcommand{\Interpret}[1]{\llbracket #1 \rrbracket\xspace}
-\newcommand{\Floor}[1]{\lfloor #1 \rfloor\xspace}
-\newcommand{\Existential}[2]{\Sigma[ #1 \in #2 ]\xspace}
-
 \title{Provingly Correct Optimisations on Intrinsically Typed Expressions}
 \subtitle{Extended Abstract}
 
@@ -209,7 +203,7 @@ Another important detail is that evaluation works under any environment containi
 
 This \emph{optimised semantics} shows that we can do a similar program transformation
 and will be useful in its correctness proof.
-The implementation simply maps each constructor to its counterpart in \I{Expr},
+The implementation simply maps each constructor to its counterpart in |Expr|,
 with some renaming
 (e.g. from |(floor(Delta1))| to |(floor(Delta1 \/ Delta2)|)
 and the abovementioned case distinction.
@@ -276,7 +270,7 @@ The implementation and correctness proof of dead binding elimination are complet
 the Agda source code is available online
 \footnote{\url{https://github.com/mheinzel/correct-optimisations}}.
 One interesting observation is that the correctness proof does not rely on how
-\I{analyse} computes the annotations.
+|analyse| computes the annotations.
 At first, this does not seem particularly useful,
 but for other optimisations the analysis might use complex, frequently changing heuristics to decide
 which transformations are worth it.
