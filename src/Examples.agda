@@ -6,7 +6,7 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
 open import Lang
-open import Subset
+open import SubCtx
 open import Live
 
 -- Examples

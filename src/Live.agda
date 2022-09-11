@@ -9,12 +9,12 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; 
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Lang
-open import Subset
+open import SubCtx
 open import Recursion
 
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
 -- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?
-data LiveExpr {Γ : Ctx} : (Δ Δ' : Subset Γ) → (σ : U) → Set where
+data LiveExpr {Γ : Ctx} : (Δ Δ' : SubCtx Γ) → (σ : U) → Set where
   Val :
     ⟦ σ ⟧ →
     LiveExpr Δ ∅ σ
@@ -38,7 +38,7 @@ forget (Let e₁ e₂) = Let (forget e₁) (forget e₂)
 forget (Var x) = Var x
 
 -- decide which variables are used or not
-analyse : ∀ Δ → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] LiveExpr Δ Δ' σ
+analyse : ∀ Δ → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ] LiveExpr Δ Δ' σ
 analyse Δ (Val v) = ∅ , Val v
 analyse Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , Plus le₁ le₂
@@ -60,7 +60,7 @@ analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analys
 analyse-preserves (Var x) = refl
 
 -- Now let's try to define a semantics for LiveExpr...
-lookupLive : (Δ Δᵤ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Env ⌊ Δᵤ ⌋ → .(sing Δ x ⊆ Δᵤ) → ⟦ σ ⟧
+lookupLive : (Δ Δᵤ : SubCtx Γ) (x : Ref σ ⌊ Δ ⌋) → Env ⌊ Δᵤ ⌋ → .(sing Δ x ⊆ Δᵤ) → ⟦ σ ⟧
 lookupLive (Drop Δ) (Drop Δᵤ) x env H = lookupLive Δ Δᵤ x env H
 lookupLive (Drop Δ) (Keep Δᵤ) x (Cons v env) H = lookupLive Δ Δᵤ x env H
 lookupLive (Keep Δ) (Drop Δᵤ) (Pop x) env H = lookupLive Δ Δᵤ x env H
@@ -80,7 +80,7 @@ evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) en
     (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
 evalLive {Γ} {Δ} Δᵤ (Var x) env H = lookupLive Δ Δᵤ x env H
 
-lookupLive-correct : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) → .(H' : sing Δ x ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
+lookupLive-correct : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : SubCtx Γ) (env : Env ⌊ Δ ⌋) → .(H' : sing Δ x ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
   lookupLive Δ Δᵤ x (prjEnv Δᵤ Δ H env) H' ≡ lookup x env
 lookupLive-correct {σ} {[]} {Empty} () Δᵤ Nil H' H
 lookupLive-correct {σ} {τ ∷ Γ} {Drop Δ} x (Drop Δᵤ) env H' H = lookupLive-correct x Δᵤ env H' H
@@ -90,7 +90,7 @@ lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) 
 
 -- evalLive ≡ eval ∘ forget
 evalLive-correct :
-  (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δ ⌋) →
+  (e : LiveExpr Δ Δ' σ) (Δᵤ : SubCtx Γ) (env : Env ⌊ Δ ⌋) →
   .(H' : Δ' ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
   evalLive Δᵤ e (prjEnv Δᵤ Δ H env) H' ≡ eval (forget e) env
 evalLive-correct (Val v) Δᵤ env H' H = refl
@@ -112,7 +112,7 @@ evalLive-correct (Var x) Δᵤ env H' H =
 
 -- dead binding elimination
 
-sing-ref : (Δ : Subset Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ sing Δ x ⌋
+sing-ref : (Δ : SubCtx Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ sing Δ x ⌋
 sing-ref {[]} Empty ()
 sing-ref {τ ∷ Γ} (Drop Δ) x = sing-ref Δ x
 sing-ref {τ ∷ Γ} (Keep Δ) Top = Top
@@ -134,7 +134,7 @@ dbe {Γ} {Δ} (Var x) =
 
 -- eval ∘ dbe ≡ evalLive
 dbe-correct :
-  (e : LiveExpr Δ Δ' σ) (Δᵤ : Subset Γ) (env : Env ⌊ Δᵤ ⌋) →
+  (e : LiveExpr Δ Δ' σ) (Δᵤ : SubCtx Γ) (env : Env ⌊ Δᵤ ⌋) →
   .(H : Δ' ⊆ Δᵤ) →
   eval (renameExpr Δ' Δᵤ H (dbe e)) env ≡ evalLive Δᵤ e env H
 dbe-correct (Val v) Δᵤ env H = refl
@@ -180,7 +180,7 @@ dbe-correct (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ env H =
 dbe-correct (Var x) Δᵤ env H =
   lemma-lookupLive x Δᵤ env H
   where
-    lemma-lookupLive : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : Subset Γ) → (env : Env ⌊ Δᵤ ⌋) → .(H : sing Δ x ⊆ Δᵤ) →
+    lemma-lookupLive : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : SubCtx Γ) → (env : Env ⌊ Δᵤ ⌋) → .(H : sing Δ x ⊆ Δᵤ) →
       lookup (renameVar (sing Δ x) Δᵤ H (sing-ref Δ x)) env ≡ lookupLive Δ Δᵤ x env H
     lemma-lookupLive {Δ = Drop Δ} x (Drop Δᵤ) env H = lemma-lookupLive x Δᵤ env H
     lemma-lookupLive {Δ = Drop Δ} x (Keep Δᵤ) (Cons v env) H = lemma-lookupLive x Δᵤ env H
@@ -188,10 +188,10 @@ dbe-correct (Var x) Δᵤ env H =
     lemma-lookupLive {Δ = Keep Δ} Top (Keep Δᵤ) (Cons v env) H = refl
     lemma-lookupLive {Δ = Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) H = lemma-lookupLive x Δᵤ env H
 
-optimise : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] (Expr ⌊ Δ' ⌋ σ)
+optimise : (Δ : SubCtx Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ] (Expr ⌊ Δ' ⌋ σ)
 optimise Δ e = let Δ' , e' = analyse Δ e in Δ' , dbe e'
 
-optimise-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
+optimise-correct : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
   let Δ' , e' = optimise Δ e
       H = Δ'⊆Δ (proj₂ (analyse Δ e))
   in eval e' (prjEnv Δ' Δ H env) ≡ eval e env
@@ -213,8 +213,8 @@ optimise-correct {Γ} Δ e env =
 mutual
   -- Keep optimising as long as the number of bindings decreases.
   -- This is not structurally recursive, but we have a Well-Foundedness proof.
-  fix-optimise-wf : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ (Δ , e) →
-    Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
+  fix-optimise-wf : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ (Δ , e) →
+    Σ[ Δ' ∈ SubCtx Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
   fix-optimise-wf {Γ} Δ e accu =
     let Δ' , e' = optimise Δ e
         H = Δ'⊆Δ (proj₂ (analyse Δ e))
@@ -223,20 +223,20 @@ mutual
   -- Without the helper, there were issues with the with-abstraction using a
   -- result of the let-binding.
   fix-optimise-wf-helper :
-    (Δ Δ' : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) →
+    (Δ Δ' : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) →
     (H' : Δ' ⊆ Δ) → WF.Acc _<-bindings_ (Δ , e) →
-    Σ[ Δ'' ∈ Subset Γ ] ((Δ'' ⊆ Δ) × Expr ⌊ Δ'' ⌋ σ)
+    Σ[ Δ'' ∈ SubCtx Γ ] ((Δ'' ⊆ Δ) × Expr ⌊ Δ'' ⌋ σ)
   fix-optimise-wf-helper Δ Δ' e e' H' (WF.acc g) with num-bindings e' <? num-bindings e
   ... | inj₂ p = Δ' , (H' , e')
   ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimise-wf Δ' e' (g (Δ' , e') p)
                  in Δ'' , (⊆-trans Δ'' Δ' Δ H'' H') , e''
 
-fix-optimise : (Δ : Subset Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ Subset Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
+fix-optimise : (Δ : SubCtx Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
 fix-optimise {Γ} Δ e = fix-optimise-wf Δ e (<-bindings-wf (Δ , e))
 
 mutual
   -- Not pretty, but it works.
-  fix-optimise-wf-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) (accu : WF.Acc _<-bindings_ (Δ , e)) →
+  fix-optimise-wf-correct : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) (accu : WF.Acc _<-bindings_ (Δ , e)) →
     let Δ'' , (H'' , e'') = fix-optimise-wf Δ e accu
     in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e env
   fix-optimise-wf-correct Δ e env accu =
@@ -251,7 +251,7 @@ mutual
      ∎
 
   fix-optimise-wf-helper-correct :
-    (Δ Δ' : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) (env : Env ⌊ Δ ⌋) →
+    (Δ Δ' : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) (env : Env ⌊ Δ ⌋) →
     (H' : Δ' ⊆ Δ) (accu : WF.Acc _<-bindings_ (Δ , e)) →
     let Δ'' , (H'' , e'') = fix-optimise-wf-helper Δ Δ' e e' H' accu
     in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e' (prjEnv Δ' Δ H' env)
@@ -265,7 +265,7 @@ mutual
                     eval e' (prjEnv Δ' Δ H' env)
                   ∎
 
-fix-optimise-correct : (Δ : Subset Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
+fix-optimise-correct : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
   let Δ' , (H' , e') = fix-optimise Δ e
   in eval e' (prjEnv Δ' Δ H' env) ≡ eval e env
 fix-optimise-correct Δ e env = fix-optimise-wf-correct Δ e env (<-bindings-wf (Δ , e))

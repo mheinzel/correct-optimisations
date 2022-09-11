@@ -6,7 +6,7 @@ open import Data.Sum
 open import Data.Product
 
 open import Lang
-open import Subset
+open import SubCtx
 
 -- The definition from Relation.Binary makes us use levels, but we could switch?
 Rel : Set → Set₁
@@ -59,16 +59,16 @@ module Inverse-image-Well-founded { A B }
   ii-wf : WF.Well-founded _<_ → WF.Well-founded _⊰_
   ii-wf wf x = ii-acc (wf (f x))
 
-num-bindings' : Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ → ℕ
+num-bindings' : Σ[ Δ ∈ SubCtx Γ ] Expr ⌊ Δ ⌋ σ → ℕ
 num-bindings' (Δ , e) = num-bindings e
 
 module <-num-bindings-Well-founded { Γ σ } where
-  open Inverse-image-Well-founded {Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ} _<_ num-bindings' public
+  open Inverse-image-Well-founded {Σ[ Δ ∈ SubCtx Γ ] Expr ⌊ Δ ⌋ σ} _<_ num-bindings' public
 
   wf : WF.Well-founded _⊰_
   wf = ii-wf <-ℕ-wf
 
-_<-bindings_ : (e₁ e₂ : Σ[ Δ ∈ Subset Γ ] Expr ⌊ Δ ⌋ σ) → Set
+_<-bindings_ : (e₁ e₂ : Σ[ Δ ∈ SubCtx Γ ] Expr ⌊ Δ ⌋ σ) → Set
 e₁ <-bindings e₂ = num-bindings' e₁ < num-bindings' e₂
 
 <-bindings-wf : {Γ : Ctx} {σ : U} → WF.Well-founded (_<-bindings_ {Γ} {σ})
