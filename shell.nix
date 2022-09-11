@@ -24,5 +24,7 @@ pkgs.stdenv.mkDerivation {
     agda
     pkgs.texlive.combined.scheme-full
     pkgs.haskellPackages.lhs2tex
+    pkgs.pandoc
+    pkgs.open-sans
   ];
 }
