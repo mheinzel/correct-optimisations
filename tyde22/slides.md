@@ -114,6 +114,96 @@ eval (Var x)       env  = lookup x env
 
 # Dead binding elimination (DBE)
 
+* if bindings are not used, we want to remove them
+
+* use live variable analysis (LVA) to annotate each expression with subset of context that is live
+
+## Sub-contexts
+
+* a **sub-context** is a context with an order-preserving embedding (OPE)
+
+* useful to bundle these into a single data type
+
+```agda
+data SubCtx : Ctx → Set where
+  Empty  : SubCtx []
+  Drop   : SubCtx Γ → SubCtx (τ ∷ Γ)
+  Keep   : SubCtx Γ → SubCtx (τ ∷ Γ)
+```
+
+## Sub-contexts
+
+* we define some operations
+
+```agda
+_⊆_ : SubCtx Γ → SubCtx Γ → Set
+
+_∪_ : SubCtx Γ → SubCtx Γ → SubCtx Γ
+```
+
+* we will only consider expressions in a context $\lfloor \Delta \rfloor$ determined by some sub-context $\Delta$
+
+## Annotated expressions
+
+* $\Delta$: *defined* bindings, top-down (as $\Gamma$ before)
+* $\Delta'$: *used* bindings, bottom-up
+
+```agda
+data LiveExpr : (Δ Δ' : SubCtx Γ) (σ : U) → Set where
+  Var :  (x : Ref σ ⌊ Δ ⌋) →
+         LiveExpr Δ (sing Δ x) σ
+  Plus : LiveExpr Δ Δ₁ NAT →
+         LiveExpr Δ Δ₂ NAT →
+         LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
+  ...
+```
+
+## Live variable analysis
+
+* we can relate ordinary and annotated expressions
+
+```agda
+analyse : Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ]
+                         LiveExpr Δ Δ' σ
+
+forget : LiveExpr Δ Δ' σ → Expr ⌊ Δ ⌋ σ
+```
+
+* reasonable requirement: `forget ∘ analyse ≡ id`
+
+## Dead binding elimination
+
+```
+dbe : LiveExpr Δ Δ' σ → Expr ⌊ Δ' ⌋ σ
+```
+
+* on a `Let`, it branches on whether the variable is live
+
+* if not, just remove the binding
+
+
+# Correctness
+
+## Optimised semantics
+
+* to split up the correctness proofs, we give semantics `evalLive` for annotated expressions
+
+  * on a `Let`, it also branches
+  * generalisation helps: accept any `Env ⌊ Δᵤ ⌋` with `Δ' ⊆ Δᵤ`
+
+## Correctness
+
+* the goal: `eval ∘ dbe ∘ analyse ≡ eval`
+
+* for the analysis, we know that: `forget ∘ analyse ≡ id`
+
+* so it is sufficient to do two straight-forward proofs:
+
+  * `eval ∘ dbe ≡ evalLive`
+  * `evalLive ≡ eval ∘ forget`
+
+* both only require small lemmas for the `Let` case
+
 
 # What's next?
 
@@ -124,10 +214,11 @@ eval (Var x)       env  = lookup x env
 
 * implement more optimisations
 
-  * moving bindings around in the syntax tree
+  * *strong* live variable analysis
+  * moving bindings up or down in the syntax tree
   * common subexpression elimination
 
-* identify patterns, generalise approach
+* identify patterns, generalise the approach
 
 
 ## {.standout}
