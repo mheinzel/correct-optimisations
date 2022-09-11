@@ -8,7 +8,7 @@ $if(fontfamily)$
 $else$
 \usepackage{lmodern}
 $endif$
-\usepackage{amssymb,amsmath}
+\usepackage{amssymb,amsmath,stmaryrd}
 \usepackage{ifxetex,ifluatex}
 \usepackage{fixltx2e} % provides \textsubscript
 %%W: moved up to allow to be overriden
@@ -130,6 +130,33 @@ $if(graphics)$
 % using explicit options in \includegraphics[width, height, ...]{}
 \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
 $endif$
+
+\usepackage{newunicodechar}
+\newunicodechar{∀}{\ensuremath{\mathnormal\forall}}
+\newunicodechar{⊤}{\ensuremath{\mathnormal\top}}
+\newunicodechar{⊥}{\ensuremath{\mathnormal\bot}}
+\newunicodechar{∘}{\ensuremath{\mathnormal\circ}}
+\newunicodechar{≡}{\ensuremath{\mathnormal\equiv}}
+\newunicodechar{ᵇ}{\ensuremath{\mathnormal{}^b}}
+\newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbf{N}}}
+\newunicodechar{∅}{\ensuremath{\mathnormal\emptyset}}
+\newunicodechar{∈}{\ensuremath{\mathnormal\in}}
+\newunicodechar{⊆}{\ensuremath{\mathnormal\subseteq}}
+\newunicodechar{∪}{\ensuremath{\mathnormal\cup}}
+\newunicodechar{∷}{\ensuremath{\mathnormal::}}
+\newunicodechar{⟦}{\ensuremath{\mathnormal\llbracket}}
+\newunicodechar{⟧}{\ensuremath{\mathnormal\rrbracket}}
+\newunicodechar{⌊}{\ensuremath{\mathnormal\lfloor}}
+\newunicodechar{⌋}{\ensuremath{\mathnormal\rfloor}}
+\newunicodechar{Γ}{\ensuremath{\mathnormal\Gamma}}
+\newunicodechar{σ}{\ensuremath{\mathnormal\sigma}}
+\newunicodechar{τ}{\ensuremath{\mathnormal\tau}}
+\newunicodechar{Δ}{\ensuremath{\mathnormal\Delta}}
+\newunicodechar{Σ}{\ensuremath{\mathnormal\Sigma}}
+\newunicodechar{₁}{\ensuremath{\mathnormal{}_1}}
+\newunicodechar{₂}{\ensuremath{\mathnormal{}_2}}
+\newunicodechar{ᵤ}{\ensuremath{\mathnormal{}_u}}
+
 
 %% UU Specific colors
 \definecolor{uuRed}{RGB}{192,10,53}
