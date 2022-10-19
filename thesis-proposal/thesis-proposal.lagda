@@ -31,6 +31,8 @@
 
 \maketitle
 
+\tableofcontents
+\pagebreak
 
 \section{Introduction}
 \Draft{What is the problem? Illustrate with an example.}
@@ -38,14 +40,22 @@
 
 \section{Background}
 \Draft{What is the existing technology and literature that I'll be studying/using in my research?}
+\subsection{Program Analysis and Transformation}
+\subsection{Dependently Typed Programming Languages}
+\subsection{Intrinsically Typed Syntax}
+\subsection{Datatype-generic Programming}
 
 \section{Preliminary Results}
 \Draft{What examples can you handle already?}
 \Draft{What prototype have I built?}
 \Draft{How can I generalize these results? What problems have I identified or do I expect?}
+\subsection{Dead Binding Elimination}
+\subsection{Observations}
 
 \section{Timetable and Planning}
+\subsection{Further Work}
 \Draft{What will I do with the remainder of my thesis?}
+\subsection{Schedule}
 \Draft{Give an approximate estimation/timetable for what you will do and when you will be done.}
 
 
