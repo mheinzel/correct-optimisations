@@ -41,9 +41,10 @@
 \section{Background}
 \Draft{What is the existing technology and literature that I'll be studying/using in my research?}
 \subsection{Program Analysis and Transformation}
-\subsection{Dependently Typed Programming Languages}
 \subsection{Intrinsically Typed Syntax}
 \subsection{Datatype-generic Programming}
+% Immediately go into the syntax-related work, just a short overview, link to literature
+% (might not end up being in the thesis)
 
 \section{Preliminary Results}
 \Draft{What examples can you handle already?}
