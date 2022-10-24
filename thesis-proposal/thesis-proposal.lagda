@@ -12,13 +12,19 @@
 \usepackage{listings}
 \usepackage[pdftex]{xcolor}
 \usepackage{xspace}
+\usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{colortbl}
+\usepackage{tabularx}
 \usepackage{todonotes}
 
 % \newcommand{\Draft}[1]{}
 % \newcommand{\Fixme}[1]{}
 \newcommand{\Draft}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
 \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
+\newcommand{\X}{\cellcolor{gray}}
+\newcolumntype{L}{>{\centering\arraybackslash}X}
+\newcommand{\Week}[1]{\tiny #1}
 
 \title{Thesis Proposal: Analysis and Transformation of Intrinsically Typed Syntax}
 
@@ -247,10 +253,59 @@ using an environment that matches the expression's context.
 \subsection{Observations}
 
 \section{Timetable and Planning}
+
 \subsection{Further Work}
 \Draft{What will I do with the remainder of my thesis?}
+\Fixme{Initial draft, to be refined}
+
+\paragraph{Extending the Language}
+Since our language only contains let-bindings,
+it might be of interest to extend it with $\lambda$-abstractions
+(forming a simply-typed $\lambda$-calculus).
+Some increase in complexity seems necessary to eliminate applications of
+functions that do not use their argument,
+but we hope that our work is still largely applicable.
+The problem gets more challenging when introducing recursive bindings.
+Conversely, adding sum and product types might require more extensive bookkeeping,
+but should not pose fundamental difficulties.
+
+\paragraph{Other Analyses}
+There are several other binding-related transformations to explore,
+such as moving bindings up or down in the syntax tree.
+Another interesting type of optimisation is avoidance of redundant computations
+using \emph{available expression analysis}.
+An example is \emph{common subexpression elimination},
+where subexpressions get replaced by variables bound to equivalent declarations
+(pre-existing or newly created).
+
+\paragraph{Generalisation}
+Ideally, further exploration will lead to the discovery of common patterns
+and useful strategies for performing optimisations on intrinsically typed syntax trees.
+One possible avenue is the syntax-generic definition of operations and proofs.
+
+
 \subsection{Schedule}
 \Draft{Give an approximate estimation/timetable for what you will do and when you will be done.}
+
+The thesis deadline is on 09.06.2023.
+To allow for sufficient grading time,
+I will submit my thesis until 26.05.2023, the end of week 21.
+
+\vspace{1em}
+\noindent
+\setlength\tabcolsep{3pt}
+\begin{tabularx}{\textwidth}{@@{}m{0.17\textwidth}||*{20}{L}}
+  \textbf{Week}
+    & \Week{2} & \Week{3} & \Week{4} & \Week{5} & \Week{6} & \Week{7} & \Week{8} & \Week{9} & \Week{10} & \Week{11} & \Week{12} & \Week{13} & \Week{14} & \Week{15} & \Week{16} & \Week{17} & \Week{18} & \Week{19} & \Week{20} & \Week{21} \\
+  \hline
+  Step 1
+    & \X & \X & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  \\
+  The rest
+    & \  & \  & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \  & \  \\
+  Proofreading
+    & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \X & \X & \X \\
+\end{tabularx}
+\Fixme{Fill out!}
 
 
 \bibliographystyle{acm}
