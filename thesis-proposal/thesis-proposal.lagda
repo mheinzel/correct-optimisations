@@ -155,7 +155,7 @@ Similarly, the type of a bound expression might not match the expected type at t
 where it is referenced.
 This makes the evaluation function partial;
 it should only be called after validating type- and scope-safety.
-\Fixme{Add some further structure to this subsection? Paragraphs?}
+\Fixme{Show possible bugs in transformations}
 
 When implementing a compiler in a dependently typed programming language,
 one does not need to accept partiality and the need for human vigilance.
@@ -163,6 +163,7 @@ With \emph{intrinsically typed syntax trees}, type- and scope-safety invariants
 are specified on the type level and verified by the type checker.
 We will demonstrate the approach in Agda and start by defining the types that terms can have.
 \Fixme{Too long-winded and detailed?}
+\Fixme{Add some further structure to this subsection? Paragraphs?}
 
 \begin{code}
   data U : Set where
@@ -268,6 +269,7 @@ but we hope that our work is still largely applicable.
 The problem gets more challenging when introducing recursive bindings.
 Conversely, adding sum and product types might require more extensive bookkeeping,
 but should not pose fundamental difficulties.
+\Fixme{extend, itemize}
 
 \paragraph{Other Analyses}
 There are several other binding-related transformations to explore,
@@ -277,6 +279,7 @@ using \emph{available expression analysis}.
 An example is \emph{common subexpression elimination},
 where subexpressions get replaced by variables bound to equivalent declarations
 (pre-existing or newly created).
+\Fixme{extend, itemize}
 
 \paragraph{Generalisation}
 Ideally, further exploration will lead to the discovery of common patterns
