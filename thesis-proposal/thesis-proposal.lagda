@@ -72,14 +72,6 @@ the programmer can then rely on the compiler to check the relevant invariants,
 but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
 especially when manipulating binders and variables.
 
-As a step towards a more general treatment of optimisations of intrinsically typed programs,
-I present an implementation of \emph{dead binding elimination} for a simple language.
-It first annotates expressions with variable usage information
-and then removes bindings that turn out to be unused.
-I further prove that the optimisation is semantics-preserving.
-The Agda source code is available online at
-\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}.
-
 \vspace{1em}
 \Draft{What are your research questions/contributions?}
 
@@ -241,17 +233,174 @@ using an environment that matches the expression's context.
 \end{code}
 \Fixme{Unify typesetting of v/x vs. $e_1$/$e_2$}
 
+
 \subsection{Datatype-generic Programming}
 % Immediately go into the syntax-related work, just a short overview, link to literature
 % (might not end up being in the thesis)
 \cite{allais2018universe}
 
+
+\subsection{Well-founded Recursion}
+\Fixme{Is this worth explaining here?}
+
+
 \section{Preliminary Results}
 \Draft{What examples can you handle already?}
 \Draft{What prototype have I built?}
 \Draft{How can I generalize these results? What problems have I identified or do I expect?}
+
+As a first step, I implemented one optimisation in Agda,
+including a mechanised proof of its preservation of semantics.
+The main ideas are outlined below;
+the full source code is available online
+\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
+
+
 \subsection{Dead Binding Elimination}
+
+% TODO: we->I
+\paragraph{Sub-contexts}
+To reason about the part of a context that is live (actually used),
+we introduce \emph{sub-contexts}.
+Conceptually, these are contexts that admit an
+\emph{order-preserving embedding} (OPE) \cite{chapman2009type} into the original context,
+and we capture this notion in a single data type.
+For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
+
+\begin{code}
+data SubCtx : Ctx -> Set where
+  Empty  : SubCtx []
+  Drop   : SubCtx Gamma → SubCtx (tau :: Gamma)
+  Keep   : SubCtx Gamma → SubCtx (tau :: Gamma)
+\end{code}
+
+The context uniquely described by a sub-context is
+then given by a function |(floor (_)) : SubCtx Gamma -> Ctx|,
+and we further know its embedding.
+
+We now define |c= : SubCtx Gamma -> SubCtx Gamma -> Set|,
+stating that one sub-context is a subset of the other.
+Its witnesses are unique, which simplifies the correctness proofs.
+A similar relation on |Ctx| does not have this property
+(e.g. |[NAT]| can be embedded into |[NAT, NAT]| either by keeping the first element or the second),
+which would complicate equality proofs on terms including witnesses of |c=|.
+
+From now on, we will only consider expressions
+|Expr (floor(Delta)) tau| in some sub-context.
+Initially, we take |Delta = all Gamma : SubCtx Gamma|,
+the complete sub-context of the original context.
+
+\paragraph{Analysis}
+Now we can annotate each expression with its \emph{live variables},
+the sub-context |Delta' c= Delta| that is really used.
+To that end, we define annotated expressions |LiveExpr Delta Delta' tau|.
+While |Delta| is treated as |Gamma| was before, |Delta'| now only contains live variables,
+starting with a singleton sub-context at the variable usage sites.
+
+\begin{code}
+data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
+  Let : LiveExpr Delta Delta1 sigma ->
+        LiveExpr (Keep Delta) Delta2 tau ->
+        LiveExpr Delta (Delta2 \/ pop Delta2) tau
+\end{code}
+
+To create such annotated expressions, we need to perform
+some static analysis of our source programs.
+The function |analyse| computes an existentially qualified live sub-context |Delta'|
+together with a matching annotated expression.
+The only requirement we have for it is that we can forget the annotations again,
+with |forget . analyse == id|.
+
+\begin{code}
+  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta tau
+  forget  : LiveExpr Delta Delta' tau -> Expr (floor(Delta)) tau
+\end{code}
+
+% NOTE:
+% Maybe add a note that LiveExpr is overspecified.
+% Instead of |Delta1 \/ Delta2| we could have any |Delta'| containing |Delta1| and |Delta2|.
+
+\paragraph{Transformation}
+Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
+in the |Let|-case, where we match on |Delta2| to distinguish whether the bound variable is live.
+If it is not, we directly evaluate the body, ignoring the bound declaration.
+Another important detail is that evaluation works under any environment containing (at least) the live context.
+
+\begin{code}
+  evalLive :
+    LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpret(tau))
+\end{code}
+
+This \emph{optimised semantics} shows that we can do a similar program transformation
+and will be useful in its correctness proof.
+The implementation simply maps each constructor to its counterpart in |Expr|,
+with some renaming
+(e.g. from |(floor(Delta1))| to |(floor(Delta1 \/ Delta2)|)
+and the abovementioned case distinction.
+
+\begin{code}
+  dbe : LiveExpr Delta Delta' tau -> Expr (floor(Delta')) tau
+  dbe (Let {Delta1} {Drop Delta2} e1 e2) = injExpr2 Delta1 Delta2 (dbe e2)
+  dbe (dots)
+\end{code}
+
+As opposed to |forget|, which stays in the original context,
+here we remove unused variables, only keeping |(floor(Delta'))|.
+
+\paragraph{Correctness}
+We want to show that dead binding elimination preserves semantics:
+|eval . dbe . analyse == eval|.
+Since we know that |forget . analyse == id|,
+it is sufficient to show the following:
+
+\begin{code}
+  eval . dbe == eval . forget
+\end{code}
+
+The proof gets simpler if we split it up using the optimised semantics.
+
+\begin{code}
+  eval . dbe == evalLive = eval . forget
+\end{code}
+
+The actual proof statements are more involved,
+since they quantify over the expression and environment used.
+As foreshadowed in the definition of |evalLive|, the statements are also generalised
+to evaluation under any |Env (floor(DeltaU))|,
+as long as it contains the live sub-context.
+This gives us more flexibility when using the inductive hypothesis.
+
+Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
+The interesting one is again |Let|, where we split cases on the variable being used or not
+and need some auxiliary facts about evaluation, renaming and sub-contexts.
+
+\paragraph{Iterating the Optimisation}
+A binding that is removed can contain the only occurrences of some other variable.
+This makes another binding dead, allowing further optimisation when running the algorithm again.
+While in our simple setting all these bindings could be identified in a single pass
+using \emph{strong live variable analysis},
+in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
+
+Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+We observe that the algorithm must terminate
+since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+This corresponds to the ascending chain condition in program analysis literature
+\cite{nielson1999analysis}.
+To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
+on the number of bindings.
+
+The correctness follows directly from the correctness of each individual iteration step.
+
+
 \subsection{Observations}
+
+One interesting observation is that the correctness proof does not rely on how
+|analyse| computes the annotations.
+At first, this does not seem particularly useful,
+but for other optimisations the analysis might use complex, frequently changing heuristics to decide
+which transformations are worth it.
+\Fixme{Just a reused paragraph, expand!}
+
 
 \section{Timetable and Planning}
 
@@ -317,7 +466,7 @@ I will submit my thesis until 26.05.2023, the end of week 21.
 \pagebreak
 \appendix
 \section{Ethics Quick Scan}
-% TODO: insert
 \Draft{(anonymised report)}
+\Fixme{Insert!}
 
 \end{document}
