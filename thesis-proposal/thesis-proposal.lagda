@@ -275,7 +275,7 @@ data SubCtx : Ctx -> Set where
 \end{code}
 
 The context uniquely described by a sub-context is
-then given by a function |(floor (_)) : SubCtx Gamma -> Ctx|,
+then given by a function |floor_ : SubCtx Gamma -> Ctx|,
 and we further know its embedding.
 
 We now define |c= : SubCtx Gamma -> SubCtx Gamma -> Set|,

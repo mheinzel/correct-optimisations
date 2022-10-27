@@ -17,7 +17,8 @@
 %format \/ = "\cup"
 %format interpret_ = "\llbracket \_ \rrbracket"
 %format (interpret (a)) = "\llbracket\ " a "\ \rrbracket"
-%format (floor (a)) = "\lfloor" a "\rfloor"
+%format floor_ = "\lfloor \_ \rfloor"
+%format (floor (a)) = "\lfloor\ " a "\ \rfloor"
 %format (dots (a)) = "\ldots"
 %format (hide (a)) = " "
 %endif
