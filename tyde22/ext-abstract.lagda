@@ -258,7 +258,7 @@ Such an iteration is not structurally recursive, so Agda's termination checker n
 We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
 This is the same as the ascending chain condition in program analysis literature
-\cite{nielsen1999analysis}.
+\cite{nielson1999analysis}.
 To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
 on the number of bindings.
 
