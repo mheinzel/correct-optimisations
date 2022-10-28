@@ -75,6 +75,7 @@ especially when manipulating binders and variables.
 \vspace{1em}
 \Draft{What are your research questions/contributions?}
 
+% using "I" here. Not consistent, but "we" seems weird.
 In my thesis, I want to explore this area and aim to:
 \Fixme{Placeholder, elaborate!}
 \begin{enumerate}
@@ -88,7 +89,7 @@ In my thesis, I want to explore this area and aim to:
 \section{Background}
 \Draft{What is the existing technology and literature that I'll be studying/using in my research?}
 
-As a running example, I use a simple expression language with let-bindings,
+As a running example, we will consider a simple expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
 Since the optimisations in this thesis relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
@@ -171,7 +172,7 @@ To know if a variable occurence is valid, one must consider its \emph{context},
 the bindings that are in scope.
 With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
 In a typed setting, it is also necessary to know the type of each binding,
-so I represent the context by a list of types: One for each binding in scope, from innermost to outermost.
+so we represent the context by a list of types: One for each binding in scope, from innermost to outermost.
 
 \begin{code}
   Ctx = List U
@@ -249,7 +250,7 @@ using an environment that matches the expression's context.
 \Draft{What prototype have I built?}
 \Draft{How can I generalize these results? What problems have I identified or do I expect?}
 
-As a first step, I implemented one optimisation in Agda,
+As a first step, we implemented one optimisation in Agda,
 including a mechanised proof of its preservation of semantics.
 The main ideas are outlined below;
 the full source code is available online
@@ -258,7 +259,6 @@ the full source code is available online
 
 \subsection{Dead Binding Elimination}
 
-% TODO: we->I
 \paragraph{Sub-contexts}
 To reason about the part of a context that is live (actually used),
 we introduce \emph{sub-contexts}.
