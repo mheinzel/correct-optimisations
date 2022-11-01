@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {} }:
 let
-  emacs = (pkgs.emacsPackagesNgGen pkgs.emacs).emacsWithPackages (epkgs:
+  emacs = (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs:
     (with epkgs.melpaPackages; [ mkConfig epkgs.evil epkgs.agda2-mode]));
 
   agda = pkgs.agda.withPackages (p: with p; [ standard-library ]);
