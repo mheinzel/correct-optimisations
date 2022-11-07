@@ -1,5 +1,4 @@
-notes/
-*.txt
+*.bak
 
 *.agda~
 *.agdai

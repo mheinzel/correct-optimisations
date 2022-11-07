@@ -41,15 +41,15 @@
 When writing a compiler for a functional programming language,
 an important consideration is the treatment of binders and variables.
 A well-known technique when using dependently typed programming languages such as Agda
-\cite{norell2007agda}
+\cite{Norell2008Agda}
 is to define an intrinsically typed syntax tree,
 where expressions are scope- and type-safe by construction and admit a total evaluation function
-\cite{augustsson1999intrinsic}.
+\cite{Augustsson1999WellTypedInterpreter}.
 This construction has featured in several papers, exploring
 basic operations like renaming and substitution
-\cite{allais2018universe}
+\cite{Allais2018UniverseOfSyntaxes}
 as well as compilation to different target languages
-\cite[supplemental material]{pickard2021calculating}.
+\cite[supplemental material]{Pickard2021CalculatingDependentlyTypedCompilers}.
 
 Performing optimisations on intrinsically typed programs, on the other hand,
 has not received as much attention.
@@ -69,7 +69,7 @@ especially when manipulating binders and variables.
 % as 1,2,3 that argues that studying semantics is best done in a
 % setting that is as simple as possible.
 
-% Not sure how to plug the Nielsen book here, maybe just leave it out?
+% Not sure how to plug the Nielson book here, maybe just leave it out?
 % list interesting optimisations?
 
 Since our work is still in progress,
@@ -130,8 +130,8 @@ but it might never be used.
 To reason about the part of a context that is live (actually used),
 we introduce \emph{sub-contexts}.
 Conceptually, these are contexts that admit an
-\emph{order-preserving embedding} (OPE) \cite{chapman2009type} into the original context,
-and we capture this notion in a single data type.
+\emph{order-preserving embedding} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
+into the original context, and we capture this notion in a single data type.
 For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
 
 \begin{code}
@@ -258,8 +258,8 @@ Such an iteration is not structurally recursive, so Agda's termination checker n
 We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
 This is the same as the ascending chain condition in program analysis literature
-\cite{nielson1999analysis}.
-To convince the termination checker, we use \emph{well-founded recursion} \cite{bove2016recursion}
+\cite{Nielson1999PrinciplesProgramAnalysis}.
+To convince the termination checker, we use \emph{well-founded recursion} \cite{Bove2014PartialityRecursion}
 on the number of bindings.
 
 The correctness follows directly from the correctness of each individual iteration step.

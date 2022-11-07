@@ -1,78 +1,149 @@
-@book{nielson1999analysis,
-  title     = "Principles of Program Analysis",
-  author    = "Nielson, Flemming and Nielson, Hanne Riis and Hankin, Chris",
-  publisher = "Springer Berlin",
-  address   = "Heidelberg, Germany",
-  year      = 2014,
-  edition   = "1st",
-  isbn      = "978-3-540-65410-0",
-  doi       = "10.1007/978-3-662-03811-6"
+@Book{Nielson1999PrinciplesProgramAnalysis,
+  author    = {Flemming Nielson and Hanne Riis Nielson and Chris Hankin},
+  publisher = {Springer Berlin},
+  title     = {Principles of Program Analysis},
+  year      = {1999},
+  isbn      = {9783642084744},
+  doi       = {10.1007/978-3-662-03811-6},
+  pages     = {473},
 }
-@inproceedings{augustsson1999intrinsic,
-  title     = "An exercise in dependent types: A well-typed interpreter",
-  author    = "Augustsson, Lennart and Carlsson, Magnus",
-  booktitle = "Workshop on Dependent Types in Programming",
-  location  = "Gothenburg",
-  year      = 1999
+
+@MastersThesis{VanWijk2017DependentlyTypedMonotoneFrameworks,
+  author   = {Jorn van Wijk},
+  school   = {Utrecht University},
+  title    = {Provably Correct Dependently Typed Inplementations of Monotone Frameworks},
+  year     = {2017},
+  abstract = {Programmers use monotone frameworks to perform static analysis on several
+programming languages. Often, programmers omit proof of the domain of the func-
+tion being a bounded semi lattice or only argue why their domain should be.
+Unfortunately, mistakes in their arguing could result in a non terminating static
+analysis. Since important software, such as compilers, often depends on the results
+of a static analysis, embedding a non terminating analysis causes such software to
+loop.
+To assist programmers in their reasoning and to obtain machine verified proofs
+of termination, this thesis presents a verified implementation of embellished, ex-
+tended and regular monotone frameworks in Agda. The implementation contains
+several algorithms to compute the least fixed point of a function that represents
+the flow of information for the static analysis on an input program. The program is
+written in a simplified procedural programming language.
+To facilitate construction of termination proofs, we introduce a set of bounded
+semi lattice combinators which can be used to compose the domain of a transfer
+function. The bounded semi lattice constructed by the combinators includes a proof
+that the partial order is conversely well founded and thus implies the ascending
+chain condition.
+Finally, we perform classical analyses on a procedural and inter-procedural lan-
+guage.},
+  url      = {https://github.com/jornvanwijk/monotoneframeworks-agda},
 }
-@phdthesis{chapman2009type,
-  title   = "Type checking and normalisation",
-  author  = "Chapman, James Maitland",
-  advisor = "Altenkirch, Thorsten",
-  school  = "University of Nottingham",
-  year    = 2009
+
+@Electronic{Cockx2021RepresentationsBinding,
+  author   = {Jesper Cockx},
+  title    = {1001 Representations of Syntax with Binding},
+  url      = {https://jesper.sikanda.be/posts/1001-syntax-representations.html},
+  year     = {2021},
+  abstract = {In this post, I will give an overview of all the different techniques for implementing syntax with binders in Agda that I could find. With each technique, I will show how to use it in Agda to represent the syntax of (untyped) lambda calculus, and also explain briefly what the main motivation is for using it. I hope this will be useful to you for making an informed choice between these options.},
 }
-@phdthesis{norell2007agda,
-  title   = "Towards a practical programming language based on dependent type theory",
-  author  = "Norell, Ulf",
-  advisor = "Jansson, Patrik",
-  school  = "Chalmers University of Technology",
-  year    = 2007
+
+@InProceedings{Norell2008Agda,
+  author    = {Ulf Norell},
+  booktitle = {Proceedings of the 4th international workshop on Types in language design and implementation - {TLDI} {\textquotesingle}09},
+  title     = {Dependently typed programming in Agda},
+  year      = {2008},
+  publisher = {{ACM} Press},
+  abstract  = {Dependently typed languages have for a long time been used to describe proofs about programs. Traditionally, dependent types are used mostly for stating and proving the properties of the programs and not in defining the programs themselves. An impressive example is the certified compiler by Leroy (2006) implemented and proved correct in Coq (Bertot and Castéran 2004).
+
+Recently there has been an increased interest in dependently typed programming, where the aim is to write programs that use the dependent type system to a much higher degree. In this way a lot of the properties that were previously proved separately can be integrated in the type of the program, in many cases adding little or no complexity to the definition of the program. New languages, such as Epigram (McBride and McKinna 2004), are being designed, and existing languages are being extended with new features to accomodate these ideas, for instance the work on dependently typed programming in Coq by Sozeau (2007).
+
+This talk gives an overview of the Agda programming language (Norell 2007), whose main focus is on dependently typed programming. Agda provides a rich set of inductive types with a powerful mechanism for pattern matching, allowing dependently typed programs to be written with minimal fuss. To read about programming in Agda, see the lecture notes from the Advanced Functional Programming summer school (Norell 2008) and the work by Oury and Swierstra (2008).
+
+In the talk a number of examples of interesting dependently typed programs chosen from the domain of programming language implementation are presented as they are implemented in Agda.},
+  doi       = {10.1145/1481861.1481862},
 }
-@article{bove2016recursion,
-  title     = "Partiality and Recursion in Interactive Theorem Provers – An Overview",
-  author    = "Bove, Ana and Krauss, Alexander and Sozeau, Matthieu",
-  journal   = "Mathematical Structures in Computer Science",
-  publisher = "Cambridge University Press",
-  volume    = 26,
-  number    = 1,
-  DOI       = "10.1017/S0960129514000115",
-  year      = 2016,
-  pages     = "38–88"
+
+@Article{Bove2014PartialityRecursion,
+  author    = {Ana Bove and Alexander Krauss and Matthieu Sozeau},
+  journal   = {Mathematical Structures in Computer Science},
+  title     = {Partiality and recursion in interactive theorem provers {\textendash} an overview},
+  year      = {2014},
+  month     = {nov},
+  number    = {1},
+  pages     = {38--88},
+  volume    = {26},
+  abstract  = {The use of interactive theorem provers to establish the correctness of critical parts of a
+software development or for formalising mathematics is becoming more common and
+feasible in practice. However, most mature theorem provers lack a direct treatment of
+partial and general recursive functions; overcoming this weakness has been the objective
+of intensive research during the last decades. In this article, we review many techniques
+that have been proposed in the literature to simplify the formalisation of partial and
+general recursive functions in interactive theorem provers. Moreover, we classify the
+techniques according to their theoretical basis and their practical use. This uniform
+presentation of the different techniques facilitates the comparison and highlights their
+commonalities and differences, as well as their relative advantages and limitations. We
+focus on theorem provers based on constructive type theory (in particular, Agda and
+Coq) and higher-order logic (in particular Isabelle/HOL). Other systems and logics are
+covered to a certain extend, but not exhaustively. In addition to the description of the
+techniques, we also demonstrate tools which facilitate working with the problematic
+functions in particular theorem provers.},
+  doi       = {10.1017/s0960129514000115},
+  publisher = {Cambridge University Press ({CUP})},
 }
-@article{allais2018universe,
-author = {Allais, Guillaume and Atkey, Robert and Chapman, James and McBride, Conor and McKinna, James},
-title = {A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs},
-year = {2018},
-issue_date = {September 2018},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-volume = {2},
-number = {ICFP},
-url = {https://doi.org/10.1145/3236785},
-doi = {10.1145/3236785},
-abstract = {Almost every programming language’s syntax includes a notion of binder and corresponding bound occurrences, along with the accompanying notions of α-equivalence, capture avoiding substitution, typing contexts, runtime environments, and so on. In the past, implementing and reasoning about programming languages required careful handling to maintain the correct behaviour of bound variables. Modern programming languages include features that enable constraints like scope safety to be expressed in types. Nevertheless, the programmer is still forced to write the same boilerplate over again for each new implementation of a scope safe operation (e.g., renaming, substitution, desugaring, printing, etc.), and then again for correctness proofs. We present an expressive universe of syntaxes with binding and demonstrate how to (1) implement scope safe traversals once and for all by generic programming; and (2) how to derive properties of these traversals by generic proving. Our universe description, generic traversals and proofs, and our examples have all been formalised in Agda and are available in the accompanying material. NB. we recommend printing the paper in colour to benefit from syntax highlighting in code fragments.},
-journal = {Proc. ACM Program. Lang.},
-month = {jul},
-articleno = {90},
-numpages = {30},
-keywords = {Semantics, Simulation, Logical Relations, Generic Programming, Agda, Fusion, Syntax with Binding}
+
+@InProceedings{Augustsson1999WellTypedInterpreter,
+  author    = {Lennart Augustsson and Magnus Carlsson},
+  booktitle = {Workshop on Dependent Types in Programming},
+  title     = {An exercise in dependent types: A well-typed interpreter},
+  year      = {1999},
+  address   = {Gothenburg},
+  abstract  = {The result type of an interpreter written in a typed language is normally a tagged union. By using depent types, we can be more precise about the type of values that the intepreter returns. There is no need for tagging these values with their type, something which opens the door to more eecient interpreters.},
 }
-@article{pickard2021calculating,
-author = {Pickard, Mitchell and Hutton, Graham},
-title = {Calculating Dependently-Typed Compilers (Functional Pearl)},
-year = {2021},
-issue_date = {August 2021},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-volume = {5},
-number = {ICFP},
-url = {https://doi.org/10.1145/3473587},
-doi = {10.1145/3473587},
-abstract = {Compilers are difficult to write, and difficult to get right. Bahr and Hutton recently developed a new technique for calculating compilers directly from specifications of their correctness, which ensures that the resulting compilers are correct-by-construction. To date, however, this technique has only been applicable to source languages that are untyped. In this article, we show that moving to a dependently-typed setting allows us to naturally support typed source languages, ensure that all compilation components are type-safe, and make the resulting calculations easier to mechanically check using a proof assistant.},
-journal = {Proc. ACM Program. Lang.},
-month = {aug},
-articleno = {82},
-numpages = {27},
-keywords = {program calculation, dependent types}
+
+@PhdThesis{Chapman2009TypeCheckingNormalisation,
+  author   = {James Maitland Chapman},
+  school   = {University of Nottingham},
+  title    = {Type checking and normalisation},
+  year     = {2009},
+  abstract = {This thesis is about Martin-L ̈of’s intuitionistic theory of types (type theory). Type theory is at the same time a formal system for mathematical proof and a dependently typed programming language. Dependent types are types which depend on data and therefore to type check dependently typed programming we need to perform computation (normalisation) in types.
+Implementations of type theory (usually some kind of automatic theorem prover or interpreter) have at their heart a type checker. Implementations of type checkers for type theory have at their heart a normaliser.
+In this thesis I consider type checking as it might form the basis of an implementation of type theory in the functional language Haskell and then normalisation in the more rigorous setting of the dependently typed languages Epigram and Agda. I investigate a method of proving normalisation called Big-Step Normalisation (BSN). I apply BSN to a number of calculi of increasing sophistication and provide machine checked proofs of meta theoretic properties.},
+  advisor  = {Thorsten Altenkirch},
+}
+
+@Article{Allais2018UniverseOfSyntaxes,
+  author    = {Guillaume Allais and Robert Atkey and James Chapman and Conor McBride and James McKinna},
+  journal   = {Proceedings of the {ACM} on Programming Languages},
+  title     = {A type and scope safe universe of syntaxes with binding: their semantics and proofs},
+  year      = {2018},
+  month     = {jul},
+  number    = {{ICFP}},
+  pages     = {1--30},
+  volume    = {2},
+  abstract  = {Almost every programming language’s syntax includes a notion of binder and corresponding bound occurrences, along with the accompanying notions of α-equivalence, capture avoiding substitution, typing contexts, runtime environments, and so on. In the past, implementing and reasoning about programming languages required careful handling to maintain the correct behaviour of bound variables. Modern programming languages include features that enable constraints like scope safety to be expressed in types. Nevertheless, the programmer is still forced to write the same boilerplate over again for each new implementation of a scope safe operation (e.g., renaming, substitution, desugaring, printing, etc.), and then again for correctness proofs. We present an expressive universe of syntaxes with binding and demonstrate how to (1) implement scope safe traversals once and for all by generic programming; and (2) how to derive properties of these traversals by generic proving. Our universe description, generic traversals and proofs, and our examples have all been formalised in Agda and are available in the accompanying material. NB. we recommend printing the paper in colour to benefit from syntax highlighting in code fragments.},
+  doi       = {10.1145/3236785},
+  publisher = {Association for Computing Machinery ({ACM})},
+}
+
+@Article{Pickard2021CalculatingDependentlyTypedCompilers,
+  author    = {Mitchell Pickard and Graham Hutton},
+  journal   = {Proceedings of the {ACM} on Programming Languages},
+  title     = {Calculating dependently-typed compilers (functional pearl)},
+  year      = {2021},
+  month     = {aug},
+  number    = {{ICFP}},
+  pages     = {1--27},
+  volume    = {5},
+  abstract  = {Compilers are difficult to write, and difficult to get right. Bahr and Hutton recently developed a new technique for calculating compilers directly from specifications of their correctness, which ensures that the resulting compilers are correct-by-construction. To date, however, this technique has only been applicable to source languages that are untyped. In this article, we show that moving to a dependently-typed setting allows us to naturally support typed source languages, ensure that all compilation components are type-safe, and make the resulting calculations easier to mechanically check using a proof assistant.},
+  doi       = {10.1145/3473587},
+  publisher = {Association for Computing Machinery ({ACM})},
+}
+
+@Article{Maclaurin2022Foil,
+  author        = {Dougal Maclaurin and Alexey Radul and Adam Paszke},
+  title         = {The Foil: Capture-Avoiding Substitution With No Sharp Edges},
+  year          = {2022},
+  month         = {oct},
+  abstract      = {Correctly manipulating program terms in a compiler is surprisingly difficult because of the need to avoid name capture. The rapier from "Secrets of the Glasgow Haskell Compiler inliner" is a cutting-edge technique for fast, stateless capture-avoiding substitution for expressions represented with explicit names. It is, however, a sharp tool: its invariants are tricky and need to be maintained throughout the whole compiler that uses it. We describe the foil, an elaboration of the rapier that uses Haskell's type system to enforce the rapier's invariants statically, preventing a class of hard-to-find bugs, but without adding any run-time overheads.},
+  archiveprefix = {arXiv},
+  comment       = {To be released at IFL 2022},
+  eprint        = {2210.04729},
+  primaryclass  = {cs.PL},
 }
