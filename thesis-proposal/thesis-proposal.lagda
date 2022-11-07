@@ -173,8 +173,8 @@ We will demonstrate the approach in Agda and start by defining the types that te
     NAT   : U
 
   interpret_ : U -> Set
-  (interpret(BOOL)) = Bool
-  (interpret(NAT))  = Nat
+  (interpret(BOOL))  = Bool
+  (interpret(NAT))   = Nat
 \end{code}
 
 To know if a variable occurence is valid, one must consider its \emph{context},
@@ -210,7 +210,9 @@ variable lookup is total.
   data Ref (sigma : U) : Ctx -> Set where
     Top  : Ref sigma (sigma :: Gamma)
     Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
+\end{code}
 
+\begin{code}
   lookup : Ref sigma Gamma -> Env Gamma -> (interpret(sigma))
   lookup Top      (Cons v env)   = v
   lookup (Pop i)  (Cons v env)   = lookup i env
@@ -336,8 +338,7 @@ If it is not, we directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
 
 \begin{code}
-  evalLive :
-    LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpret(tau))
+  evalLive : LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpret(tau))
 \end{code}
 
 This \emph{optimised semantics} shows that we can do a similar program transformation
