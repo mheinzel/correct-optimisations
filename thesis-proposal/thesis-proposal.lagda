@@ -22,6 +22,7 @@
 % \newcommand{\Fixme}[1]{}
 \newcommand{\Draft}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
 \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
+
 \newcommand{\X}{\cellcolor{gray}}
 \newcolumntype{L}{>{\centering\arraybackslash}X}
 \newcommand{\Week}[1]{\tiny #1}
@@ -38,6 +39,7 @@
 
 \tableofcontents
 \pagebreak
+
 
 \section{Introduction}
 
@@ -86,6 +88,7 @@ In my thesis, I want to explore this area and aim to:
   \item explore the common patterns between the implemented transformations and try capturing them as re-usable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
 
+
 \section{Background}
 \Draft{What is the existing technology and literature that I'll be studying/using in my research?}
 
@@ -108,6 +111,7 @@ Encapsulating this pattern as $\textbf{let } x = P \textbf{ in } Q$
 simplifies parts of the analysis and
 avoids the need for allowing functions as values.
 
+
 \subsection{Program Analysis and Transformation}
 
 Optimisations are important.
@@ -127,13 +131,15 @@ This can be achieved using \emph{live variable analysis}.
 \Fixme{Explain (with example?)}
 \Fixme{Also explain \emph{strong} version?}
 
-\subsection{Intrinsically Typed Syntax}
+
+\subsection{Binding Representation}
 
 The syntax specified above treats variables as letters, or more generally strings.
 To prevent complications with bindings of the same variable name shadowing each other
 and to make equality of terms independent of the specific names chosen
 (\emph{$\alpha$-equivalence}),
 compilers often represent variables in a different way.
+\Fixme{Mention more representations, compare properties?}
 A popular choice are \emph{de Bruijn indices},
 \Fixme{Add some citations?}
 where each variable is represented by a natural number,
@@ -149,6 +155,9 @@ where it is referenced.
 This makes the evaluation function partial;
 it should only be called after validating type- and scope-safety.
 \Fixme{Show possible bugs in transformations}
+
+
+\subsection{Intrinsically Typed Syntax}
 
 When implementing a compiler in a dependently typed programming language,
 one does not need to accept partiality and the need for human vigilance.
