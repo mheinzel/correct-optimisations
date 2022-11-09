@@ -122,14 +122,30 @@ A large number of program analyses and and optimisations are presented in the li
 The focus of this work is on those that deal with variable binders,
 some of which are explained below.
 
-\paragraph{Live variable analysis}
-Note that an expression is not forced to make use of the whole context to which it has access.
-Specifically, a let-binding introduces a new element into the context, but it might never be used
+\paragraph{Inlining}
+
+\paragraph{Let-lifting}
+
+\paragraph{Dead binding elimination}
+An expression is not forced to make use of the whole context to which it has access.
+Specifically, a let-binding introduces a new variable, but it might never be used
 in the body.
-One commonly wants to identify such unused bindings so they can be removed from the program.
-This can be achieved using \emph{live variable analysis}.
-\Fixme{Explain (with example?)}
-\Fixme{Also explain \emph{strong} version?}
+Consider for example the following expression, where $x$ is a free variable.
+
+\begin{align*}
+  &\textbf{let } y = x + 1 \textbf{ in } \\
+  &\ \ \textbf{let } z = y + y \textbf{ in } \\
+  &\ \ \ \ x
+\end{align*}
+
+Here, the binding for $z$ is clearly unused, as the variable never occurs in the program.
+Such dead bindings can be identified by \emph{live variable analysis}
+and consequently be removed from the program.
+Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
+Therefore, multiple iterations of live variable analysis and binding elimination can be required.
+Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
+by only considering variables to be live
+if they are used in declarations of variables that are live themselves.
 
 
 \subsection{Binding Representation}
@@ -277,6 +293,7 @@ Conceptually, these are contexts that admit an
 \emph{order-preserving embedding} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
 into the original context, and we capture this notion in a single data type.
 For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
+\Fixme{Is this too detailed and technical?}
 
 \begin{code}
 data SubCtx : Ctx -> Set where
