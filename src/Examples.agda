@@ -62,3 +62,13 @@ count-fix-optimise-ex-unused-2 :
   let (Δ , (H , e)) = fix-optimise (Keep Empty) (ex-unused-2 {[]}) in
     e ≡ ex-unused-2-opt {[]}
 count-fix-optimise-ex-unused-2 = refl
+
+-- let succ = λ x → x + 1
+-- in succ (succ 0)
+ex-succ : Expr Γ NAT
+ex-succ =
+  Let (Lam (Plus (Var Top) (Val 1)))
+    (App (Var Top) (App (Var Top) (Val 0)))
+
+test-ex-succ : eval ex-succ Nil ≡ 2
+test-ex-succ = refl

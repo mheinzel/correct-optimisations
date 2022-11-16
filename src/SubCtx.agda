@@ -9,6 +9,17 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 
 open import Lang
 
+-- This is needed because our notion of semantical equivalence is "same evaluation result",
+-- and values include Agda functions.
+-- We might want something different?
+postulate
+  -- extensionality : {A B : Set} → (f g : A → B) (H : (x : A) → f x ≡ g x) → f ≡ g
+  extensionality :
+    {S : Set} {T : S -> Set} (f g : (x : S) -> T x) ->
+    ((x : S) -> f x ≡ g x) ->
+    f ≡ g
+
+
 -- SubCtxs of our context and operations on them 
 data SubCtx : Ctx → Set where
   Empty  : SubCtx []
@@ -122,6 +133,8 @@ renameVar (Keep Δ₁) (Keep Δ₂) H (Pop x) = Pop (renameVar Δ₁ Δ₂ H x)
 
 renameExpr : (Δ₁ Δ₂ : SubCtx Γ) → .(Δ₁ ⊆ Δ₂) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₂ ⌋ σ
 renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
+renameExpr Δ₁ Δ₂ H (App e₁ e₂) = App (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
+renameExpr Δ₁ Δ₂ H (Lam e) = Lam (renameExpr (Keep Δ₁) (Keep Δ₂) H e)
 renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (renameExpr (Keep Δ₁) (Keep Δ₂) H e₂)
 renameExpr Δ₁ Δ₂ H (Val v) = Val v
 renameExpr Δ₁ Δ₂ H (Plus e₁ e₂) = Plus (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
@@ -161,6 +174,8 @@ renameVar-id (Keep Δ) (Pop x) = cong Pop (renameVar-id Δ x)
 
 renameExpr-id : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → renameExpr Δ Δ (⊆-refl Δ) e ≡ e
 renameExpr-id Δ (Var x) = cong Var (renameVar-id Δ x)
+renameExpr-id Δ (Lam e) = cong Lam (renameExpr-id (Keep Δ) e)
+renameExpr-id Δ (App e₁ e₂) = cong₂ App (renameExpr-id Δ e₁) (renameExpr-id Δ e₂)
 renameExpr-id Δ (Let e₁ e₂) = cong₂ Let (renameExpr-id Δ e₁) (renameExpr-id (Keep Δ) e₂)
 renameExpr-id Δ (Val v) = refl
 renameExpr-id Δ (Plus e₁ e₂) = cong₂ Plus (renameExpr-id Δ e₁) (renameExpr-id Δ e₂)
@@ -177,6 +192,10 @@ renameExpr-trans : (Δ₁ Δ₂ Δ₃ : SubCtx Γ) → .(H₁₂ : Δ₁ ⊆ Δ�
   renameExpr Δ₂ Δ₃ H₂₃ (renameExpr Δ₁ Δ₂ H₁₂ e) ≡ renameExpr Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) e
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Var x) =
   cong Var (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (App e₁ e₂) =
+  cong₂ App (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₂)
+renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Lam e) =
+  cong Lam (renameExpr-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ e)
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Let e₁ e₂) =
   cong₂ Let (renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ e₁) (renameExpr-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ e₂)
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Val v) =
@@ -194,6 +213,14 @@ renameVar-preserves (Keep Δ₁) (Keep Δ₂) H (Pop x) (Cons v env) = renameVar
 renameExpr-preserves : (Δ₁ Δ₂ : SubCtx Γ) → .(H : Δ₁ ⊆ Δ₂) → (e : Expr ⌊ Δ₁ ⌋ σ) (env : Env ⌊ Δ₂ ⌋) →
   eval (renameExpr Δ₁ Δ₂ H e) env ≡ eval e (prjEnv Δ₁ Δ₂ H env)
 renameExpr-preserves Δ₁ Δ₂ H (Var x) env = renameVar-preserves Δ₁ Δ₂ H x env
+renameExpr-preserves Δ₁ Δ₂ H (App e₁ e₂) env =
+  cong₂ (λ f x → f x) (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
+renameExpr-preserves Δ₁ Δ₂ H (Lam e) env =
+  extensionality
+    (λ x → eval (renameExpr (Keep Δ₁) (Keep Δ₂) H e) (Cons x env))
+    (λ x → eval e (Cons x (prjEnv Δ₁ Δ₂ H env)))
+    λ x →
+      renameExpr-preserves (Keep Δ₁) (Keep Δ₂) H e (Cons x env)
 renameExpr-preserves Δ₁ Δ₂ H (Let e₁ e₂) env =
     eval (renameExpr (Keep Δ₁) (Keep Δ₂) _ e₂) (Cons (eval (renameExpr Δ₁ Δ₂ _ e₁) env) env)
   ≡⟨ renameExpr-preserves (Keep Δ₁) (Keep Δ₂ ) _ e₂ (Cons (eval (renameExpr Δ₁ Δ₂ H e₁) env) env) ⟩
