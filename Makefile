@@ -1,10 +1,14 @@
-.PHONY: default tyde22 clean
+.PHONY: default compile clean
 
-default: tyde22
+default: compile
 
-tyde22:
-	cd tyde22; $(MAKE)
+compile: src/Live.agdai
+
+# TODO: support other agda files
+src/Live.agdai: src/*.agda
+	agda src/Live.agda
 
 clean:
-	rm -f src/*.agdai src/*.agda~
-	cd tyde22; $(MAKE) clean
+	rm -f src/*.agdai src/*.agda~ src/#*#
+	$(MAKE) -C thesis-proposal clean
+	$(MAKE) -C tyde22          clean
