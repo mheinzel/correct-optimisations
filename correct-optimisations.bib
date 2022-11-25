@@ -5,6 +5,7 @@
   year      = {1999},
   isbn      = {9783642084744},
   doi       = {10.1007/978-3-662-03811-6},
+  groups    = {correct-optimisations},
   pages     = {473},
 }
 
@@ -13,26 +14,12 @@
   school   = {Utrecht University},
   title    = {Provably Correct Dependently Typed Inplementations of Monotone Frameworks},
   year     = {2017},
-  abstract = {Programmers use monotone frameworks to perform static analysis on several
-programming languages. Often, programmers omit proof of the domain of the func-
-tion being a bounded semi lattice or only argue why their domain should be.
-Unfortunately, mistakes in their arguing could result in a non terminating static
-analysis. Since important software, such as compilers, often depends on the results
-of a static analysis, embedding a non terminating analysis causes such software to
-loop.
-To assist programmers in their reasoning and to obtain machine verified proofs
-of termination, this thesis presents a verified implementation of embellished, ex-
-tended and regular monotone frameworks in Agda. The implementation contains
-several algorithms to compute the least fixed point of a function that represents
-the flow of information for the static analysis on an input program. The program is
-written in a simplified procedural programming language.
-To facilitate construction of termination proofs, we introduce a set of bounded
-semi lattice combinators which can be used to compose the domain of a transfer
-function. The bounded semi lattice constructed by the combinators includes a proof
-that the partial order is conversely well founded and thus implies the ascending
-chain condition.
-Finally, we perform classical analyses on a procedural and inter-procedural lan-
-guage.},
+  abstract = {Programmers use monotone frameworks to perform static analysis on several programming languages. Often, programmers omit proof of the domain of the function being a bounded semi lattice or only argue why their domain should be.
+Unfortunately, mistakes in their arguing could result in a non terminating static analysis. Since important software, such as compilers, often depends on the results of a static analysis, embedding a non terminating analysis causes such software to loop.
+To assist programmers in their reasoning and to obtain machine verified proofs of termination, this thesis presents a verified implementation of embellished, extended and regular monotone frameworks in Agda. The implementation contains several algorithms to compute the least fixed point of a function that represents the flow of information for the static analysis on an input program. The program is written in a simplified procedural programming language.
+To facilitate construction of termination proofs, we introduce a set of bounded semi lattice combinators which can be used to compose the domain of a transfer function. The bounded semi lattice constructed by the combinators includes a proof that the partial order is conversely well founded and thus implies the ascending chain condition.
+Finally, we perform classical analyses on a procedural and inter-procedural language.},
+  groups   = {correct-optimisations},
   url      = {https://github.com/jornvanwijk/monotoneframeworks-agda},
 }
 
@@ -42,12 +29,13 @@ guage.},
   url      = {https://jesper.sikanda.be/posts/1001-syntax-representations.html},
   year     = {2021},
   abstract = {In this post, I will give an overview of all the different techniques for implementing syntax with binders in Agda that I could find. With each technique, I will show how to use it in Agda to represent the syntax of (untyped) lambda calculus, and also explain briefly what the main motivation is for using it. I hope this will be useful to you for making an informed choice between these options.},
+  groups   = {correct-optimisations},
 }
 
 @InProceedings{Norell2008Agda,
   author    = {Ulf Norell},
   booktitle = {Proceedings of the 4th international workshop on Types in language design and implementation - {TLDI} {\textquotesingle}09},
-  title     = {Dependently typed programming in Agda},
+  title     = {Dependently typed programming in {Agda}},
   year      = {2008},
   publisher = {{ACM} Press},
   abstract  = {Dependently typed languages have for a long time been used to describe proofs about programs. Traditionally, dependent types are used mostly for stating and proving the properties of the programs and not in defining the programs themselves. An impressive example is the certified compiler by Leroy (2006) implemented and proved correct in Coq (Bertot and Castéran 2004).
@@ -58,6 +46,7 @@ This talk gives an overview of the Agda programming language (Norell 2007), whos
 
 In the talk a number of examples of interesting dependently typed programs chosen from the domain of programming language implementation are presented as they are implemented in Agda.},
   doi       = {10.1145/1481861.1481862},
+  groups    = {correct-optimisations},
 }
 
 @Article{Bove2014PartialityRecursion,
@@ -85,6 +74,7 @@ covered to a certain extend, but not exhaustively. In addition to the descriptio
 techniques, we also demonstrate tools which facilitate working with the problematic
 functions in particular theorem provers.},
   doi       = {10.1017/s0960129514000115},
+  groups    = {correct-optimisations},
   publisher = {Cambridge University Press ({CUP})},
 }
 
@@ -95,6 +85,7 @@ functions in particular theorem provers.},
   year      = {1999},
   address   = {Gothenburg},
   abstract  = {The result type of an interpreter written in a typed language is normally a tagged union. By using depent types, we can be more precise about the type of values that the intepreter returns. There is no need for tagging these values with their type, something which opens the door to more eecient interpreters.},
+  groups    = {correct-optimisations},
 }
 
 @PhdThesis{Chapman2009TypeCheckingNormalisation,
@@ -106,6 +97,7 @@ functions in particular theorem provers.},
 Implementations of type theory (usually some kind of automatic theorem prover or interpreter) have at their heart a type checker. Implementations of type checkers for type theory have at their heart a normaliser.
 In this thesis I consider type checking as it might form the basis of an implementation of type theory in the functional language Haskell and then normalisation in the more rigorous setting of the dependently typed languages Epigram and Agda. I investigate a method of proving normalisation called Big-Step Normalisation (BSN). I apply BSN to a number of calculi of increasing sophistication and provide machine checked proofs of meta theoretic properties.},
   advisor  = {Thorsten Altenkirch},
+  groups   = {correct-optimisations},
 }
 
 @Article{Allais2018UniverseOfSyntaxes,
@@ -119,6 +111,7 @@ In this thesis I consider type checking as it might form the basis of an impleme
   volume    = {2},
   abstract  = {Almost every programming language’s syntax includes a notion of binder and corresponding bound occurrences, along with the accompanying notions of α-equivalence, capture avoiding substitution, typing contexts, runtime environments, and so on. In the past, implementing and reasoning about programming languages required careful handling to maintain the correct behaviour of bound variables. Modern programming languages include features that enable constraints like scope safety to be expressed in types. Nevertheless, the programmer is still forced to write the same boilerplate over again for each new implementation of a scope safe operation (e.g., renaming, substitution, desugaring, printing, etc.), and then again for correctness proofs. We present an expressive universe of syntaxes with binding and demonstrate how to (1) implement scope safe traversals once and for all by generic programming; and (2) how to derive properties of these traversals by generic proving. Our universe description, generic traversals and proofs, and our examples have all been formalised in Agda and are available in the accompanying material. NB. we recommend printing the paper in colour to benefit from syntax highlighting in code fragments.},
   doi       = {10.1145/3236785},
+  groups    = {correct-optimisations},
   publisher = {Association for Computing Machinery ({ACM})},
 }
 
@@ -133,6 +126,7 @@ In this thesis I consider type checking as it might form the basis of an impleme
   volume    = {5},
   abstract  = {Compilers are difficult to write, and difficult to get right. Bahr and Hutton recently developed a new technique for calculating compilers directly from specifications of their correctness, which ensures that the resulting compilers are correct-by-construction. To date, however, this technique has only been applicable to source languages that are untyped. In this article, we show that moving to a dependently-typed setting allows us to naturally support typed source languages, ensure that all compilation components are type-safe, and make the resulting calculations easier to mechanically check using a proof assistant.},
   doi       = {10.1145/3473587},
+  groups    = {correct-optimisations},
   publisher = {Association for Computing Machinery ({ACM})},
 }
 
@@ -140,10 +134,123 @@ In this thesis I consider type checking as it might form the basis of an impleme
   author        = {Dougal Maclaurin and Alexey Radul and Adam Paszke},
   title         = {The Foil: Capture-Avoiding Substitution With No Sharp Edges},
   year          = {2022},
-  month         = {oct},
+  month         = oct,
   abstract      = {Correctly manipulating program terms in a compiler is surprisingly difficult because of the need to avoid name capture. The rapier from "Secrets of the Glasgow Haskell Compiler inliner" is a cutting-edge technique for fast, stateless capture-avoiding substitution for expressions represented with explicit names. It is, however, a sharp tool: its invariants are tricky and need to be maintained throughout the whole compiler that uses it. We describe the foil, an elaboration of the rapier that uses Haskell's type system to enforce the rapier's invariants statically, preventing a class of hard-to-find bugs, but without adding any run-time overheads.},
   archiveprefix = {arXiv},
   comment       = {To be released at IFL 2022},
   eprint        = {2210.04729},
+  groups        = {correct-optimisations},
   primaryclass  = {cs.PL},
+}
+
+@Article{McBride2018EveryBodysGotToBeSomewhere,
+  author    = {Conor McBride},
+  journal   = {Electronic Proceedings in Theoretical Computer Science},
+  title     = {Everybody's Got To Be Somewhere},
+  year      = {2018},
+  month     = {jul},
+  pages     = {53--69},
+  volume    = {275},
+  abstract  = {The key to any nameless representation of syntax is how it indicates the variables we choose to use and thus, implicitly, those we discard. Standard de Bruijn representations delay discarding maximally till the leaves of terms where one is chosen from the variables in scope at the expense of the rest. Consequently, introducing new but unused variables requires term traversal. This paper introduces a nameless 'co-de-Bruijn' representation which makes the opposite canonical choice, delaying discarding minimally, as near as possible to the root. It is literate Agda: dependent types make it a practical joy to express and be driven by strong intrinsic invariants which ensure that scope is aggressively whittled down to just the support of each subterm, in which every remaining variable occurs somewhere. The construction is generic, delivering a universe of syntaxes with higher-order metavariables, for which the appropriate notion of substitution is hereditary. The implementation of simultaneous substitution exploits tight scope control to avoid busywork and shift terms without traversal. Surprisingly, it is also intrinsically terminating, by structural recursion alone.},
+  doi       = {10.4204/EPTCS.275.6},
+  file      = {:http\://arxiv.org/pdf/1807.04085v1:PDF},
+  groups    = {to-read, correct-optimisations},
+  publisher = {Open Publishing Association},
+}
+
+@Unpublished{Heinzel2022OptimisationsOnIntrinsicallyTyped,
+  author = {Matthias Heinzel},
+  note   = {Workshop on Type-Driven Development (TyDe)},
+  title  = {Provingly Correct Optimisations on Intrinsically Typed Expressions (extended abstract)},
+  year   = {2022},
+  groups = {correct-optimisations},
+  url    = {https://icfp22.sigplan.org/details/tyde-2022-papers/11/Provingly-Correct-Optimisations-on-Intrinsically-Typed-Expressions-Extended-Abstract},
+}
+
+@Article{Jones1998TransformationOptimiser,
+  author    = {Simon L. Peyton Jones and Andr{\'{e}}L.M. Santos},
+  journal   = {Science of Computer Programming},
+  title     = {A transformation-based optimiser for {Haskell}},
+  year      = {1998},
+  month     = {sep},
+  number    = {1-3},
+  pages     = {3--47},
+  volume    = {32},
+  abstract  = {Many compilers do some of their work by means of correctness-preserving, and hopefully performance-improving, program transformations. The Glasgow Haskell Compiler (GHC) takes this idea of “compilation by transformation” as its war-cry, trying to express as much as possible of the compilation process in the form of program transformations.
+
+This paper reports on our practical experience of the transformational approach to compilation, in the context of a substantial compiler.},
+  doi       = {10.1016/s0167-6423(97)00029-4},
+  groups    = {correct-optimisations},
+  publisher = {Elsevier {BV}},
+}
+
+@PhdThesis{Santos1995CompilationByTransformation,
+  author   = {Andr{\'{e}}L.M. Santos},
+  school   = {University of Glasgow},
+  title    = {Compilation by Transformation in Non-Strict Functional Languages},
+  year     = {1995},
+  abstract = {In this thesis we present and analyse a set of automatic source-to-source program transformations that are suitable for incorporation in optimising compilers for lazy functional languages.},
+  advisor  = {Simon Peyton Jones},
+  groups   = {correct-optimisations},
+  url      = {https://theses.gla.ac.uk/74568/},
+}
+
+@Article{Jones2002GHCInliner,
+  author    = {Simon Peyton Jones and Simon Marlow},
+  journal   = {Journal of Functional Programming},
+  title     = {Secrets of the {Glasgow Haskell Compiler} inliner},
+  year      = {2002},
+  month     = {jul},
+  number    = {4-5},
+  pages     = {393--434},
+  volume    = {12},
+  abstract  = {Higher-order languages such as Haskell encourage the programmer to build abstractions by composing functions. A good compiler must inline many of these calls to recover an efficiently executable program. In principle, inlining is dead simple: just replace the call of a function by an instance of its body. But any compiler-writer will tell you that inlining is a black art, full of delicate compromises that work together to give good performance without unnecessary code bloat. The purpose of this paper is, therefore, to articulate the key lessons we learned from a full-scale “production” inliner, the one used in the Glasgow Haskell compiler. We focus mainly on the algorithmic aspects, but we also provide some indicative measurements to substantiate the importance of various aspects of the inliner.},
+  doi       = {10.1017/s0956796802004331},
+  groups    = {correct-optimisations},
+  publisher = {Cambridge University Press ({CUP})},
+}
+
+@Article{Appel1997ShrinkingLambdas,
+  author    = {Andrew W. Appel and Trevor Jim},
+  journal   = {Journal of Functional Programming},
+  title     = {Shrinking lambda expressions in linear time},
+  year      = {1997},
+  month     = {sep},
+  number    = {5},
+  pages     = {515--540},
+  volume    = {7},
+  abstract  = {Functional-language compilers often perform optimizations based on beta and delta reduction. To avoid speculative optimizations that can blow up the code size, we might wish to use only shrinking reduction rules guaranteed to make the program smaller: these include dead-variable elimination, constant folding, and a restricted beta rule that inlines only functions that are called just once. The restricted beta rule leads to a shrinking rewrite system that has not previously been studied. We show some efficient normalization algorithms that are immediately useful in optimizing compilers; and we give a confluence proof for our system, showing that the choice of normalization algorithm does not affect final code quality.
+
+When the λ-calculus is used as an intermediate language for compilation, compile-time simplification of lambda terms is usually necessary in order to obtain compact and efficient object code. Unfortunately, different simplifications can interact, making it difficult to know in which order simplifications should be made. Also, unless done with care, simplifications may take a long time to perform. This paper addresses both problems. It provides a useful set of simple reductions that are Church–Rosser, and several algorithms for simplifying terms efficiently. Most of the results of this paper are immediately useful; no-one should implement a lambda simplifier without first reading this paper.},
+  doi       = {10.1017/s0956796897002839},
+  groups    = {to-read, correct-optimisations},
+  publisher = {Cambridge University Press ({CUP})},
+}
+
+@InProceedings{Flanagan1993EssenceCompilingContinuations,
+  author    = {Cormac Flanagan and Amr Sabry and Bruce F. Duba and Matthias Felleisen},
+  booktitle = {Proceedings of the {ACM} {SIGPLAN} 1993 conference on Programming language design and implementation - {PLDI} {\textquotesingle}93},
+  title     = {The essence of compiling with continuations},
+  year      = {1993},
+  publisher = {{ACM} Press},
+  abstract  = {In order to simplify the compilation process, many compilers for higher-order languages use the continuation-passing style (CPS) transformation in a first phase to generate an intermediate representation of the source program. The salient aspect of this intermediate form is that all procedures take an argument that represents the rest of the computation (the “continuation”). Since the naive CPS transformation considerably increases the size of programs, CPS compilers perform reductions to produce a more compact intermediate representation. Although often implemented as a part of the CPS transformation, this step is conceptually a second phase. Finally, code generators for typical CPS compilers treat continuations specially in order to optimize the interpretation of continuation parameters.
+
+A thorough analysis of the abstract machine for CPS terms show that the actions of the code generator invert the naive CPS translation step. Put differently, the combined effect of the three phases is equivalent to a source-to-source transformation that simulates the compaction phase. Thus, fully developed CPS compilers do not need to employ the CPS transformation but can achieve the same results with a simple source-level transformation.},
+  doi       = {10.1145/155090.155113},
+  groups    = {correct-optimisations},
+}
+
+@Article{Jones1996LetFloating,
+  author    = {Simon Peyton Jones and Will Partain and Andr{\'{e}} Santos},
+  journal   = {{ACM} {SIGPLAN} Notices},
+  title     = {Let-floating: moving bindings to give faster programs},
+  year      = {1996},
+  month     = {jun},
+  number    = {6},
+  pages     = {1--12},
+  volume    = {31},
+  abstract  = {Virtually every compiler performs transformations on the program it is compiling in an attempt to improve efficiency. Despite their importance, however, there have been few systematic attempts to categorise such transformations and measure their impact.In this paper we describe a particular group of transformations --- the "let-floating" transformations --- and give detailed measurements of their effect in an optimizing compiler for the non-strict functional language Haskell. Let-floating has not received much explicit attention in the past, but our measurements show that it is an important group of transformations (at least for lazy languages), offering a reduction of more than 30% in heap allocation and 15% in execution time.},
+  doi       = {10.1145/232629.232630},
+  groups    = {correct-optimisations},
+  publisher = {Association for Computing Machinery ({ACM})},
 }
