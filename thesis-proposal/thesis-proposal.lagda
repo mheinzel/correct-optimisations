@@ -120,7 +120,8 @@ Optimisations are important.
 
 A large number of program analyses and and optimisations are presented in the literature
 \cite{Nielson1999PrinciplesProgramAnalysis}
-\cite{Santos1995CompilationByTransformation}.
+\cite{Santos1995CompilationByTransformation}
+\cite{Jones1998TransformationOptimiser}.
 The focus of this work is on those that deal with variable binders,
 some of which are explained below.
 
@@ -272,6 +273,7 @@ using an environment that matches the expression's context.
 
 
 \subsection{Well-founded Recursion}
+\cite{Bove2014PartialityRecursion}
 \Fixme{Is this worth explaining here?}
 
 
@@ -417,9 +419,7 @@ We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
 This corresponds to the ascending chain condition in program analysis literature
 \cite{Nielson1999PrinciplesProgramAnalysis}.
-To convince the termination checker, we use \emph{well-founded recursion}
-\cite{Bove2014PartialityRecursion}
-on the number of bindings.
+To convince the termination checker, we use well-founded recursion on the number of bindings.
 
 The correctness follows directly from the correctness of each individual iteration step.
 
@@ -444,7 +444,7 @@ While working on all of them is not feasible,
 this section gives an overview of the most promising ones.
 
 
-\subsubsection{Strongly live variable analysis}
+\subsubsection{Strongly Live Variable Analysis}
 
 Instead of iterating the dead binding elimination as defined above,
 the same result can be achieved in a single pass
@@ -470,21 +470,21 @@ These do not seem to be fundamental limitations and could be worth investigating
 % (pre-existing or newly created).
 
 
-\subsubsection{Extending the language}
+\subsubsection{Extending the Language}
 
 \paragraph{Lambda abstraction}
 
 Most functional languages are based on some variant of the lambda calculus.
 Extending our expression language with lambda abstractions
 would make our work more applicable to these settings
-and provides an additional source of bindings with new transformations they enable.
+and provide an additional source of bindings with new kinds of transformations.
 
 There is a working prototype of this extended language
 with a modified dead binding elimination
 including everything outlined in section \ref{sec:results-dbe}.
 Since the results of evaluation now include functions,
 reasoning about semantic equivalance using propositional equality
-required postulating function extensionality.
+requires postulating function extensionality.
 \Fixme{This feels like it should be in Preliminary Results instead}
 This does not impact the soundness of the proof
 and could be avoided by moving to a different setting,
