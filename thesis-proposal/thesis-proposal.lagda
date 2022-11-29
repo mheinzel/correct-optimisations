@@ -513,7 +513,27 @@ However, we hope to add full support for them later on.
 % but should not pose fundamental difficulties.
 
 
-\subsubsection{Normal forms}
+\subsubsection{Restricted Forms}
+
+Practical compilers often enforce additional restrictions
+on the structure of their intermediate languages
+to simplify transformations and compilation to a machine language.
+Popular choices include \emph{continuation passing style} (CPS)
+and \emph{A-normal form} (ANF)
+\cite{Flanagan1993EssenceCompilingContinuations}.
+The Glorious Haskell Compiler (GHC) for example
+performs a transformation called \emph{CorePrep}
+to ensure (among others) the invariant
+that all function arguments are atoms,
+i.e. literals or variables.
+This simplifies further transformations on the language
+\cite{Santos1995CompilationByTransformation}.
+
+It could be investigated how the introduction of similar restrictions
+impacts the transformations we study, including their proof of correctness.
+Furthermore, the transformation itself that enforces the restrictions
+can be studied.
+\Fixme{Not really sure how to phrase these "one could do this" sentences. Would be better to say why this thing is interesting, what do we gain?}
 
 
 \subsubsection{Generalisation}
