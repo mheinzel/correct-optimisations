@@ -113,12 +113,14 @@ avoids the need for allowing functions as values.
 
 
 \subsection{Program Analysis and Transformation}
+\label{sec:background-transformations}
 
 Optimisations are important.
 \Fixme{Elaborate!}
 
 A large number of program analyses and and optimisations are presented in the literature
-\cite{Nielson1999PrinciplesProgramAnalysis}.
+\cite{Nielson1999PrinciplesProgramAnalysis}
+\cite{Santos1995CompilationByTransformation}.
 The focus of this work is on those that deal with variable binders,
 some of which are explained below.
 
@@ -141,6 +143,7 @@ Consider for example the following expression, where $x$ is a free variable.
 Here, the binding for $z$ is clearly unused, as the variable never occurs in the program.
 Such dead bindings can be identified by \emph{live variable analysis}
 and consequently be removed from the program.
+
 Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
 Therefore, multiple iterations of live variable analysis and binding elimination can be required.
 Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
@@ -285,6 +288,7 @@ the full source code is available online
 
 
 \subsection{Dead Binding Elimination}
+\label{sec:results-dbe}
 
 \paragraph{Sub-contexts}
 To reason about the part of a context that is live (actually used),
@@ -434,31 +438,85 @@ which transformations are worth it.
 
 \subsection{Further Work}
 \Draft{What will I do with the remainder of my thesis?}
-\Fixme{Initial draft, to be refined}
 
-\paragraph{Extending the Language}
-Since our language only contains let-bindings,
-it might be of interest to extend it with $\lambda$-abstractions
-(forming a simply-typed $\lambda$-calculus).
-Some increase in complexity seems necessary to eliminate applications of
-functions that do not use their argument,
-but we hope that our work is still largely applicable.
-The problem gets more challenging when introducing recursive bindings.
-Conversely, adding sum and product types might require more extensive bookkeeping,
-but should not pose fundamental difficulties.
-\Fixme{extend, itemize}
+There is a large number of possible directions to explore.
+While working on all of them is not feasible,
+this section gives an overview of the most promising ones.
 
-\paragraph{Other Analyses}
-There are several other binding-related transformations to explore,
-such as moving bindings up or down in the syntax tree.
-Another interesting type of optimisation is avoidance of redundant computations
-using \emph{available expression analysis}.
-An example is \emph{common subexpression elimination},
-where subexpressions get replaced by variables bound to equivalent declarations
-(pre-existing or newly created).
-\Fixme{extend, itemize}
 
-\paragraph{Generalisation}
+\subsubsection{Strongly live variable analysis}
+
+Instead of iterating the dead binding elimination as defined above,
+the same result can be achieved in a single pass
+using strongly live variable analysis, as explained in section \ref{sec:background-transformations}.
+
+An initial prototype still contains unresolved complications in the correctness proof.
+These do not seem to be fundamental limitations and could be worth investigating further.
+
+
+\subsubsection{Other Transformations}
+
+\paragraph{Inlining}
+\paragraph{Moving let-bindings}
+\paragraph{Commong subexpression elimination}
+\paragraph{Partial evaluation}
+\paragraph{Local rewrites}
+
+% such as moving bindings up or down in the syntax tree.
+% Another interesting type of optimisation is avoidance of redundant computations
+% using \emph{available expression analysis}.
+% An example is \emph{common subexpression elimination},
+% where subexpressions get replaced by variables bound to equivalent declarations
+% (pre-existing or newly created).
+
+
+\subsubsection{Extending the language}
+
+\paragraph{Lambda abstraction}
+
+Most functional languages are based on some variant of the lambda calculus.
+Extending our expression language with lambda abstractions
+would make our work more applicable to these settings
+and provides an additional source of bindings with new transformations they enable.
+
+There is a working prototype of this extended language
+with a modified dead binding elimination
+including everything outlined in section \ref{sec:results-dbe}.
+Since the results of evaluation now include functions,
+reasoning about semantic equivalance using propositional equality
+required postulating function extensionality.
+\Fixme{This feels like it should be in Preliminary Results instead}
+This does not impact the soundness of the proof
+and could be avoided by moving to a different setting,
+such as homotopy type theory.
+\Fixme{Cite just for this mention?}
+
+Since lambda abstractions could make other optimisations more challenging,
+they are not included in our core language for now.
+However, we hope to add full support for them later on.
+\Fixme{Mention some optimisations that lambdas enable?}
+
+\paragraph{Recursive Bindings}
+\paragraph{Mutually recursive binding groups}
+\paragraph{Nonstrict bindings}
+\paragraph{Branching}
+\paragraph{Datatypes with pattern matching}
+
+% Since our language only contains let-bindings,
+% it might be of interest to extend it with $\lambda$-abstractions
+% (forming a simply-typed $\lambda$-calculus).
+% Some increase in complexity seems necessary to eliminate applications of
+% functions that do not use their argument,
+% but we hope that our work is still largely applicable.
+% The problem gets more challenging when introducing recursive bindings.
+% Conversely, adding sum and product types might require more extensive bookkeeping,
+% but should not pose fundamental difficulties.
+
+
+\subsubsection{Normal forms}
+
+
+\subsubsection{Generalisation}
 Ideally, further exploration will lead to the discovery of common patterns
 and useful strategies for performing optimisations on intrinsically typed syntax trees.
 One possible avenue is the syntax-generic definition of operations and proofs.
