@@ -473,7 +473,6 @@ These do not seem to be fundamental limitations and could be worth investigating
 \subsubsection{Extending the Language}
 
 \paragraph{Lambda abstraction}
-
 Most functional languages are based on some variant of the lambda calculus.
 Extending our expression language with lambda abstractions
 would make our work more applicable to these settings
@@ -489,7 +488,7 @@ requires postulating function extensionality.
 This does not impact the soundness of the proof
 and could be avoided by moving to a different setting,
 such as homotopy type theory.
-\Fixme{Cite just for this mention?}
+\Fixme{Citation just for mentioning HoTT?}
 
 Since lambda abstractions could make other optimisations more challenging,
 they are not included in our core language for now.
@@ -497,8 +496,36 @@ However, we hope to add full support for them later on.
 \Fixme{Mention some optimisations that lambdas enable?}
 
 \paragraph{Recursive Bindings}
+In a recursive let-binding, the bound variable is available in its own declaration.
+While this only requires a small change in the definition of the syntax tree,
+evaluation can now diverge,
+requiring fundamental changes in how to reason about its semantics
+\cite{Capretta2005GeneralRecursion}
+\cite{McBride2015TuringCompletenessTotallyFree}.
+
 \paragraph{Mutually recursive binding groups}
+Since mutual recursion allows multiple bindings to refer to each other,
+the current approach of handling one binding at a time is not sufficient.
+Instead, we need to allow a list of declarations
+where the scope of each is extended with a list of variables.
+Working with this structure to be laborious.
+Similarly, it is currently unclear whether Allais' universe of syntax
+can capture this construction.
+
+On the other hand, an intrinsically typed algorithm
+splitting binding groups into strongly connected components
+could be instructive.
+
 \paragraph{Nonstrict bindings}
+
+Languages can contain strict, nonstrict or both types of bindings.
+Once there are side effects (such as non-termination),
+the strictness of bindings plays an important role
+for semantics preservation of transformations.
+Supporting both strict and nonstrict bindings in a transformation
+would show how to treat each of them.
+\Fixme{Not the best sales pitch. Leave out nonstrict bindings or find better arguments?}
+
 \paragraph{Branching}
 \paragraph{Datatypes with pattern matching}
 
