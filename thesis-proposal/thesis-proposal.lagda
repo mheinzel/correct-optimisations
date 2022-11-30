@@ -600,7 +600,16 @@ can be studied.
 \subsubsection{Generalisation}
 Ideally, further exploration will lead to the discovery of common patterns
 and useful strategies for performing optimisations on intrinsically typed syntax trees.
-One possible avenue is the syntax-generic definition of operations and proofs.
+One particular question is whether it is useful to always separate program analysis
+and transformation using an annotated version of the syntax tree,
+as currently done with dead binding elimination.
+
+
+\subsubsection{Syntax-generic programming}
+To avoid boilerplate code and make our work more re-usable,
+we are investigating the possibility to work with syntax-generic definitions of operations and proofs.
+Capturing common patterns and operations in the form of general helper functions
+could be insightful and reduce the effort of adding further transformations.
 
 
 \subsection{Schedule}
