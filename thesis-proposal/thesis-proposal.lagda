@@ -519,15 +519,10 @@ but our focus is primarily in creating the right structure for the analysis resu
 such that the transformation can be applied accordingly.
 \Fixme{Describe ideas for how this could build on top of basic CSE?}
 
-\paragraph{Partial evaluation}
 \paragraph{Local rewrites}
-
-% such as moving bindings up or down in the syntax tree.
-% Another interesting type of optimisation is avoidance of redundant computations
-% using \emph{available expression analysis}.
-% An example is \emph{common subexpression elimination},
-% where subexpressions get replaced by variables bound to equivalent declarations
-% (pre-existing or newly created).
+\Draft{Some form of constant folding, normalisation by evaluation?}
+\Draft{Beta reduction, convert let/lambda, eta expansion?}
+\Fixme{Most are irrelevant for us or require lambdas?}
 
 
 \subsubsection{Extending the Language}
@@ -553,7 +548,7 @@ such as homotopy type theory.
 Since lambda abstractions could make other optimisations more challenging,
 they are not included in our core language for now.
 However, we hope to add full support for them later on.
-\Fixme{Mention some optimisations that lambdas enable?}
+\Fixme{Mention some optimisations that lambdas enable? Local rewrites, unused arguments, closing closures}
 
 \paragraph{Recursive Bindings}
 In a recursive let-binding, the bound variable is available in its own declaration.
