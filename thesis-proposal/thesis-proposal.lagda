@@ -128,6 +128,7 @@ some of which are explained below.
 \paragraph{Inlining}
 
 \paragraph{Let-lifting}
+\Fixme{These are now explained in Further Work. Remove?}
 
 \paragraph{Dead binding elimination}
 An expression is not forced to make use of the whole context to which it has access.
@@ -484,6 +485,40 @@ i.e. variable occurrences are never moved above their declaration or vice versa.
 \Fixme{Very relevant, but brief. Extend?}
 
 \paragraph{Common subexpression elimination}
+The aim of this transformation is to find subexpressions that occur multiple times
+and replace them with a variable that bound to this expression.
+% A basic implementation keeps track of the declaration of all bindings in scope
+% to find any occurrences of the same expression.
+A basic implementation only tries to find occurrences of expressions
+that are the same as the declaration of a bindings in scope.
+These can then be replaced by the bound variable,
+reducing both code size and work performed during evaluation.
+
+Capturing the results of such a program analysis will require some changes
+compared to the variable liveness annotations in dead binding elimination,
+since being replaceable by a variable is not just a property of a term,
+but also its context.
+
+This basic version potentially misses many opportunities,
+since it relies on the right terms to be available as a variable in scope.
+Consider for example expressions like
+$x * 2 + x * 2$,
+where the duplicated work can only be avoided by introducing a new let-binding.
+Some improvement is possible by breaking down all expressions
+into sequences of many small let-bindings and floating them upwards,
+but making this work well is tricky.
+One also needs to consider that these additional let-bindings affect other transformations,
+unless they are removed again after common subexpression elimination.
+
+\paragraph{More powerful common subexpression elimination}
+Another approach is to put more work into identifying common subexpressions
+and purposefully introducing a shared binding at the lowest point
+where it is in scope in all required places.
+Making this analysis efficient is challenging,
+but our focus is primarily in creating the right structure for the analysis results
+such that the transformation can be applied accordingly.
+\Fixme{Describe ideas for how this could build on top of basic CSE?}
+
 \paragraph{Partial evaluation}
 \paragraph{Local rewrites}
 
