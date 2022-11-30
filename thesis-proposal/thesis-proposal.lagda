@@ -457,6 +457,20 @@ These do not seem to be fundamental limitations and could be worth investigating
 \subsubsection{Other Transformations}
 
 \paragraph{Inlining}
+In its simplest form, inlining only means to replace a variable occurrence
+with the corresponding declaration,
+whereas sometimes it understood to involve removing the inlined binding
+and even performing beta reduction wherever inlining produces a beta redex
+\cite{Jones2002GHCInliner}.
+Both of these operations should be relatively easy to implement.
+Note that the latter meaning includes dead binding elimination
+and could re-use our implementation for that.
+
+On the language we defined, inlining is always possible and semantics preserving.
+The analysis only needs to specify which variables should be inlined,
+based on some heuristics involving the size of declaration,
+number of variable occurrences and similar factors.
+
 \paragraph{Moving let-bindings}
 \paragraph{Commong subexpression elimination}
 \paragraph{Partial evaluation}
@@ -503,6 +517,8 @@ The treatment of semantics requires significant changes to account for this part
 \cite{Capretta2005GeneralRecursion}
 \cite{McBride2015TuringCompletenessTotallyFree}
 \cite{Danielsson2012PartialityMonad}.
+Some transformations then require a form of guaranteeing purity of their declaration
+since (re)moving bindings with side effects can change the program's semantics.
 
 \paragraph{Mutually recursive binding groups}
 Since mutual recursion allows multiple bindings to refer to each other,
