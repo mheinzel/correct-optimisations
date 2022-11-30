@@ -471,8 +471,19 @@ The analysis only needs to specify which variables should be inlined,
 based on some heuristics involving the size of declaration,
 number of variable occurrences and similar factors.
 
-\paragraph{Moving let-bindings}
-\paragraph{Commong subexpression elimination}
+\paragraph{Let-floating}
+In many cases it is advantageous for bindings to be \emph{floated inward},
+potentially avoiding their evaluation.
+In other cases, it can be useful to \emph{float outward}
+to avoid performing the same work multiple times
+\cite{Jones1996LetFloating}.
+
+To make sure the moving a binding is valid,
+the analysis currently only needs to ensure that scope correctness is preserved,
+i.e. variable occurrences are never moved above their declaration or vice versa.
+\Fixme{Very relevant, but brief. Extend?}
+
+\paragraph{Common subexpression elimination}
 \paragraph{Partial evaluation}
 \paragraph{Local rewrites}
 
@@ -517,7 +528,7 @@ The treatment of semantics requires significant changes to account for this part
 \cite{Capretta2005GeneralRecursion}
 \cite{McBride2015TuringCompletenessTotallyFree}
 \cite{Danielsson2012PartialityMonad}.
-Some transformations then require a form of guaranteeing purity of their declaration
+Some transformations then require a form of guaranteeing purity of strict bindings,
 since (re)moving bindings with side effects can change the program's semantics.
 
 \paragraph{Mutually recursive binding groups}
@@ -542,7 +553,7 @@ the strictness of bindings plays an important role
 for semantics preservation of transformations.
 Supporting both strict and nonstrict bindings in a transformation
 would show how to treat each of them.
-\Fixme{Not the best sales pitch. Leave out nonstrict bindings or find better arguments?}
+\Fixme{Not the best sales pitch. Find better arguments?}
 
 \paragraph{Branching}
 The presence of a branching construct like \emph{if-then-else} expressions
