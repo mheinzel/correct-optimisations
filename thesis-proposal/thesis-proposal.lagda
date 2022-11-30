@@ -280,7 +280,7 @@ using an environment that matches the expression's context.
 \section{Preliminary Results}
 \Draft{What examples can you handle already?}
 \Draft{What prototype have I built?}
-\Draft{How can I generalize these results? What problems have I identified or do I expect?}
+\Draft{How can I generalise these results? What problems have I identified or do I expect?}
 
 As a first step, we implemented one optimisation in Agda,
 including a mechanised proof of its preservation of semantics.
@@ -507,18 +507,19 @@ The treatment of semantics requires significant changes to account for this part
 \paragraph{Mutually recursive binding groups}
 Since mutual recursion allows multiple bindings to refer to each other,
 the current approach of handling one binding at a time is not sufficient.
-Instead, we need to allow a list of declarations
+Instead, we need to allow a list of simultaneous declarations
 where the scope of each is extended with a list of variables.
-Working with this structure to be laborious.
+Working with this structure is expected to be laborious.
 Similarly, it is currently unclear whether Allais' universe of syntax
-can capture this construction.
+can express this construction.
 
-On the other hand, an intrinsically typed algorithm
-splitting binding groups into strongly connected components
-could be instructive.
+On the other hand, intrinsically typed implementations
+of related transformations could be instructive
+precisely because of the complexity of the bindings involved.
+An example is
+splitting binding groups into strongly connected components.
 
 \paragraph{Nonstrict bindings}
-
 Languages can contain strict, nonstrict or both types of bindings.
 Once there are side effects (such as non-termination),
 the strictness of bindings plays an important role
@@ -528,17 +529,22 @@ would show how to treat each of them.
 \Fixme{Not the best sales pitch. Leave out nonstrict bindings or find better arguments?}
 
 \paragraph{Branching}
-\paragraph{Datatypes with pattern matching}
+The presence of a branching construct like \emph{if-then-else} expressions
+makes some analyses more interesting since control flow is not known upfront.
+In addition, some optimisations become more worthwile:
+\begin{itemize}
+  \item pushing a binding into a single branch where it is used avoids unnecessary computation,
+  \item bindings present in all branches can be hoisted out to reduce code size,
+  \item having information about the possible values of expressions can allow to remove unreachable branches.
+\end{itemize}
 
-% Since our language only contains let-bindings,
-% it might be of interest to extend it with $\lambda$-abstractions
-% (forming a simply-typed $\lambda$-calculus).
-% Some increase in complexity seems necessary to eliminate applications of
-% functions that do not use their argument,
-% but we hope that our work is still largely applicable.
-% The problem gets more challenging when introducing recursive bindings.
-% Conversely, adding sum and product types might require more extensive bookkeeping,
-% but should not pose fundamental difficulties.
+These aspects however are not the main focus of this work;
+most of the actual transformations are unaffected.
+
+\paragraph{Datatypes with pattern matching}
+Adding algebraic datatypes is a much bigger change,
+but also provides us with a new source of bindings and related transformations.
+GHC for example offers ample inspiration with case-of-case and similar optimisations.
 
 
 \subsubsection{Restricted Forms}
