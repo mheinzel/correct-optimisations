@@ -85,7 +85,7 @@ In my thesis, I want to explore this area and aim to:
   \item develop an understanding of potentially relevant techniques in the literature, such as datatype-generic programming on syntax trees
   \item implement several transformations on intrinsically typed expressions in the dependently-typed programming language Agda
   \item attempt machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
-  \item explore the common patterns between the implemented transformations and try capturing them as re-usable building blocks (e.g. as datatype-generic constructions)
+  \item explore the common patterns between the implemented transformations and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
 
 
@@ -482,7 +482,7 @@ to avoid performing the same work multiple times
 To make sure the moving a binding is valid,
 the analysis currently only needs to ensure that scope correctness is preserved,
 i.e. variable occurrences are never moved above their declaration or vice versa.
-\Fixme{Very relevant, but brief. Extend?}
+\Fixme{Let-floating is important, add more info?}
 
 \paragraph{Common subexpression elimination}
 The aim of this transformation is to find subexpressions that occur multiple times
@@ -504,16 +504,16 @@ since it relies on the right terms to be available as a variable in scope.
 Consider for example expressions like
 $x * 2 + x * 2$,
 where the duplicated work can only be avoided by introducing a new let-binding.
-Some improvement is possible by breaking down all expressions
-into sequences of many small let-bindings and floating them upwards,
+Some additional opportunities can be exposed by a preprocessing step
+breaking down expressions into sequences of small let-bindings and floating them upwards,
 but making this work well is tricky.
 One also needs to consider that these additional let-bindings affect other transformations,
 unless they are removed again after common subexpression elimination.
 
 \paragraph{More powerful common subexpression elimination}
 Another approach is to put more work into identifying common subexpressions
-and purposefully introducing a shared binding at the lowest point
-where it is in scope in all required places.
+and making the transformation itself introduce a shared binding
+at a suitable point.
 Making this analysis efficient is challenging,
 but our focus is primarily in creating the right structure for the analysis results
 such that the transformation can be applied accordingly.
@@ -577,7 +577,7 @@ An example is
 splitting binding groups into strongly connected components.
 
 \paragraph{Nonstrict bindings}
-Languages can contain strict, nonstrict or both types of bindings.
+Languages can contain strictly evaluated, nonstrictly evaluated or both types of bindings.
 Once there are side effects (such as non-termination),
 the strictness of bindings plays an important role
 for semantics preservation of transformations.
@@ -599,9 +599,10 @@ These aspects however are not the main focus of this work;
 most of the actual transformations are unaffected.
 
 \paragraph{Datatypes with pattern matching}
-Adding algebraic datatypes is a much bigger change,
+Adding algebraic datatypes is a much larger change,
 but also provides us with a new source of bindings and related transformations.
-GHC for example offers ample inspiration with case-of-case and similar optimisations.
+GHC for example offers ample inspiration with case-of-case and similar optimisations
+\cite{Jones1998TransformationOptimiser}.
 
 
 \subsubsection{Restricted Forms}
@@ -622,8 +623,7 @@ This simplifies further transformations on the language
 
 It could be investigated how the introduction of similar restrictions
 impacts the transformations we study, including their proof of correctness.
-Furthermore, the transformation itself that enforces the restrictions
-can be studied.
+Furthermore, the transformation into the restricted form itself can be studied.
 \Fixme{Not really sure how to phrase these "one could do this" sentences. Would be better to say why this thing is interesting, what do we gain?}
 
 
@@ -636,7 +636,7 @@ as currently done with dead binding elimination.
 
 
 \subsubsection{Syntax-generic programming}
-To avoid boilerplate code and make our work more re-usable,
+To avoid boilerplate code and make our work more reusable,
 we are investigating the possibility to work with syntax-generic definitions of operations and proofs.
 Capturing common patterns and operations in the form of general helper functions
 could be insightful and reduce the effort of adding further transformations.
