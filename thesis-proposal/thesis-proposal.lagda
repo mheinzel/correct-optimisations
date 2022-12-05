@@ -520,16 +520,32 @@ such that the transformation can be applied accordingly.
 \Fixme{Describe ideas for how this could build on top of basic CSE?}
 
 \paragraph{Local rewrites}
-\Draft{Some form of constant folding, normalisation by evaluation?}
-\Draft{Beta reduction, convert let/lambda, eta expansion?}
-\Fixme{Most are irrelevant for us or require lambdas?}
+examples:
+{\color{gray}
+\begin{itemize}
+  \item let-reordering
+  \item constant folding
+\end{itemize}
+including lambdas:
+\begin{itemize}
+  \item replace beta redex with let-binding
+  \item let-floating out of application
+  \item eta expansion
+\end{itemize}
+}
+\Fixme{Describe ideas for general pattern?}
 
 
 \subsubsection{Extending the Language}
 
-\paragraph{Lambda abstraction}
+Adding constructs to the language gives us access to new transformations,
+for example to optimise their evaluation or encode them using existing constructs.
+However, each of them complicates the language and comes with its own challenges.
+
+\paragraph{Lambda calculus}
 Most functional languages are based on some variant of the lambda calculus.
-Extending our expression language with lambda abstractions
+\Fixme{$\lambda$-calculus?}
+Extending our expression language with lambda abstractions and function application
 would make our work more applicable to these settings
 and provide an additional source of bindings with new kinds of transformations.
 
@@ -548,7 +564,9 @@ such as homotopy type theory.
 Since lambda abstractions could make other optimisations more challenging,
 they are not included in our core language for now.
 However, we hope to add full support for them later on.
-\Fixme{Mention some optimisations that lambdas enable? Local rewrites, unused arguments, closing closures}
+This would also give us access to further optimisations
+such as removal of unused function arguments
+and some of the local rewrites mentioned above.
 
 \paragraph{Recursive Bindings}
 In a recursive let-binding, the bound variable is available in its own declaration.
