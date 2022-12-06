@@ -66,12 +66,13 @@ However, optimisations play an important role in compilers
 and establishing their correctness is often not trivial,
 with ample opportunity for mistakes.
 %
-In this setting, program \emph{analysis} not only needs to identify optimisation opportunities,
-but provide a proof witness that the optimisation is safe,
+In this setting, program \emph{analysis} not only identifies optimisation opportunities,
+but may also need to provide a proof witness that the optimisation is safe
 e.g. that some dead code is indeed not used.
 For the \emph{transformation} of the intrinsically typed program,
-the programmer can then rely on the compiler to check the relevant invariants,
-but it can be cumbersome to make it sufficiently clear that type- and scope-safety are preserved,
+the programmer can then rely on the compiler to check
+that type- and scope-safety invariants are preserved.
+However, making this clear to the compiler can be cumbersome,
 especially when manipulating binders and variables.
 
 \vspace{1em}
@@ -115,20 +116,26 @@ avoids the need for allowing functions as values.
 \subsection{Program Analysis and Transformation}
 \label{sec:background-transformations}
 
-Optimisations are important.
-\Fixme{Elaborate!}
-
+Compilers consist of a set of transformations,
+for example to encode language features using a simpler set of constructs.
+Usually they also perform optimisations
+to speed up the execution of the compiled program.
 A large number of program analyses and and optimisations are presented in the literature
-\cite{Nielson1999PrinciplesProgramAnalysis}
+\cite{Nielson1999PrinciplesProgramAnalysis}.
+Most of those we are interested in are relatively small transformations
+such as the transformation-based optimisations
 \cite{Santos1995CompilationByTransformation}
-\cite{Jones1998TransformationOptimiser}.
-The focus of this work is on those that deal with variable binders,
+\cite{Jones1998TransformationOptimiser}
+used in the Glorious Haskell Compiler (GHC).
+We generally focus on those transformations that deal with variable binders,
 some of which are explained below.
 
 \paragraph{Inlining}
 
 \paragraph{Let-lifting}
-\Fixme{These are now explained in Further Work. Remove?}
+
+\paragraph{Common subexpression elimination}
+\Fixme{These are now explained in Further Work. Remove? Or put a more detailed description here?}
 
 \paragraph{Dead binding elimination}
 An expression is not forced to make use of the whole context to which it has access.
@@ -473,13 +480,13 @@ based on some heuristics involving the size of declaration,
 number of variable occurrences and similar factors.
 
 \paragraph{Let-floating}
-In many cases it is advantageous for bindings to be \emph{floated inward},
-potentially avoiding their evaluation.
+It is usually advantageous for bindings to be \emph{floated inward} as far as possible,
+potentially avoiding their evaluation and uncovering opportunities for other optimisations.
 In other cases, it can be useful to \emph{float outward}
 to avoid performing the same work multiple times
 \cite{Jones1996LetFloating}.
 
-To make sure the moving a binding is valid,
+To make sure that moving a binding is valid,
 the analysis currently only needs to ensure that scope correctness is preserved,
 i.e. variable occurrences are never moved above their declaration or vice versa.
 \Fixme{Let-floating is important, add more info?}
@@ -623,7 +630,7 @@ GHC for example offers ample inspiration with case-of-case and similar optimisat
 \cite{Jones1998TransformationOptimiser}.
 
 
-\subsubsection{Restricted Forms}
+\subsubsection{Restricted Language Forms}
 
 Practical compilers often enforce additional restrictions
 on the structure of their intermediate languages
