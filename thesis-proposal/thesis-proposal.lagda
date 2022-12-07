@@ -75,6 +75,11 @@ that type- and scope-safety invariants are preserved.
 However, making this clear to the compiler can be cumbersome,
 especially when manipulating binders and variables.
 
+% Compilers consist of a set of transformations,
+% for example to encode language features using a simpler set of constructs.
+% Usually they also perform optimisations
+% to speed up the execution of the compiled program.
+
 \vspace{1em}
 \Draft{What are your research questions/contributions?}
 
@@ -116,17 +121,12 @@ avoids the need for allowing functions as values.
 \subsection{Program Analysis and Transformation}
 \label{sec:background-transformations}
 
-Compilers consist of a set of transformations,
-for example to encode language features using a simpler set of constructs.
-Usually they also perform optimisations
-to speed up the execution of the compiled program.
+For now we mainly consider transformations aimed at optimising functional programs.
 A large number of program analyses and and optimisations are presented in the literature
-\cite{Nielson1999PrinciplesProgramAnalysis}.
-Most of those we are interested in are relatively small transformations
-such as the transformation-based optimisations
+\cite{Nielson1999PrinciplesProgramAnalysis}
 \cite{Santos1995CompilationByTransformation}
 \cite{Jones1998TransformationOptimiser}
-used in the Glorious Haskell Compiler (GHC).
+and used in production compilers such as the Glorious Haskell Compiler (GHC).
 We generally focus on those transformations that deal with variable binders,
 some of which are explained below.
 
