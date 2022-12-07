@@ -110,7 +110,7 @@ Extending the language with further values and operators is trivial.
   \\ \big||&\ x
 \end{align*}
 
-Expressions can be bound to a variable $x$ using the $\textbf{let}$ construction.
+Expressions can be bound to a variable $x$ using a $\textbf{let}$-binding.
 Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
 where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q) P$.
 Encapsulating this pattern as $\textbf{let } x = P \textbf{ in } Q$
@@ -135,7 +135,7 @@ some of which are explained below.
 \paragraph{Let-lifting}
 
 \paragraph{Common subexpression elimination}
-\Fixme{These are now explained in Further Work. Remove? Or put a more detailed description here?}
+\Fixme{These are now explained in Further Work. Remove? Or write more detailed descriptions with examples?}
 
 \paragraph{Dead binding elimination}
 An expression is not forced to make use of the whole context to which it has access.
@@ -151,7 +151,7 @@ Consider for example the following expression, where $x$ is a free variable.
 
 Here, the binding for $z$ is clearly unused, as the variable never occurs in the program.
 Such dead bindings can be identified by \emph{live variable analysis}
-and consequently be removed from the program.
+and consequently be removed.
 
 Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
 Therefore, multiple iterations of live variable analysis and binding elimination can be required.
@@ -417,9 +417,10 @@ and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \paragraph{Iterating the Optimisation}
 A binding that is removed can contain the only occurrences of some other variable.
+\Fixme{Also explained in Background and Further Work, redundant?}
 This makes another binding dead, allowing further optimisation when running the algorithm again.
 While in our simple setting all these bindings could be identified in a single pass
-using \emph{strong live variable analysis},
+using strong live variable analysis,
 in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
 
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
@@ -550,9 +551,8 @@ for example to optimise their evaluation or encode them using existing construct
 However, each of them complicates the language and comes with its own challenges.
 
 \paragraph{Lambda calculus}
-Most functional languages are based on some variant of the lambda calculus.
-\Fixme{$\lambda$-calculus?}
-Extending our expression language with lambda abstractions and function application
+Most functional languages are based on some variant of the $\lambda$-calculus.
+Extending our expression language with $\lambda$-abstractions and function application
 would make our work more applicable to these settings
 and provide an additional source of bindings with new kinds of transformations.
 
@@ -568,7 +568,7 @@ and could be avoided by moving to a different setting,
 such as homotopy type theory.
 \Fixme{Citation just for mentioning HoTT?}
 
-Since lambda abstractions could make other optimisations more challenging,
+Since $\lambda$-abstractions could make other optimisations more challenging,
 they are not included in our core language for now.
 However, we hope to add full support for them later on.
 This would also give us access to further optimisations
@@ -626,7 +626,7 @@ most of the actual transformations are unaffected.
 \paragraph{Datatypes with pattern matching}
 Adding algebraic datatypes is a much larger change,
 but also provides us with a new source of bindings and related transformations.
-GHC for example offers ample inspiration with case-of-case and similar optimisations
+GHC for example offers a wealth of inspiration with the \emph{case-of-case}-optimisation and others
 \cite{Jones1998TransformationOptimiser}.
 
 
