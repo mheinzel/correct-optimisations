@@ -166,14 +166,18 @@ The syntax specified above treats variables as letters, or more generally string
 To prevent complications with bindings of the same variable name shadowing each other
 and to make equality of terms independent of the specific names chosen
 (\emph{$\alpha$-equivalence}),
-compilers often represent variables in a different way.
+compilers often represent variables in a different way
 \Fixme{Mention more representations, compare properties?}
-A popular choice are \emph{de Bruijn indices},
-\Fixme{Add some citations?}
+\footnote{
+  A blogpost giving and introduction to and comparing different options in Agda can be found at
+  \url{https://jesper.sikanda.be/posts/1001-syntax-representations.html}.
+}.
+
+A popular choice are \emph{de Bruijn indices}
+\cite{DeBruijn1972NamelessIndices},
 where each variable is represented by a natural number,
 counting the number of bindings between variable occurence and its binding:
 $0$ refers to the innermost binding, $1$ to the next-innermost etc.
-
 Still, there might be \emph{free variables},
 where the de Bruijn index is larger than the number of bindings it has access to
 (\emph{in scope}).
