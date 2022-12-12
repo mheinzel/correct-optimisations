@@ -458,16 +458,6 @@ so they remain a prototype for now and are not included in our core language.
 % and some of the local rewrites mentioned above.
 
 
-\subsection{Observations}
-
-\Fixme{Add or leave out}
-% One interesting observation is that the correctness proof does not rely on how
-% |analyse| computes the annotations.
-% At first, this does not seem particularly useful,
-% but for other optimisations the analysis might use complex, frequently changing heuristics to decide
-% which transformations are worth it.
-
-
 \section{Timetable and Planning}
 
 \subsection{Further Work}
@@ -619,9 +609,10 @@ Languages can contain strictly evaluated, nonstrictly evaluated or both types of
 Once there are side effects (such as non-termination),
 the strictness of bindings plays an important role
 for semantics preservation of transformations.
-Supporting both strict and nonstrict bindings in a transformation
-would show how to treat each of them.
-\Fixme{Add a ref!}
+While inlining or floating a nonstrict let-bindings is always valid,
+the same is only true for strict let-bindings if they are pure,
+i.e. free of side effects
+\cite{Jones2002GHCInliner}.
 
 \paragraph{Branching}
 The presence of a branching construct like \emph{if-then-else} expressions
@@ -662,7 +653,6 @@ This simplifies further transformations on the language
 It could be investigated how the introduction of similar restrictions
 impacts the transformations we study, including their proof of correctness.
 Furthermore, the transformation into the restricted form itself can be studied.
-\Fixme{Not really sure how to phrase these "one could do this" sentences. Would be better to say why this thing is interesting, what do we gain?}
 
 
 \subsubsection{Generalisation}
