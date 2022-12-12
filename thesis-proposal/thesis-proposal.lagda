@@ -15,7 +15,6 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{colortbl}
-\usepackage{tabularx}
 \usepackage{todonotes}
 
 % \newcommand{\Draft}[1]{}
@@ -93,7 +92,7 @@ In my thesis, I want to explore this area and aim to:
   \item attempt machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
   \item explore the common patterns between the implemented transformations and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
-
+\Fixme{Think about I vs. we and make usage consistent everywhere}
 
 \section{Background}
 \Draft{What is the existing technology and literature that I'll be studying/using in my research?}
@@ -128,14 +127,12 @@ A large number of program analyses and and optimisations are presented in the li
 \cite{Jones1998TransformationOptimiser}
 and used in production compilers such as the Glorious Haskell Compiler (GHC).
 We generally focus on those transformations that deal with variable binders,
-some of which are explained below.
-
-\paragraph{Inlining}
-
-\paragraph{Let-lifting}
-
-\paragraph{Common subexpression elimination}
-\Fixme{These are now explained in Further Work. Remove? Or write more detailed descriptions with examples?}
+such as
+\emph{inlining},
+\emph{let-floating},
+\emph{common subexpression elimination} and
+\emph{dead binding elimination},
+which is explained below.
 
 \paragraph{Dead binding elimination}
 An expression is not forced to make use of the whole context to which it has access.
@@ -169,7 +166,7 @@ and to make equality of terms independent of the specific names chosen
 compilers often represent variables in a different way
 \Fixme{Mention more representations, compare properties?}
 \footnote{
-  A blogpost giving and introduction to and comparing different options in Agda can be found at
+  A blogpost giving an introduction to and comparing different options in Agda can be found at
   \url{https://jesper.sikanda.be/posts/1001-syntax-representations.html}.
 }.
 
@@ -186,7 +183,7 @@ Similarly, the type of a bound expression might not match the expected type at t
 where it is referenced.
 This makes the evaluation function partial;
 it should only be called after validating type- and scope-safety.
-\Fixme{Show possible bugs in transformations}
+\Fixme{Show possible bugs in transformations, e.g. the foil}
 
 
 \subsection{Intrinsically Typed Syntax}
@@ -196,8 +193,6 @@ one does not need to accept partiality and the need for human vigilance.
 With \emph{intrinsically typed syntax trees}, type- and scope-safety invariants
 are specified on the type level and verified by the type checker.
 We will demonstrate the approach in Agda and start by defining the types that terms can have.
-\Fixme{Too long-winded and detailed?}
-\Fixme{Add some further structure to this subsection? Paragraphs?}
 
 \begin{code}
   data U : Set where
@@ -282,11 +277,7 @@ using an environment that matches the expression's context.
 % Immediately go into the syntax-related work, just a short overview, link to literature
 % (might not end up being in the thesis)
 \cite{Allais2018UniverseOfSyntaxes}
-
-
-\subsection{Well-founded Recursion}
-\cite{Bove2014PartialityRecursion}
-\Fixme{Is this worth explaining here?}
+\Fixme{just state that there is this idea, keep it simple}
 
 
 \section{Preliminary Results}
@@ -311,7 +302,6 @@ Conceptually, these are contexts that admit an
 \emph{order-preserving embedding} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
 into the original context, and we capture this notion in a single data type.
 For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
-\Fixme{Is this too detailed and technical?}
 
 \begin{code}
 data SubCtx : Ctx -> Set where
@@ -420,31 +410,34 @@ The interesting one is again |Let|, where we split cases on the variable being u
 and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \paragraph{Iterating the Optimisation}
-A binding that is removed can contain the only occurrences of some other variable.
-\Fixme{Also explained in Background and Further Work, redundant?}
-This makes another binding dead, allowing further optimisation when running the algorithm again.
+As discussed in section \ref{sec:background-transformations},
+more than one pass of dead binding elimination can be required to remove all unused bindings.
 While in our simple setting all these bindings could be identified in a single pass
 using strong live variable analysis,
 in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
 
+Consequently, we keep applying |dbe . analyse| as long as the number of bindings decreases.
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
 We observe that the algorithm must terminate
 since the number of bindings decreases with each iteration (but the last) and cannot become negative.
 This corresponds to the ascending chain condition in program analysis literature
 \cite{Nielson1999PrinciplesProgramAnalysis}.
-To convince the termination checker, we use well-founded recursion on the number of bindings.
+To convince the termination checker, we use well-founded recursion
+\cite{Bove2014PartialityRecursion}
+on the number of bindings.
 
-The correctness follows directly from the correctness of each individual iteration step.
+The correctness of the iterated implementation
+follows directly from the correctness of each individual iteration step.
 
 
 \subsection{Observations}
 
-One interesting observation is that the correctness proof does not rely on how
-|analyse| computes the annotations.
-At first, this does not seem particularly useful,
-but for other optimisations the analysis might use complex, frequently changing heuristics to decide
-which transformations are worth it.
-\Fixme{Just a reused paragraph, expand!}
+\Fixme{Add or leave out}
+% One interesting observation is that the correctness proof does not rely on how
+% |analyse| computes the annotations.
+% At first, this does not seem particularly useful,
+% but for other optimisations the analysis might use complex, frequently changing heuristics to decide
+% which transformations are worth it.
 
 
 \section{Timetable and Planning}
@@ -470,39 +463,43 @@ These do not seem to be fundamental limitations and could be worth investigating
 \subsubsection{Other Transformations}
 
 \paragraph{Inlining}
-In its simplest form, inlining only means to replace a variable occurrence
-with the corresponding declaration,
-whereas sometimes it understood to involve removing the inlined binding
-and even performing beta reduction wherever inlining produces a beta redex
-\cite{Jones2002GHCInliner}.
-Both of these operations should be relatively easy to implement.
-Note that the latter meaning includes dead binding elimination
-and could re-use our implementation for that.
+We will focus on the simplest form of inlining,
+which only replaces a variable occurrence
+with the corresponding declaration.
+Sometimes, inlining is also understood to involve removing the inlined binding
+or even performing beta reduction wherever inlining produces a beta redex
+\cite{Jones2002GHCInliner},
+but this can be taken care of by other transformations.
 
-On the language we defined, inlining is always possible and semantics preserving.
+On the language we defined, inlining is always possible and semantics-preserving.
 The analysis only needs to specify which variables should be inlined,
-based on some heuristics involving the size of declaration,
+usually based on some heuristics involving the size of declaration,
 number of variable occurrences and similar factors.
 
 \paragraph{Let-floating}
 It is usually advantageous for bindings to be \emph{floated inward} as far as possible,
 potentially avoiding their evaluation and uncovering opportunities for other optimisations.
-In other cases, it can be useful to \emph{float outward}
+In other cases, it can be useful to \emph{float outward} of specific constructs
 to avoid performing the same work multiple times
 \cite{Jones1996LetFloating}.
 
 To make sure that moving a binding is valid,
 the analysis currently only needs to ensure that scope correctness is preserved,
 i.e. variable occurrences are never moved above their declaration or vice versa.
-\Fixme{Let-floating is important, add more info?}
+When limiting the transformation to either moving the binding as far as possible
+or just across a single constructor,
+bindings only need to be annotated with a single bit of information -- to move or not to move.
+However, it might be interesting to allow more fine-grained control over the desired location,
+which would require a more sophisticated type for the analysis result.
 
 \paragraph{Common subexpression elimination}
 The aim of this transformation is to find subexpressions that occur multiple times
-and replace them with a variable that bound to this expression.
+and replace them with a variable that is bound to this expression
+and only needs to be evaluated once.
 % A basic implementation keeps track of the declaration of all bindings in scope
 % to find any occurrences of the same expression.
-A basic implementation only tries to find occurrences of expressions
-that are the same as the declaration of a bindings in scope.
+For a basic implementation it suffices to try finding occurrences of expressions
+that are the same as the declaration of a binding already in scope.
 These can then be replaced by the bound variable,
 reducing both code size and work performed during evaluation.
 
@@ -516,7 +513,7 @@ since it relies on the right terms to be available as a variable in scope.
 Consider for example expressions like
 $x * 2 + x * 2$,
 where the duplicated work can only be avoided by introducing a new let-binding.
-Some additional opportunities can be exposed by a preprocessing step
+Some additional opportunities can be exposed by a preprocessing step,
 breaking down expressions into sequences of small let-bindings and floating them upwards,
 but making this work well is tricky.
 One also needs to consider that these additional let-bindings affect other transformations,
@@ -527,9 +524,9 @@ Another approach is to put more work into identifying common subexpressions
 and making the transformation itself introduce a shared binding
 at a suitable point.
 Making this analysis efficient is challenging,
-but our focus is primarily in creating the right structure for the analysis results
-such that the transformation can be applied accordingly.
-\Fixme{Describe ideas for how this could build on top of basic CSE?}
+but this is not a major concern for us.
+Our focus is on defining the right structure for the analysis results
+and applying the transformation accordingly.
 
 \paragraph{Local rewrites}
 examples:
@@ -545,7 +542,7 @@ including lambdas:
   \item eta expansion
 \end{itemize}
 }
-\Fixme{Describe ideas for general pattern?}
+\Fixme{List examples + desire to unify}
 
 
 \subsubsection{Extending the Language}
@@ -612,7 +609,7 @@ the strictness of bindings plays an important role
 for semantics preservation of transformations.
 Supporting both strict and nonstrict bindings in a transformation
 would show how to treat each of them.
-\Fixme{Not the best sales pitch. Find better arguments?}
+\Fixme{Add a ref!}
 
 \paragraph{Branching}
 The presence of a branching construct like \emph{if-then-else} expressions
@@ -677,22 +674,7 @@ could be insightful and reduce the effort of adding further transformations.
 The thesis deadline is on 09.06.2023.
 To allow for sufficient grading time,
 I will submit my thesis until 26.05.2023, the end of week 21.
-
-\vspace{1em}
-\noindent
-\setlength\tabcolsep{3pt}
-\begin{tabularx}{\textwidth}{@@{}m{0.17\textwidth}||*{20}{L}}
-  \textbf{Week}
-    & \Week{2} & \Week{3} & \Week{4} & \Week{5} & \Week{6} & \Week{7} & \Week{8} & \Week{9} & \Week{10} & \Week{11} & \Week{12} & \Week{13} & \Week{14} & \Week{15} & \Week{16} & \Week{17} & \Week{18} & \Week{19} & \Week{20} & \Week{21} \\
-  \hline
-  Step 1
-    & \X & \X & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  \\
-  The rest
-    & \  & \  & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \X & \  & \  \\
-  Proofreading
-    & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \  & \X & \X & \X \\
-\end{tabularx}
-\Fixme{Fill out!}
+\Fixme{List priorities and dependencies}
 
 
 \bibliographystyle{acm}
