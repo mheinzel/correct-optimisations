@@ -22,6 +22,9 @@
 \newcommand{\Draft}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
 \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
 
+\newcommand{\Let}[1]{\textbf{let } #1 = }
+\newcommand{\In}{\textbf{ in }}
+
 \newcommand{\X}{\cellcolor{gray}}
 \newcolumntype{L}{>{\centering\arraybackslash}X}
 \newcommand{\Week}[1]{\tiny #1}
@@ -105,14 +108,14 @@ Extending the language with further values and operators is trivial.
 \begin{align*}
   P, Q ::=&\ v
   \\ \big||&\ P + Q
-  \\ \big||&\ \textbf{let } x = P \textbf{ in } Q
+  \\ \big||&\ \Let{x} P \In Q
   \\ \big||&\ x
 \end{align*}
 
 Expressions can be bound to a variable $x$ using a $\textbf{let}$-binding.
 Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
-where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q) P$.
-Encapsulating this pattern as $\textbf{let } x = P \textbf{ in } Q$
+where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q)\ P$.
+Encapsulating this pattern as $\Let{x} P \In Q$
 simplifies parts of the analysis and
 avoids the need for allowing functions as values.
 
@@ -141,8 +144,8 @@ in the body.
 Consider for example the following expression, where $x$ is a free variable.
 
 \begin{align*}
-  &\textbf{let } y = x + 1 \textbf{ in } \\
-  &\ \ \textbf{let } z = y + y \textbf{ in } \\
+  &\Let{y} x + 1 \In \\
+  &\ \ \Let{z} y + y \In \\
   &\ \ \ \ x
 \end{align*}
 
@@ -547,20 +550,24 @@ Our focus is on defining the right structure for the analysis results
 and applying the transformation accordingly.
 
 \paragraph{Local rewrites}
-examples:
-{\color{gray}
+There is a number of local transformations
+that simply rewrite a specific pattern into an equivalent one.
+Most examples are always valid to be performed:
 \begin{itemize}
-  \item let-reordering
-  \item constant folding
+  \item constant folding and identities, \\
+    e.g. $E + 0 \Rightarrow E$
+  \item turning beta redexes into let-bindings, \\
+    i.e. $(\lambda x. Q) P \Rightarrow \Let{x} P \In Q$
+  \item floating let-bindings out of function application, \\
+    i.e. $(\Let{x} P \In Q)\ R \Rightarrow \Let{x} P \In Q\ R$
 \end{itemize}
-including lambdas:
-\begin{itemize}
-  \item replace beta redex with let-binding
-  \item let-floating out of application
-  \item eta expansion
-\end{itemize}
-}
-\Fixme{List examples + desire to unify}
+Showing that such a rewrite preserves semantics should be straight-forward,
+but usually we want to do a single pass over the program
+that applies the rewrite wherever possible.
+The correctness of this operation can be shown by structural induction,
+but this is pure boilerplate code, identical for each rewrite rule.
+
+We aim to factor out the redundant parts and handle local rewrites in a uniform way.
 
 
 \subsubsection{Extending the Language}
