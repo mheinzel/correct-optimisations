@@ -141,12 +141,13 @@ which is explained below.
 An expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new variable, but it might never be used
 in the body.
-Consider for example the following expression, where $x$ is a free variable.
+Consider for example the following expression.
 
 \begin{align*}
-  &\Let{y} x + 1 \In \\
-  &\ \ \Let{z} y + y \In \\
-  &\ \ \ \ x
+  &\Let{x} 42 \In \\
+  &\ \ \Let{y} x + 7 \In \\
+  &\ \ \ \ \Let{z} y + 7 \In \\
+  &\ \ \ \ \ \ x
 \end{align*}
 
 Here, the binding for $z$ is clearly unused, as the variable never occurs in the program.
