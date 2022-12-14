@@ -23,7 +23,9 @@
 \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
 
 \newcommand{\Let}[1]{\textbf{let } #1 = }
+\newcommand{\LetB}{\textbf{let }} % using de Bruijn indices
 \newcommand{\In}{\textbf{ in }}
+\newcommand{\DeBruijn}[1]{\langle #1 \rangle}
 
 \newcommand{\X}{\cellcolor{gray}}
 \newcolumntype{L}{>{\centering\arraybackslash}X}
@@ -163,37 +165,78 @@ if they are used in declarations of variables that are live themselves.
 
 \subsection{Binding Representation}
 
-The syntax specified above treats variables as letters, or more generally strings.
-To prevent complications with bindings of the same variable name shadowing each other
-and to make equality of terms independent of the specific names chosen
-(\emph{$\alpha$-equivalence}),
-compilers often represent variables in a different way
-\Fixme{Mention more representations, compare properties?}
-\footnote{
-  A blogpost giving an introduction to and comparing different options in Agda can be found at
-  \url{https://jesper.sikanda.be/posts/1001-syntax-representations.html}.
-}.
+\paragraph{Explicit names}
+\Fixme{Should I explain free vs. bound variables, capture, \ldots?}
+The syntax specified above treats variables as letters, or more generally strings,
+and one can use the same representation inside a compiler.
+While this is how humans usually write programs, it comes with several downsides.
+For example, if we want the equality of terms to be independent
+of the specific variable names chosen (\emph{$\alpha$-equivalence}),
+it comes with additional complexity.
+Also, there are pitfalls like variable shadowing and variable capture during substitution,
+requiring the careful application of variable renamings
+\cite{Barendregt1985LambdaCalculus}.
 
-A popular choice are \emph{de Bruijn indices}
+There have been multiple approaches to help compiler writers maintain the relevant invariants,
+such as GHC's rapier \cite{Jones2002GHCInliner},
+but these are generally still error-prone
+\cite{Maclaurin2022Foil}.
+
+\paragraph{de Bruijn indices}
+With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
-where each variable is represented by a natural number,
-counting the number of bindings between variable occurence and its binding:
+each variable is represented as a natural number,
+counting the number of nested bindings between variable occurence and its binding:
 $0$ refers to the innermost binding, $1$ to the next-innermost etc.
-Still, there might be \emph{free variables},
-where the de Bruijn index is larger than the number of bindings it has access to
-(\emph{in scope}).
-If this happens unexpectedly during evaluation, an error is raised.
-Similarly, the type of a bound expression might not match the expected type at the variable occurence
-where it is referenced.
-This makes the evaluation function partial;
-it should only be called after validating type- and scope-safety.
-\Fixme{Show possible bugs in transformations, e.g. the foil}
+With the de Bruijn index $n$ written as $\DeBruijn{n}$,
+the example program from dead binding elimination would be represented as follows:
+
+\begin{align*}
+  &\LetB 42 \In \\
+  &\ \ \LetB \DeBruijn{0} + 7 \In \\
+  &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
+  &\ \ \ \ \ \ \DeBruijn{2}
+\end{align*}
+
+This makes $\alpha$-equivalence of terms trivial and avoids variable capture,
+but adding or removing a binding invalidates all free variables in the binding's scope.
+If we remove the innermost (unused) let-binding, we also need to subtract 1 from the
+free variables in its body:
+
+\begin{align*}
+  &\LetB 42 \In \\
+  &\ \ \LetB \DeBruijn{0} + 7 \In \\
+  &\ \ \ \ \DeBruijn{1}
+\end{align*}
+
+\paragraph{Other representations}
+There are other techniques such as higher-order abstract syntax
+\cite{Pfenning1988HOAS}
+and also different combinations of techniques
+\cite{Chargueraud2011LocallyNameless}.
+An introductory blogpost comparing different options in Agda has been written
+by Jesper Cockx \cite{Cockx2021RepresentationsBinding}.
 
 
 \subsection{Intrinsically Typed Syntax}
 
+% easy to represent programs that are not
+% type-correct
+% scope-correct
+
+% but it is still easy to accidentally change the meaning of the program
+% Still, an environment \emph{free variables},
+% where the de Bruijn index is larger than the number of bindings it has access to
+% (\emph{in scope}).
+% If this happens unexpectedly during evaluation, an error is raised.
+% Similarly, the type of a bound expression might not match the expected type at the variable occurence
+% where it is referenced.
+% This makes the evaluation function partial;
+% it should only be called after validating type- and scope-safety.
+
 When implementing a compiler in a dependently typed programming language,
 one does not need to accept partiality and the need for human vigilance.
+\Fixme{adapt to updated previous section}
 With \emph{intrinsically typed syntax trees}, type- and scope-safety invariants
 are specified on the type level and verified by the type checker.
 We will demonstrate the approach in Agda and start by defining the types that terms can have.
