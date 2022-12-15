@@ -147,7 +147,7 @@ Consider for example the following expression.
 
 \begin{align*}
   &\Let{x} 42 \In \\
-  &\ \ \Let{y} x + 7 \In \\
+  &\ \ \Let{y} x + 6 \In \\
   &\ \ \ \ \Let{z} y + 7 \In \\
   &\ \ \ \ \ \ x
 \end{align*}
@@ -185,60 +185,63 @@ but these are generally still error-prone
 \paragraph{de Bruijn indices}
 With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
-each variable is represented as a natural number,
+each variable is instead represented as a natural number,
 counting the number of nested bindings between variable occurence and its binding:
-$0$ refers to the innermost binding, $1$ to the next-innermost etc.
-With the de Bruijn index $n$ written as $\DeBruijn{n}$,
-the example program from dead binding elimination would be represented as follows:
+$\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
+If adapt we the syntax for let-bindings to omit the unnecessary name,
+the example program from dead binding elimination is represented as follows:
 
 \begin{align*}
   &\LetB 42 \In \\
-  &\ \ \LetB \DeBruijn{0} + 7 \In \\
+  &\ \ \LetB \DeBruijn{0} + 6 \In \\
   &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
   &\ \ \ \ \ \ \DeBruijn{2}
 \end{align*}
 
 This makes $\alpha$-equivalence of terms trivial and avoids variable capture,
-but adding or removing a binding invalidates all free variables in the binding's scope.
-If we remove the innermost (unused) let-binding, we also need to subtract 1 from the
-free variables in its body:
+but there are still opportunities for mistakes when transforming expressions.
+Adding or removing a binding
+requires us to add or subtract 1 from all free variables in the binding's body.
+We can see this in our example when removing the innermost (unused) let-binding:
 
 \begin{align*}
   &\LetB 42 \In \\
-  &\ \ \LetB \DeBruijn{0} + 7 \In \\
+  &\ \ \LetB \DeBruijn{0} + 6 \In \\
   &\ \ \ \ \DeBruijn{1}
 \end{align*}
 
 \paragraph{Other representations}
-There are other techniques such as higher-order abstract syntax
+There are many other techniques
+\footnote{
+There is an introductory blogpost by Jesper Cockx comparing options in Agda
+\cite{Cockx2021RepresentationsBinding}.
+}
+such as higher-order abstract syntax
 \cite{Pfenning1988HOAS}
-and also different combinations of techniques
+and also combinations of multiple techniques, e.g. the locally nameless representation
 \cite{Chargueraud2011LocallyNameless}.
-An introductory blogpost comparing different options in Agda has been written
-by Jesper Cockx \cite{Cockx2021RepresentationsBinding}.
 
 
 \subsection{Intrinsically Typed Syntax}
 
-% easy to represent programs that are not
-% type-correct
-% scope-correct
-
-% but it is still easy to accidentally change the meaning of the program
-% Still, an environment \emph{free variables},
-% where the de Bruijn index is larger than the number of bindings it has access to
-% (\emph{in scope}).
-% If this happens unexpectedly during evaluation, an error is raised.
-% Similarly, the type of a bound expression might not match the expected type at the variable occurence
-% where it is referenced.
-% This makes the evaluation function partial;
-% it should only be called after validating type- and scope-safety.
+%Just as the language as seen so far allows to build
+Whether we use explicit names or de Bruijn indices,
+the language as seen so far makes it possible to represent programs that are
+\Fixme{unify language: expression/term/program}
+ill-typed (e.g. adding Booleans)
+or accidentally open (containing free variables).
+Evaluating such a term leads to a runtime error;
+the evaluation function is partial.
 
 When implementing a compiler in a dependently typed programming language,
-one does not need to accept partiality and the need for human vigilance.
-\Fixme{adapt to updated previous section}
-With \emph{intrinsically typed syntax trees}, type- and scope-safety invariants
-are specified on the type level and verified by the type checker.
+we can use de Bruijn indices to define \emph{intrinsically typed syntax trees},
+where type- and scope-safety invariants are specified on the type level
+and verified by the type checker.
+This makes the evaluation function total.
+Similarly, transformations on the syntax tree need to preserve the invariants.
+While the meaning of the program could still change,
+guaranteeing type- and scope-safety rules out
+a large class of mistakes.
 We will demonstrate the approach in Agda and start by defining the types that terms can have.
 
 \begin{code}
