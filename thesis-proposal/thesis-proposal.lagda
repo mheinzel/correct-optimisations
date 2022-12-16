@@ -511,6 +511,7 @@ so they remain a prototype for now and are not included in our core language.
 \section{Timetable and Planning}
 
 \subsection{Further Work}
+\label{sec:further-work}
 \Draft{What will I do with the remainder of my thesis?}
 
 There is a large number of possible directions to explore.
@@ -730,7 +731,50 @@ could be insightful and reduce the effort of adding further transformations.
 The thesis deadline is on 09.06.2023.
 To allow for sufficient grading time,
 I will submit my thesis until 26.05.2023, the end of week 21.
-\Fixme{List priorities and dependencies}
+Leaving two weeks for holidays and one as buffer time, I will have about 18 weeks of time available.
+\Fixme{Talk about dependencies more explicitly?}
+The work can be split into four main phases, each with an estimated time frame.
+
+\subsubsection{Initial Experimentation (4 weeks)}
+
+To give me the practical experience necessary to discover and encode general ideas,
+I will attempt the following practical tasks:
+\begin{itemize}
+  \item finish the implementation of dead binding elimination with strong live variable analysis
+  \item implement inlining
+  \item implement let-floating
+  \item implement rewrite rules
+  \item port dead binding elimination to the \texttt{generic-syntax} library by Allais et al.
+\end{itemize}
+At the same time, this phase will involve further reading to
+deepen my understanding of datatype- and syntax-generic programming, and
+explore potentially relevant ideas, such as ornamentation and coeffects.
+\Fixme{cite?}
+
+\subsubsection{Generalise and Extend (6 weeks)}
+
+\begin{itemize}
+  \item sketch out general ideas, both conceptually and in code
+  \item challenge the approach by adding additional language features (primarily recursive bindings)
+  \item implement more sophisticated transformations, e.g. common subexpression elimination
+\end{itemize}
+
+\subsubsection{Optional Goals (2 weeks)}
+
+As time permits, I will continue by working on some of the remaining items
+layed out in section \ref{sec:further-work}
+that seem feasible and interesting based on the experience gained.
+There might also be completely new ideas spawned by the previous work.
+
+\subsubsection{Writing (6 weeks)}
+
+Throughout the whole time,
+I aim to continiously draft descriptions
+of the ideas developed and features implemented.
+These documents will then be refined towards the end
+and serve as the basis for writing the thesis.
+The last week should be reserved for proofreading.
+
 
 
 \bibliographystyle{acm}
