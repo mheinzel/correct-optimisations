@@ -17,9 +17,9 @@
 \usepackage{colortbl}
 \usepackage{todonotes}
 
-% \newcommand{\Draft}[1]{}
+\newcommand{\Draft}[1]{}
 % \newcommand{\Fixme}[1]{}
-\newcommand{\Draft}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
+% \newcommand{\Draft}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
 \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
 
 \newcommand{\Let}[1]{\textbf{let } #1 = }
