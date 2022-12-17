@@ -17,9 +17,10 @@
 \usepackage{colortbl}
 \usepackage{todonotes}
 
-\newcommand{\Draft}[1]{}
+\newcommand{\Outline}[1]{}
+% \newcommand{\Outline}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
+
 % \newcommand{\Fixme}[1]{}
-% \newcommand{\Draft}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
 \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
 
 \newcommand{\Let}[1]{\textbf{let } #1 = }
@@ -47,13 +48,15 @@
 
 \section{Introduction}
 
-\Draft{What is the problem? Illustrate with an example.}
+\Outline{What is the problem? Illustrate with an example.}
 \Fixme{Mostly copied from report, revisit!}
+\Fixme{Optimisation vs. transformation}
+\Fixme{Think about I vs. we and make usage consistent everywhere}
 
 When writing a compiler for a programming language,
 an important consideration is the treatment of binders and variables.
 A well-known technique when using dependently typed programming languages such as Agda
-\Fixme{Remove citations, only cite in Background section?}
+\Fixme{Revisit citations, also cite in Background section?}
 \cite{Norell2008Agda}
 is to define an intrinsically typed syntax tree,
 where expressions are scope- and type-safe by construction and admit a total evaluation function
@@ -85,7 +88,7 @@ especially when manipulating binders and variables.
 % to speed up the execution of the compiled program.
 
 \vspace{1em}
-\Draft{What are your research questions/contributions?}
+\Outline{What are your research questions/contributions?}
 
 % using "I" here. Not consistent, but "we" seems weird.
 In my thesis, I want to explore this area and aim to:
@@ -97,10 +100,10 @@ In my thesis, I want to explore this area and aim to:
   \item attempt machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
   \item explore the common patterns between the implemented transformations and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
-\Fixme{Think about I vs. we and make usage consistent everywhere}
+
 
 \section{Background}
-\Draft{What is the existing technology and literature that I'll be studying/using in my research?}
+\Outline{What is the existing technology and literature that I'll be studying/using in my research?}
 
 As a running example, we will consider a simple expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
@@ -166,7 +169,6 @@ if they are used in declarations of variables that are live themselves.
 \subsection{Binding Representation}
 
 \paragraph{Explicit names}
-\Fixme{Should I explain free vs. bound variables, capture, \ldots?}
 The syntax specified above treats variables as letters, or more generally strings,
 and one can use the same representation inside a compiler.
 While this is how humans usually write programs, it comes with several downsides.
@@ -331,9 +333,9 @@ using an environment that matches the expression's context.
 
 
 \section{Preliminary Results}
-\Draft{What examples can you handle already?}
-\Draft{What prototype have I built?}
-\Draft{How can I generalise these results? What problems have I identified or do I expect?}
+\Outline{What examples can you handle already?}
+\Outline{What prototype have I built?}
+\Outline{How can I generalise these results? What problems have I identified or do I expect?}
 
 As a first step, we implemented one optimisation in Agda,
 including a mechanised proof of its preservation of semantics.
@@ -512,7 +514,7 @@ so they remain a prototype for now and are not included in our core language.
 
 \subsection{Further Work}
 \label{sec:further-work}
-\Draft{What will I do with the remainder of my thesis?}
+\Outline{What will I do with the remainder of my thesis?}
 
 There is a large number of possible directions to explore.
 While working on all of them is not feasible,
@@ -726,13 +728,12 @@ could be insightful and reduce the effort of adding further transformations.
 
 
 \subsection{Schedule}
-\Draft{Give an approximate estimation/timetable for what you will do and when you will be done.}
+\Outline{Give an approximate estimation/timetable for what you will do and when you will be done.}
 
 The thesis deadline is on 09.06.2023.
 To allow for sufficient grading time,
 I will submit my thesis until 26.05.2023, the end of week 21.
 Leaving two weeks for holidays and one as buffer time, I will have about 18 weeks of time available.
-\Fixme{Talk about dependencies more explicitly?}
 The work can be split into four main phases, each with an estimated time frame.
 
 \subsubsection{Initial Experimentation (4 weeks)}
@@ -752,6 +753,8 @@ explore potentially relevant ideas, such as ornamentation and coeffects.
 \Fixme{cite?}
 
 \subsubsection{Generalise and Extend (6 weeks)}
+
+\Fixme{more specific!}
 
 \begin{itemize}
   \item sketch out general ideas, both conceptually and in code
@@ -783,7 +786,7 @@ The last week should be reserved for proofreading.
 \pagebreak
 \appendix
 \section{Ethics Quick Scan}
-\Draft{(anonymised report)}
+\Outline{(anonymised report)}
 \Fixme{Insert!}
 
 \end{document}
