@@ -160,6 +160,42 @@ In this thesis I consider type checking as it might form the basis of an impleme
   publisher = {Open Publishing Association},
 }
 
+@Article{Dagand2014TransportingFunctionsAcrossOrnaments,
+  author    = {Pierre-Evariste Dagand and Conor McBride},
+  journal   = {Journal of Functional Programming},
+  title     = {Transporting functions across ornaments},
+  year      = {2014},
+  month     = {apr},
+  number    = {2-3},
+  pages     = {316--383},
+  volume    = {24},
+  abstract  = {Programming with dependent types is a blessing and a curse. It is a blessing to be able to bake invariants into the definition of datatypes: We can finally write correct-by-construction software. However, this extreme accuracy is also a curse: A datatype is the combination of a structuring medium together with a special purpose logic. These domain-specific logics hamper any attempt to reuse code across similarly structured data. In this paper, we capitalise on the structural invariants of datatypes. To do so, we first adapt the notion of ornament to our universe of inductive families. We then show how code reuse can be achieved by ornamenting functions. Using these functional ornaments, we capture the relationship between functions such as the addition of natural numbers and the concatenation of lists. With this knowledge, we demonstrate how the implementation of the former informs the implementation of the latter: The users can ask the definition of addition to be lifted to lists and they will only be asked the details necessary to carry on adding lists rather than numbers. Our presentation is formalised in the type theory with a universe of datatypes and all our constructions have been implemented as generic programs, requiring no extension to the type theory.},
+  doi       = {10.1017/s0956796814000069},
+  eprint    = {1201.4801},
+  file      = {:http\://arxiv.org/pdf/1201.4801v2:PDF},
+  groups    = {to-read, correct-optimisations},
+  publisher = {Cambridge University Press ({CUP})},
+}
+
+@Article{Petricek2014Coeffects,
+  author    = {Tomas Petricek and Dominic Orchard and Alan Mycroft},
+  journal   = {{ACM} {SIGPLAN} Notices},
+  title     = {Coeffects: a calculus of context-dependent computation},
+  year      = {2014},
+  month     = {nov},
+  number    = {9},
+  pages     = {123--135},
+  volume    = {49},
+  abstract  = {The notion of context in functional languages no longer refers just to variables in scope. Context can capture additional properties of variables (usage patterns in linear logics; caching requirements in dataflow languages) as well as additional resources or properties of the execution environment (rebindable resources; platform version in a cross-platform application). The recently introduced notion of coeffects captures the latter, whole-context properties, but it failed to capture fine-grained per-variable properties.
+
+We remedy this by developing a generalized coeffect system with annotations indexed by a coeffect shape. By instantiating a concrete shape, our system captures previously studied flat (whole-context) coeffects, but also structural (per-variable) coeffects, making coeffect analyses more useful. We show that the structural system enjoys desirable syntactic properties and we give a categorical semantics using extended notions of indexed comonad.
+
+The examples presented in this paper are based on analysis of established language features (liveness, linear logics, dataflow, dynamic scoping) and we argue that such context-aware properties will also be useful for future development of languages for increasingly heterogeneous and distributed platforms.},
+  doi       = {10.1145/2692915.2628160},
+  groups    = {to-read, correct-optimisations},
+  publisher = {Association for Computing Machinery ({ACM})},
+}
+
 @Article{Jones1998TransformationOptimiser,
   author    = {Simon L. Peyton Jones and Andr{\'{e}}L.M. Santos},
   journal   = {Science of Computer Programming},
@@ -343,4 +379,13 @@ This paper shows how one can use the coinductive partiality monad to define big-
   doi       = {10.1145/960116.54010},
   groups    = {correct-optimisations},
   publisher = {Association for Computing Machinery ({ACM})},
+}
+
+@Book{Univalent2013HomotypeTypeTheory,
+  author    = {The {Univalent Foundations Program}},
+  publisher = {\url{https://homotopytypetheory.org/book}},
+  title     = {Homotopy Type Theory: Univalent Foundations of Mathematics},
+  year      = {2013},
+  address   = {Institute for Advanced Study},
+  groups    = {correct-optimisations},
 }

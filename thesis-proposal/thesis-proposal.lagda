@@ -215,8 +215,9 @@ We can see this in our example when removing the innermost (unused) let-binding:
 \paragraph{Other representations}
 There are many other techniques
 \footnote{
-There is an introductory blogpost by Jesper Cockx comparing options in Agda
-\cite{Cockx2021RepresentationsBinding}.
+There is an introductory blogpost
+\cite{Cockx2021RepresentationsBinding}
+comparing options available in Agda.
 }
 such as higher-order abstract syntax
 \cite{Pfenning1988HOAS}
@@ -238,7 +239,9 @@ When implementing a compiler in a dependently typed programming language,
 we can use de Bruijn indices to define \emph{intrinsically typed syntax trees},
 where type- and scope-safety invariants are specified on the type level
 and verified by the type checker.
-This makes the evaluation function total.
+% MAYBE: mention inductive families (Dybjer)?
+This makes the evaluation function total
+\cite{Augustsson1999WellTypedInterpreter}.
 Similarly, transformations on the syntax tree need to preserve the invariants.
 While the semantics of the expression could still change,
 guaranteeing type- and scope-safety rules out
@@ -260,6 +263,7 @@ the bindings that are in scope.
 With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
 In a typed setting, it is also necessary to know the type of each binding,
 so we represent the context by a list of types: One for each binding in scope, from innermost to outermost.
+% MAYBE: Say that we use Agda's variable feature to make things more concise?
 
 \begin{code}
   Ctx = List U
@@ -497,8 +501,8 @@ Therefore, reasoning about semantic equivalance using propositional equality
 requires postulating function extensionality.
 This does not impact the soundness of the proof
 and could be avoided by moving to a different setting,
-such as homotopy type theory.
-\Fixme{Citation just for mentioning HoTT?}
+such as homotopy type theory
+\cite{Univalent2013HomotopyTypeTheory}.
 
 While these changes were unproblematic,
 $\lambda$-abstractions could make other transformations more challenging,
@@ -744,12 +748,18 @@ the first phase contains the following tasks:
 \end{itemize}
 At the same time, it will involve further reading to
 more deeply understand datatype- and syntax-generic programming, and
-explore new potentially relevant ideas, such as ornamentation and coeffects.
-\Fixme{cite?}
+explore new potentially relevant ideas, such as ornamentation
+\cite{Dagand2014TransportingFunctionsAcrossOrnaments}
+and coeffects
+\cite{Petricek2014Coeffects}.
 
 \subsubsection{Generalise and Extend (6 weeks)}
 
-\Fixme{more specific!}
+Based on the practical experiences, some reflection is in order:
+What were pain points and common themes?
+Can parts of the solutions be factored out and reused,
+possibly using syntax-generic programming?
+More concretely, the envisioned tasks include:
 
 \begin{itemize}
   \item sketch out general ideas, both conceptually and in code
