@@ -52,8 +52,6 @@
 
 \Outline{What is the problem? Illustrate with an example.}
 \Fixme{Mostly copied from report, revisit!}
-\Fixme{Optimisation vs. transformation}
-\Fixme{Think about I vs. we and make usage consistent everywhere}
 
 When writing a compiler for a programming language,
 an important consideration is the treatment of binders and variables.
@@ -109,7 +107,7 @@ In my thesis, I want to explore this area and aim to:
 
 As a running example, we will consider a simple expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
-Since the optimisations in this thesis relate to variables and binders only,
+Since the transformations in this thesis relate to variables and binders only,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
 Extending the language with further values and operators is trivial.
 \begin{align*}
@@ -148,7 +146,7 @@ which is explained below.
 An expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new variable, but it might never be used
 in the body.
-Consider for example the following expression.
+Consider for example the following expression:
 
 \begin{align*}
   &\Let{x} 42 \In \\
@@ -157,7 +155,7 @@ Consider for example the following expression.
   &\ \ \ \ \ \ x
 \end{align*}
 
-Here, the binding for $z$ is clearly unused, as the variable never occurs in the program.
+Here, the binding for $z$ is clearly unused, as the variable never occurs in the body.
 Such dead bindings can be identified by \emph{live variable analysis}
 and consequently be removed.
 
@@ -174,7 +172,7 @@ if they are used in declarations of variables that are live themselves.
 The syntax specified above treats variables as letters, or more generally strings,
 and one can use the same representation inside a compiler.
 While this is how humans usually write programs, it comes with several downsides.
-For example, if we want the equality of terms to be independent
+For example, if we want the equality of expressions to be independent
 of the specific variable names chosen (\emph{$\alpha$-equivalence}),
 it comes with additional complexity.
 Also, there are pitfalls like variable shadowing and variable capture during substitution,
@@ -192,8 +190,8 @@ With \emph{de Bruijn indices}
 each variable is instead represented as a natural number,
 counting the number of nested bindings between variable occurence and its binding:
 $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
-If adapt we the syntax for let-bindings to omit the unnecessary name,
-the example program from dead binding elimination is represented as follows:
+If we adapt the syntax for let-bindings to omit the unnecessary name,
+the example expression from dead binding elimination is represented as follows:
 
 \begin{align*}
   &\LetB 42 \In \\
@@ -202,8 +200,8 @@ the example program from dead binding elimination is represented as follows:
   &\ \ \ \ \ \ \DeBruijn{2}
 \end{align*}
 
-This makes $\alpha$-equivalence of terms trivial and avoids variable capture,
-but there are still opportunities for mistakes when transforming expressions.
+This makes $\alpha$-equivalence of expressions trivial and avoids variable capture,
+but there are still opportunities for mistakes during transformations.
 Adding or removing a binding
 requires us to add or subtract 1 from all free variables in the binding's body.
 We can see this in our example when removing the innermost (unused) let-binding:
@@ -230,11 +228,10 @@ and also combinations of multiple techniques, e.g. the locally nameless represen
 
 %Just as the language as seen so far allows to build
 Whether we use explicit names or de Bruijn indices,
-the language as seen so far makes it possible to represent programs that are
-\Fixme{unify language: expression/term/program}
-ill-typed (e.g. adding Booleans)
+the language as seen so far makes it possible to represent expressions
+that are ill-typed (e.g. adding Booleans)
 or accidentally open (containing free variables).
-Evaluating such a term leads to a runtime error;
+Evaluating such an expression leads to a runtime error;
 the evaluation function is partial.
 
 When implementing a compiler in a dependently typed programming language,
@@ -243,10 +240,10 @@ where type- and scope-safety invariants are specified on the type level
 and verified by the type checker.
 This makes the evaluation function total.
 Similarly, transformations on the syntax tree need to preserve the invariants.
-While the meaning of the program could still change,
+While the semantics of the expression could still change,
 guaranteeing type- and scope-safety rules out
 a large class of mistakes.
-We will demonstrate the approach in Agda and start by defining the types that terms can have.
+We will demonstrate the approach in Agda and start by defining the types that expressions can have.
 
 \begin{code}
   data U : Set where
@@ -452,8 +449,8 @@ The proof gets simpler if we split it up using the optimised semantics.
   eval . dbe == evalLive = eval . forget
 \end{code}
 
-The actual proof statements are more involved,
-since they quantify over the expression and environment used.
+The actual proof statements in Agda are more involved,
+since they quantify over the expression and environment used for evaluation.
 As foreshadowed in the definition of |evalLive|, the statements are also generalised
 to evaluation under any |Env (floor(DeltaU))|,
 as long as it contains the live sub-context.
@@ -465,10 +462,10 @@ and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \paragraph{Iterating the Optimisation}
 As discussed in section \ref{sec:background-transformations},
-more than one pass of dead binding elimination can be required to remove all unused bindings.
+more than one pass of dead binding elimination might be necessary to remove all unused bindings.
 While in our simple setting all these bindings could be identified in a single pass
-using strong live variable analysis,
-in general it can be useful to simply iterate the optimisation until a fixpoint is reached.
+using strongly live variable analysis,
+in general it can be useful to simply iterate optimisations until a fixpoint is reached.
 
 Consequently, we keep applying |dbe . analyse| as long as the number of bindings decreases.
 Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
@@ -504,12 +501,8 @@ such as homotopy type theory.
 \Fixme{Citation just for mentioning HoTT?}
 
 While these changes were unproblematic,
-$\lambda$-abstractions could make other optimisations more challenging,
+$\lambda$-abstractions could make other transformations more challenging,
 so they remain a prototype for now and are not included in our core language.
-% However, we hope to add full support for them later on.
-% This would also give us access to further optimisations
-% such as removal of unused function arguments
-% and some of the local rewrites mentioned above.
 
 
 \section{Timetable and Planning}
@@ -542,7 +535,7 @@ with the corresponding declaration.
 Sometimes, inlining is also understood to involve removing the inlined binding
 or even performing beta reduction wherever inlining produces a beta redex
 \cite{Jones2002GHCInliner},
-but this can be taken care of by other transformations.
+but this can be taken care of separately.
 
 On the language we defined, inlining is always possible and semantics-preserving.
 The analysis only needs to specify which variables should be inlined,
@@ -553,7 +546,6 @@ number of variable occurrences and similar factors.
 It is usually advantageous for bindings to be \emph{floated inward} as far as possible,
 potentially avoiding their evaluation and uncovering opportunities for other optimisations.
 In other cases, it can be useful to \emph{float outward} of specific constructs
-to avoid performing the same work multiple times
 \cite{Jones1996LetFloating}.
 
 To make sure that moving a binding is valid,
@@ -578,11 +570,11 @@ reducing both code size and work performed during evaluation.
 
 Capturing the results of such a program analysis will require some changes
 compared to the variable liveness annotations in dead binding elimination,
-since being replaceable by a variable is not just a property of a term,
+since being replaceable by a variable is not just a property of an expression,
 but also its context.
 
 This basic version potentially misses many opportunities,
-since it relies on the right terms to be available as a variable in scope.
+since it relies on the right expressions to be available in scope.
 Consider for example expressions like
 $x * 2 + x * 2$,
 where the duplicated work can only be avoided by introducing a new let-binding.
@@ -613,11 +605,11 @@ Most examples are always valid to be performed:
   \item floating let-bindings out of function application, \\
     i.e. $(\Let{x} P \In Q)\ R \Rightarrow \Let{x} P \In Q\ R$
 \end{itemize}
-Showing that such a rewrite preserves semantics should be straight-forward,
+Showing that a single application of such a rewrite preserves semantics should be straight-forward,
 but usually we want to do a single pass over the program
 that applies the rewrite wherever possible.
 The correctness of this operation can be shown by structural induction,
-but this is pure boilerplate code, identical for each rewrite rule.
+but requires boilerplate code, identical for each rewrite rule.
 
 We aim to factor out the redundant parts and handle local rewrites in a uniform way.
 
@@ -687,7 +679,7 @@ These aspects however are not the main focus of this work;
 most of the actual transformations are unaffected.
 
 \paragraph{Datatypes with pattern matching}
-Adding algebraic datatypes is a much larger change,
+Adding algebraic datatypes is a more ambitious change,
 but also provides us with a new source of bindings and related transformations.
 GHC for example offers a wealth of inspiration with the \emph{case-of-case}-optimisation and others
 \cite{Jones1998TransformationOptimiser}.
@@ -695,7 +687,7 @@ GHC for example offers a wealth of inspiration with the \emph{case-of-case}-opti
 
 \subsubsection{Restricted Language Forms}
 
-Practical compilers often enforce additional restrictions
+Compilers often enforce additional restrictions
 on the structure of their intermediate languages
 to simplify transformations and compilation to a machine language.
 Popular choices include \emph{continuation passing style} (CPS)
@@ -716,9 +708,10 @@ Furthermore, the transformation into the restricted form itself can be studied.
 
 \subsubsection{Generalisation}
 Ideally, further exploration will lead to the discovery of common patterns
-and useful strategies for performing optimisations on intrinsically typed syntax trees.
-One particular question is whether it is useful to always separate program analysis
-and transformation using an annotated version of the syntax tree,
+and useful strategies for performing analysis and transformations on intrinsically typed syntax trees.
+One particular question is whether it is useful to always separate
+program analysis and transformation into individual phases
+using an annotated version of the syntax tree,
 as currently done with dead binding elimination.
 
 
@@ -734,24 +727,24 @@ could be insightful and reduce the effort of adding further transformations.
 
 The thesis deadline is on 09.06.2023.
 To allow for sufficient grading time,
-I will submit my thesis until 26.05.2023, the end of week 21.
-Leaving two weeks for holidays and one as buffer time, I will have about 18 weeks of time available.
+the thesis will be submitted until 26.05.2023, the end of week 21.
+Dedicating two weeks for holidays and one as buffer time, there are about 18 weeks of time available.
 The work can be split into four main phases, each with an estimated time frame.
 
 \subsubsection{Initial Experimentation (4 weeks)}
 
-To give me the practical experience necessary to discover and encode general ideas,
-I will attempt the following practical tasks:
+To obtain the practical experience necessary to discover and encode general ideas,
+the first phase contains the following tasks:
 \begin{itemize}
-  \item finish the implementation of dead binding elimination with strong live variable analysis
+  \item finish the alternate implementation of dead binding elimination with strongly live variable analysis
   \item implement inlining
   \item implement let-floating
   \item implement rewrite rules
   \item port dead binding elimination to the \texttt{generic-syntax} library by Allais et al.
 \end{itemize}
-At the same time, this phase will involve further reading to
-deepen my understanding of datatype- and syntax-generic programming, and
-explore potentially relevant ideas, such as ornamentation and coeffects.
+At the same time, it will involve further reading to
+more deeply understand datatype- and syntax-generic programming, and
+explore new potentially relevant ideas, such as ornamentation and coeffects.
 \Fixme{cite?}
 
 \subsubsection{Generalise and Extend (6 weeks)}
@@ -766,17 +759,17 @@ explore potentially relevant ideas, such as ornamentation and coeffects.
 
 \subsubsection{Optional Goals (2 weeks)}
 
-As time permits, I will continue by working on some of the remaining items
+As time permits, work will continue on some of the remaining items
 layed out in section \ref{sec:further-work}
-that seem feasible and interesting based on the experience gained.
+that seem feasible and interesting based on the experience gained at that point.
 There might also be completely new ideas spawned by the previous work.
 
 \subsubsection{Writing (6 weeks)}
 
 Throughout the whole time,
-I aim to continiously draft descriptions
-of the ideas developed and features implemented.
-These documents will then be refined towards the end
+new ideas developed and features implemented
+will be documented in a draft document.
+This document can then be refined towards the end
 and serve as the basis for writing the thesis.
 The last week should be reserved for proofreading.
 
