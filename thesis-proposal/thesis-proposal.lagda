@@ -32,6 +32,8 @@
 \newcolumntype{L}{>{\centering\arraybackslash}X}
 \newcommand{\Week}[1]{\tiny #1}
 
+\setcounter{tocdepth}{2}
+
 \title{Thesis Proposal: Analysis and Transformation of Intrinsically Typed Syntax}
 
 \author{Matthias Heinzel}
