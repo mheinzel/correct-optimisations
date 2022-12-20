@@ -13,7 +13,7 @@
 \usepackage[pdftex]{xcolor}
 \usepackage{xspace}
 \usepackage{xcolor}
-\usepackage{hyperref}
+\usepackage[pdfencoding=auto, psdextra]{hyperref}  % for \lambda in section title
 \usepackage{colortbl}
 \usepackage{todonotes}
 
@@ -484,7 +484,7 @@ The correctness of the iterated implementation
 follows directly from the correctness of each individual iteration step.
 
 
-\subsection{$\lambda$-calculus}
+\subsection{$\lambda$-calculus with Let-bindings}
 \label{sec:results-lambda}
 
 Most functional languages are based on some variant of the $\lambda$-calculus.
