@@ -51,12 +51,10 @@
 \section{Introduction}
 
 \Outline{What is the problem? Illustrate with an example.}
-\Fixme{Mostly copied from report, revisit!}
 
 When writing a compiler for a programming language,
 an important consideration is the treatment of binders and variables.
 A well-known technique when using dependently typed programming languages such as Agda
-\Fixme{Revisit citations, also cite in Background section?}
 \cite{Norell2008Agda}
 is to define an intrinsically typed syntax tree,
 where expressions are scope- and type-safe by construction and admit a total evaluation function
@@ -67,39 +65,34 @@ basic operations like renaming and substitution
 as well as compilation to different target languages
 \cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
 
-Performing optimisations on intrinsically typed programs, on the other hand,
-has not received as much attention.
-However, optimisations play an important role in compilers
+At the same time, there are large classes of important transformations
+that have not yet received much attention in an intrinsically typed setting.
+Optimisations, for example, play a central role in practical compilers
 and establishing their correctness is often not trivial,
-with ample opportunity for mistakes
+with ample opportunity for binding-related mistakes
 \cite{SpectorZabusky2019EmbracingFormalizationGap}
-\cite{Maclaurin2022Foil}
-.
-In this setting, program \emph{analysis} not only identifies optimisation opportunities,
-but may also need to provide a proof witness that the optimisation is safe
-e.g. that some dead code is indeed not used.
+\cite{Maclaurin2022Foil}.
+Letting the type checker keep track of important invariants
+promises to remove common sources of bugs.
+A mechanised proof of semantics preservation can increase confidence further.
+
+In return for the correctness guarantees, some additional work is required.
+Program \emph{analysis} not only needs to identify optimisation opportunities,
+but potentially also provide a proof witness that the optimisation is safe,
+e.g. that some dead code is indeed unused.
 For the \emph{transformation} of the intrinsically typed program,
-the programmer can then rely on the compiler to check
-that type- and scope-safety invariants are preserved.
-However, making this clear to the compiler can be cumbersome,
-especially when manipulating binders and variables.
-
-% Compilers consist of a set of transformations,
-% for example to encode language features using a simpler set of constructs.
-% Usually they also perform optimisations
-% to speed up the execution of the compiled program.
-
-\vspace{1em}
+the programmer then has to convince the type checker
+that type- and scope-safety invariants are preserved,
+which can be cumbersome.
+The goal of this thesis is to understand these consequences better and make the following contributions:
 \Outline{What are your research questions/contributions?}
 
-The goals of this thesis are to:
-\Fixme{Placeholder, elaborate!}
 \begin{enumerate}
   \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
-  \item develop an understanding of potentially relevant techniques in the literature, such as datatype-generic programming on syntax trees
-  \item implement several transformations on intrinsically typed expressions in the dependently-typed programming language Agda
-  \item attempt machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
-  \item explore the common patterns between the implemented transformations and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
+  \item implement several of these transformations using intrinsically typed expressions in the dependently-typed programming language Agda
+  \item provide machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
+  \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
+  \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
 
 
