@@ -65,14 +65,16 @@ This construction has featured in several papers, exploring
 basic operations like renaming and substitution
 \cite{Allais2018UniverseOfSyntaxes}
 as well as compilation to different target languages
-\cite[supplemental material]{Pickard2021CalculatingDependentlyTypedCompilers}.
+\cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
 
 Performing optimisations on intrinsically typed programs, on the other hand,
 has not received as much attention.
 However, optimisations play an important role in compilers
 and establishing their correctness is often not trivial,
-with ample opportunity for mistakes.
-%
+with ample opportunity for mistakes
+\cite{SpectorZabusky2019EmbracingFormalizationGap}
+\cite{Maclaurin2022Foil}
+.
 In this setting, program \emph{analysis} not only identifies optimisation opportunities,
 but may also need to provide a proof witness that the optimisation is safe
 e.g. that some dead code is indeed not used.
@@ -90,8 +92,7 @@ especially when manipulating binders and variables.
 \vspace{1em}
 \Outline{What are your research questions/contributions?}
 
-% using "I" here. Not consistent, but "we" seems weird.
-In my thesis, I want to explore this area and aim to:
+The goals of this thesis are to:
 \Fixme{Placeholder, elaborate!}
 \begin{enumerate}
   \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
@@ -450,7 +451,8 @@ it is sufficient to show the following:
 The proof gets simpler if we split it up using the optimised semantics.
 
 \begin{code}
-  eval . dbe == evalLive = eval . forget
+  evalLive == eval . dbe
+  evalLive == eval . forget
 \end{code}
 
 The actual proof statements in Agda are more involved,
@@ -787,6 +789,7 @@ The last week should be reserved for proofreading.
 
 \bibliographystyle{acm}
 \bibliography{../correct-optimisations}{}
+\Fixme{display DOIs?}
 
 \pagebreak
 \appendix
