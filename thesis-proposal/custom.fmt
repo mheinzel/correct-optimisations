@@ -13,6 +13,7 @@
 %format Gamma = "\Gamma"
 %format injExpr1 = "\Varid{injExpr}_1"
 %format injExpr2 = "\Varid{injExpr}_2"
+%format _c=_ = "\_{\subseteq}\_"
 %format c= = "\subseteq"
 %format \/ = "\cup"
 %format interpret_ = "\llbracket \_ \rrbracket"

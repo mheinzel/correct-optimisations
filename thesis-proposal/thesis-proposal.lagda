@@ -108,7 +108,7 @@ The goals of this thesis are to:
 
 As a running example, we will consider a simple expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
-Since the transformations in this thesis relate to variables and binders only,
+Since the transformations in this thesis primarily relate to variables and binders,
 the choice of possible values and additional primitive operations on them is mostly arbitrary.
 Extending the language with further values and operators is trivial.
 \begin{align*}
@@ -118,7 +118,7 @@ Extending the language with further values and operators is trivial.
   \\ \big||&\ x
 \end{align*}
 
-Expressions can be bound to a variable $x$ using a $\textbf{let}$-binding.
+An expression can be bound to a variable $x$ using a $\textbf{let}$-binding.
 Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
 where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q)\ P$.
 Encapsulating this pattern as $\Let{x} P \In Q$
@@ -130,10 +130,9 @@ avoids the need for allowing functions as values.
 \label{sec:background-transformations}
 
 For now we mainly consider transformations aimed at optimising functional programs.
-A large number of program analyses and and optimisations are presented in the literature
+A large number of program analyses and optimisations are presented in the literature
 \cite{Nielson1999PrinciplesProgramAnalysis}
 \cite{Santos1995CompilationByTransformation}
-\cite{Jones1998TransformationOptimiser}
 and used in production compilers such as the Glorious Haskell Compiler (GHC).
 We generally focus on those transformations that deal with variable binders,
 such as
@@ -161,7 +160,7 @@ Such dead bindings can be identified by \emph{live variable analysis}
 and consequently be removed.
 
 Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
-Therefore, multiple iterations of live variable analysis and binding elimination can be required.
+Therefore, multiple iterations of live variable analysis and binding elimination might be required.
 Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
 by only considering variables to be live
 if they are used in declarations of variables that are live themselves.
@@ -173,9 +172,9 @@ if they are used in declarations of variables that are live themselves.
 The syntax specified above treats variables as letters, or more generally strings,
 and one can use the same representation inside a compiler.
 While this is how humans usually write programs, it comes with several downsides.
-For example, if we want the equality of expressions to be independent
-of the specific variable names chosen (\emph{$\alpha$-equivalence}),
-it comes with additional complexity.
+For example, some extra work is necessary
+if we want the equality of expressions to be independent of the specific variable names chosen
+(\emph{$\alpha$-equivalence}).
 Also, there are pitfalls like variable shadowing and variable capture during substitution,
 requiring the careful application of variable renamings
 \cite{Barendregt1985LambdaCalculus}.
@@ -191,7 +190,7 @@ With \emph{de Bruijn indices}
 each variable is instead represented as a natural number,
 counting the number of nested bindings between variable occurence and its binding:
 $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
-If we adapt the syntax for let-bindings to omit the unnecessary name,
+If we adapt the syntax for let-bindings to omit the unnecessary variable name,
 the example expression from dead binding elimination is represented as follows:
 
 \begin{align*}
@@ -214,7 +213,7 @@ We can see this in our example when removing the innermost (unused) let-binding:
 \end{align*}
 
 \paragraph{Other representations}
-There are many other techniques
+There are many other techniques%
 \footnote{
 There is an introductory blogpost
 \cite{Cockx2021RepresentationsBinding}
@@ -344,7 +343,7 @@ using an environment that matches the expression's context.
 As a first step, we implemented one optimisation in Agda,
 including a mechanised proof of its preservation of semantics.
 The main ideas are outlined below;
-the full source code is available online
+the full source code is available online%
 \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
 
 
@@ -370,12 +369,12 @@ The context uniquely described by a sub-context is
 then given by a function |floor_ : SubCtx Gamma -> Ctx|,
 and we further know its embedding.
 
-We now define |c= : SubCtx Gamma -> SubCtx Gamma -> Set|,
+We now define |_c=_ : SubCtx Gamma -> SubCtx Gamma -> Set|,
 stating that one sub-context is a subset of the other.
 Its witnesses are unique, which simplifies the correctness proofs.
 A similar relation on |Ctx| does not have this property
 (e.g. |[NAT]| can be embedded into |[NAT, NAT]| either by keeping the first element or the second),
-which would complicate equality proofs on terms including witnesses of |c=|.
+which would complicate equality proofs on terms including witnesses of |_c=_|.
 
 From now on, we will only consider expressions
 |Expr (floor(Delta)) tau| in some sub-context.
@@ -394,6 +393,7 @@ data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
   Let : LiveExpr Delta Delta1 sigma ->
         LiveExpr (Keep Delta) Delta2 tau ->
         LiveExpr Delta (Delta2 \/ pop Delta2) tau
+  (dots)
 \end{code}
 
 To create such annotated expressions, we need to perform
@@ -432,7 +432,7 @@ and the abovementioned case distinction.
 \begin{code}
   dbe : LiveExpr Delta Delta' tau -> Expr (floor(Delta')) tau
   dbe (Let {Delta1} {Drop Delta2} e1 e2) = injExpr2 Delta1 Delta2 (dbe e2)
-  dbe (dots)
+  (dots)
 \end{code}
 
 As opposed to |forget|, which stays in the original context,
@@ -499,7 +499,7 @@ We implemented a prototype of this extended language,
 and adapted dead binding elimination to accommodate the new constructors.
 The additional cases are very similar to the existing ones,
 but the possible results of evaluation now include functions.
-Therefore, reasoning about semantic equivalance using propositional equality
+Therefore, reasoning about semantic equivalence using propositional equality
 requires postulating function extensionality.
 This does not impact the soundness of the proof
 and could be avoided by moving to a different setting,
@@ -557,8 +557,8 @@ In other cases, it can be useful to \emph{float outward} of specific constructs
 To make sure that moving a binding is valid,
 the analysis currently only needs to ensure that scope correctness is preserved,
 i.e. variable occurrences are never moved above their declaration or vice versa.
-When limiting the transformation to either moving the binding as far as possible
-or just across a single constructor,
+If we limit the transformation to moving the binding as far as possible
+(or alternatively just across a single constructor),
 bindings only need to be annotated with a single bit of information -- to move or not to move.
 However, it might be interesting to allow more fine-grained control over the desired location,
 which would require a more sophisticated type for the analysis result.
@@ -581,9 +581,8 @@ but also its context.
 
 This basic version potentially misses many opportunities,
 since it relies on the right expressions to be available in scope.
-Consider for example expressions like
-$x * 2 + x * 2$,
-where the duplicated work can only be avoided by introducing a new let-binding.
+Consider for example expressions like $P + P$,
+where the duplicated work can only be avoided by introducing a new let-binding for $P$.
 Some additional opportunities can be exposed by a preprocessing step,
 breaking down expressions into sequences of small let-bindings and floating them upwards,
 but making this work well is tricky.
@@ -605,7 +604,7 @@ that simply rewrite a specific pattern into an equivalent one.
 Most examples are always valid to be performed:
 \begin{itemize}
   \item constant folding and identities, \\
-    e.g. $E + 0 \Rightarrow E$
+    e.g. $P + 0 \Rightarrow P$
   \item turning beta redexes into let-bindings, \\
     i.e. $(\lambda x. Q) P \Rightarrow \Let{x} P \In Q$
   \item floating let-bindings out of function application, \\
@@ -616,13 +615,12 @@ but usually we want to do a single pass over the program
 that applies the rewrite wherever possible.
 The correctness of this operation can be shown by structural induction,
 but requires boilerplate code, identical for each rewrite rule.
-
 We aim to factor out the redundant parts and handle local rewrites in a uniform way.
 
 
 \subsubsection{Extending the Language}
 
-Adding constructs to the language gives us access to new transformations,
+Adding more constructs to the language gives us access to new transformations,
 for example to optimise their evaluation or encode them using existing constructs.
 However, each of them complicates the language and comes with its own challenges.
 The amount of code required is generally proportional to the product of
@@ -643,7 +641,7 @@ The treatment of semantics requires significant changes to account for this part
 \cite{Capretta2005GeneralRecursion}
 \cite{McBride2015TuringCompletenessTotallyFree}
 \cite{Danielsson2012PartialityMonad}.
-Some transformations then require a form of guaranteeing purity of strict bindings,
+Some transformations then require a form of guaranteeing termination of strict bindings,
 since (re)moving bindings with side effects can change the program's semantics.
 
 \paragraph{Mutually recursive binding groups}
@@ -652,8 +650,8 @@ the current approach of handling one binding at a time is not sufficient.
 Instead, we need to allow a list of simultaneous declarations
 where the scope of each is extended with a list of variables.
 Working with this structure is expected to be laborious.
-Similarly, it is currently unclear whether Allais' universe of syntax
-can express this construction.
+It is currently unclear whether Allais' universe of syntax
+can even express this construction.
 
 On the other hand, intrinsically typed implementations
 of related transformations could be instructive
@@ -699,17 +697,15 @@ to simplify transformations and compilation to a machine language.
 Popular choices include \emph{continuation passing style} (CPS)
 and \emph{A-normal form} (ANF)
 \cite{Flanagan1993EssenceCompilingContinuations}.
-The Glorious Haskell Compiler (GHC) for example
-performs a transformation called \emph{CorePrep}
+GHC for example performs a transformation called \emph{CorePrep}
 to ensure (among others) the invariant
 that all function arguments are atoms,
-i.e. literals or variables.
-This simplifies further transformations on the language
+i.e. literals or variables
 \cite{Santos1995CompilationByTransformation}.
 
 It could be investigated how the introduction of similar restrictions
 impacts the transformations we study, including their proof of correctness.
-Furthermore, the transformation into the restricted form itself can be studied.
+Furthermore, the encoding into the restricted form itself can be studied.
 
 
 \subsubsection{Generalisation}
