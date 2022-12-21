@@ -1,8 +1,8 @@
 %if style == poly
 %format (Irrelevant (a)) = ".(" a ")"
 %format (Exists (e) (t)) = "\Sigma[" e "\in" t "]"
-%format e1 = "e_1"
-%format e2 = "e_2"
+%format e1 = "\Varid{e}_1"
+%format e2 = "\Varid{e}_2"
 %format sigma = "\sigma"
 %format tau = "\tau"
 %format Delta = "\Delta"

@@ -16,6 +16,7 @@
 \usepackage[pdfencoding=auto, psdextra]{hyperref}  % for \lambda in section title
 \usepackage{colortbl}
 \usepackage{todonotes}
+\usepackage[nottoc,notlot,notlof]{tocbibind}
 
 \newcommand{\Outline}[1]{}
 % \newcommand{\Outline}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
@@ -57,7 +58,7 @@ an important consideration is the treatment of binders and variables.
 A well-known technique when using dependently typed programming languages such as Agda
 \cite{Norell2008Agda}
 is to define an intrinsically typed syntax tree,
-where expressions are scope- and type-safe by construction and admit a total evaluation function
+where expressions are scope- and type-correct by construction and admit a total evaluation function
 \cite{Augustsson1999WellTypedInterpreter}.
 This construction has featured in several papers, exploring
 basic operations like renaming and substitution
@@ -82,7 +83,7 @@ but potentially also provide a proof witness that the optimisation is safe,
 e.g. that some dead code is indeed unused.
 For the \emph{transformation} of the intrinsically typed program,
 the programmer then has to convince the type checker
-that type- and scope-safety invariants are preserved,
+that type- and scope-correctness invariants are preserved,
 which can be cumbersome.
 The goal of this thesis is to understand these consequences better and make the following contributions:
 \Outline{What are your research questions/contributions?}
@@ -230,14 +231,14 @@ the evaluation function is partial.
 
 When implementing a compiler in a dependently typed programming language,
 we can use de Bruijn indices to define \emph{intrinsically typed syntax trees},
-where type- and scope-safety invariants are specified on the type level
+where type- and scope-correctness invariants are specified on the type level
 and verified by the type checker.
 % MAYBE: mention inductive families (Dybjer)?
 This makes the evaluation function total
 \cite{Augustsson1999WellTypedInterpreter}.
 Similarly, transformations on the syntax tree need to preserve the invariants.
 While the semantics of the expression could still change,
-guaranteeing type- and scope-safety rules out
+guaranteeing type- and scope-correctness rules out
 a large class of mistakes.
 We will demonstrate the approach in Agda and start by defining the types that expressions can have.
 
@@ -318,7 +319,6 @@ using an environment that matches the expression's context.
   eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
   eval (Var x)       env  = lookup x env
 \end{code}
-\Fixme{Unify typesetting of v/x vs. $e_1$/$e_2$}
 
 
 \subsection{Datatype-generic Programming}
@@ -536,7 +536,7 @@ or even performing beta reduction wherever inlining produces a beta redex
 \cite{Jones2002GHCInliner},
 but this can be taken care of separately.
 
-On the language we defined, inlining is always possible and semantics-preserving.
+On the language we defined, inlining is always possible and preserves semantics.
 The analysis only needs to specify which variables should be inlined,
 usually based on some heuristics involving the size of declaration,
 number of variable occurrences and similar factors.
@@ -776,9 +776,9 @@ The last week should be reserved for proofreading.
 
 
 
-\bibliographystyle{acm}
+\pagebreak
+\bibliographystyle{plainurl}
 \bibliography{../correct-optimisations}{}
-\Fixme{display DOIs?}
 
 \pagebreak
 \appendix
