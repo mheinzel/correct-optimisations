@@ -22,8 +22,8 @@
 \newcommand{\Outline}[1]{}
 % \newcommand{\Outline}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
 
-% \newcommand{\Fixme}[1]{}
-\newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
+\newcommand{\Fixme}[1]{}
+% \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
 
 \newcommand{\Let}[1]{\textbf{let } #1 = }
 \newcommand{\LetB}{\textbf{let }} % using de Bruijn indices
@@ -245,6 +245,7 @@ While the semantics of the expression could still change,
 guaranteeing type- and scope-correctness rules out
 a large class of mistakes.
 We will demonstrate the approach in Agda and start by defining the types that expressions can have.
+\Fixme{rename to \emph{sorts}?}
 
 \begin{code}
   data U : Set where
@@ -325,11 +326,11 @@ using an environment that matches the expression's context.
 \end{code}
 
 
-\subsection{Datatype-generic Programming}
+% \subsection{Syntax-generic Programming}
 % Immediately go into the syntax-related work, just a short overview, link to literature
 % (might not end up being in the thesis)
-\cite{Allais2018UniverseOfSyntaxes}
-\Fixme{just state that there is this idea, keep it simple}
+% \cite{Allais2018UniverseOfSyntaxes}
+% \Fixme{just state that there is this idea, keep it simple}
 
 
 \section{Preliminary Results}
