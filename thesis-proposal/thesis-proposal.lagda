@@ -17,6 +17,7 @@
 \usepackage{colortbl}
 \usepackage{todonotes}
 \usepackage[nottoc,notlot,notlof]{tocbibind}
+\usepackage{pdfpages}
 
 \newcommand{\Outline}[1]{}
 % \newcommand{\Outline}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
@@ -95,6 +96,9 @@ The goal of this thesis is to understand these consequences better and make the 
   \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
   \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
+
+The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Annex \ref{sec:ethics-quick-scan}).
+It classified this research as low-risk with no fuller ethics review or privacy assessment required.
 
 
 \section{Background}
@@ -782,8 +786,8 @@ The last week should be reserved for proofreading.
 
 \pagebreak
 \appendix
-\section{Ethics Quick Scan}
 \Outline{(anonymised report)}
-\Fixme{Insert!}
+\includepdf[pages=1,scale=0.7,pagecommand=\section{Ethics Quick Scan} \label{sec:ethics-quick-scan}]{ethics-privacy-quick-scan-results-anonymised.pdf}
+\includepdf[pages=2-,scale=0.7,pagecommand=\thispagestyle{plain}]{ethics-privacy-quick-scan-results-anonymised.pdf}
 
 \end{document}
