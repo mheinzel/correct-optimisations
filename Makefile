@@ -10,5 +10,6 @@ src/Live.agdai: src/*.agda
 
 clean:
 	rm -f src/*.agdai src/*.agda~ src/#*#
+	$(MAKE) -C thesis          clean
 	$(MAKE) -C thesis-proposal clean
 	$(MAKE) -C tyde22          clean
