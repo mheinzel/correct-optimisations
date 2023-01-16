@@ -5,7 +5,7 @@ default: thesis.pdf
 thesis.tex : thesis.lagda custom.fmt
 	lhs2TeX --agda --poly -o $@ $<
 
-thesis.pdf: thesis.tex ../correct-optimisations.bib
+thesis.pdf: thesis.tex *.tex ../correct-optimisations.bib
 	latexmk -pdf $<
 
 clean:

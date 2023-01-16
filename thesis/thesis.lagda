@@ -6,44 +6,12 @@
 %include agda.fmt
 %include custom.fmt
 
-\usepackage{amsmath}
-\usepackage{amsthm}
-\usepackage{stmaryrd}
-\usepackage{listings}
-\usepackage[pdftex]{xcolor}
-\usepackage{xspace}
-\usepackage{xcolor}
-\usepackage[pdfencoding=auto, psdextra]{hyperref}  % for \lambda in section title
-\usepackage{colortbl}
-\usepackage{todonotes}
-\usepackage[nottoc,notlot,notlof]{tocbibind}
-\usepackage{pdfpages}
+\include{preamble}
 
-\newcommand{\Outline}[1]{}
-% \newcommand{\Outline}[1]{\todo[inline,backgroundcolor=gray!30]{#1}}
-
-\newcommand{\Fixme}[1]{}
-% \newcommand{\Fixme}[1]{\todo[color=orange!30]{#1}}
-
-\newcommand{\Let}[1]{\textbf{let } #1 = }
-\newcommand{\LetB}{\textbf{let }} % using de Bruijn indices
-\newcommand{\In}{\textbf{ in }}
-\newcommand{\DeBruijn}[1]{\langle #1 \rangle}
-
-\newcommand{\X}{\cellcolor{gray}}
-\newcolumntype{L}{>{\centering\arraybackslash}X}
-\newcommand{\Week}[1]{\tiny #1}
-
-\setcounter{tocdepth}{1}
-
-\title{Analysis and Transformation of Intrinsically Typed Syntax}
-\author{Matthias Heinzel\\Utrecht University}
-\date{\today}
 
 \begin{document}
 
-\maketitle
-% TODO: M.Sc. Thesis, advisors, logo?
+\include{title}
 
 \tableofcontents
 
@@ -503,7 +471,6 @@ $\lambda$-abstractions could make other transformations more challenging,
 so they remain a prototype for now and are not included in our core language.
 
 
-\bibliographystyle{plainurl}
 \bibliography{../correct-optimisations}{}
 
 
