@@ -52,7 +52,6 @@ the programmer then has to convince the type checker
 that type- and scope-correctness invariants are preserved,
 which can be cumbersome.
 The goal of this thesis is to understand these consequences better and make the following contributions:
-\Outline{What are your research questions/contributions?}
 
 \begin{enumerate}
   \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
@@ -62,7 +61,7 @@ The goal of this thesis is to understand these consequences better and make the 
   \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
 
-The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see the end of the document).
+The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
 It classified this research as low-risk with no fuller ethics review or privacy assessment required.
 
 
@@ -427,7 +426,7 @@ The interesting one is again |Let|, where we split cases on the variable being u
 and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \paragraph{Iterating the Optimisation}
-As discussed in chapter \ref{sec:background-transformations},
+As discussed in section \ref{sec:background-transformations},
 more than one pass of dead binding elimination might be necessary to remove all unused bindings.
 While in our simple setting all these bindings could be identified in a single pass
 using strongly live variable analysis,
@@ -474,11 +473,8 @@ so they remain a prototype for now and are not included in our core language.
 \bibliography{../correct-optimisations}{}
 
 
-% TODO: Appendix heading (incl. TOC) via chapter?
-% But keep embedded pdf on the same page.
 \appendix
-\Outline{(anonymised report)}
-\includepdf[pages=1,scale=0.7,pagecommand=\label{sec:ethics-quick-scan}]{ethics-privacy-quick-scan-results-anonymised.pdf}
-\includepdf[pages=2-,scale=0.7,pagecommand=\thispagestyle{plain}]{ethics-privacy-quick-scan-results-anonymised.pdf}
+\includepdf[pages=1,offset=0cm -2.5cm,scale=0.55,pagecommand=\chapter{Ethics Quick Scan}\label{app:ethics-quick-scan}]{ethics-privacy-quick-scan-results-anonymised.pdf}
+\includepdf[pages=2-,scale=0.55,pagecommand=\thispagestyle{plain}]{ethics-privacy-quick-scan-results-anonymised.pdf}
 
 \end{document}
