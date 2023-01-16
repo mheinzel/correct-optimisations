@@ -7,7 +7,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
 open import Lang
 open import SubCtx
-open import Live
+open import DBE
 
 -- Examples
 

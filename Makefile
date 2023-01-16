@@ -2,11 +2,10 @@
 
 default: compile
 
-compile: src/Live.agdai
+check: src/Examples.agdai
 
-# TODO: support other agda files
-src/Live.agdai: src/*.agda
-	agda src/Live.agda
+src/%.agdai: src/%.agda src/*.agda
+	agda $<
 
 clean:
 	rm -f src/*.agdai src/*.agda~ src/#*#
