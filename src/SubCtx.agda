@@ -4,6 +4,7 @@ open import Data.Nat using (_+_) renaming (ℕ to Nat)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Unit
 open import Data.Product
+open import Data.Sum
 open import Data.Empty
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 
@@ -233,3 +234,36 @@ renameExpr-preserves Δ₁ Δ₂ H (Let e₁ e₂) env =
 renameExpr-preserves Δ₁ Δ₂ H (Val v) env = refl
 renameExpr-preserves Δ₁ Δ₂ H (Plus e₁ e₂) env =
   cong₂ _+_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
+
+strengthen-Var : (Δ' Δ : SubCtx Γ) (H : Δ' ⊆ Δ) → Ref τ ⌊ Δ ⌋ → ⊤ ⊎ Ref τ ⌊ Δ' ⌋
+strengthen-Var (Drop Δ') (Drop Δ) H x = strengthen-Var Δ' Δ H x
+strengthen-Var (Drop Δ') (Keep Δ) H Top = inj₁ tt -- ref became invalid by strengthening
+strengthen-Var (Drop Δ') (Keep Δ) H (Pop x) = strengthen-Var Δ' Δ H x
+strengthen-Var (Keep Δ') (Keep Δ) H Top = inj₂ Top
+strengthen-Var (Keep Δ') (Keep Δ) H (Pop x) with strengthen-Var Δ' Δ H x
+... | inj₁ tt = inj₁ tt
+... | inj₂ x' = inj₂ (Pop x')
+
+strengthen : (Δ' Δ : SubCtx Γ) (H : Δ' ⊆ Δ) → Expr ⌊ Δ ⌋ τ → ⊤ ⊎ Expr ⌊ Δ' ⌋ τ
+strengthen Δ' Δ H (Var x) with strengthen-Var Δ' Δ H x 
+... | inj₁ tt = inj₁ tt
+... | inj₂ x' = inj₂ (Var x')
+strengthen Δ' Δ H (App e₁ e₂) with strengthen Δ' Δ H e₁ | strengthen Δ' Δ H e₂
+... | inj₁ tt  | inj₁ tt  = inj₁ tt
+... | inj₁ tt  | inj₂ e₂' = inj₁ tt
+... | inj₂ e₁' | inj₁ tt  = inj₁ tt
+... | inj₂ e₁' | inj₂ e₂' = inj₂ (App e₁' e₂')
+strengthen Δ' Δ H (Lam e) with strengthen (Keep Δ') (Keep Δ) H e
+... | inj₁ tt = inj₁ tt
+... | inj₂ e' = inj₂ (Lam e')
+strengthen Δ' Δ H (Let e₁ e₂) with strengthen Δ' Δ H e₁ | strengthen (Keep Δ') (Keep Δ) H e₂
+... | inj₁ tt  | inj₁ tt  = inj₁ tt
+... | inj₁ tt  | inj₂ e₂' = inj₁ tt
+... | inj₂ e₁' | inj₁ tt  = inj₁ tt
+... | inj₂ e₁' | inj₂ e₂' = inj₂ (Let e₁' e₂')
+strengthen Δ' Δ H (Val v) = inj₂ (Val v)
+strengthen Δ' Δ H (Plus e₁ e₂) with strengthen Δ' Δ H e₁ | strengthen Δ' Δ H e₂
+... | inj₁ tt  | inj₁ tt  = inj₁ tt
+... | inj₁ tt  | inj₂ e₂' = inj₁ tt
+... | inj₂ e₁' | inj₁ tt  = inj₁ tt
+... | inj₂ e₁' | inj₂ e₂' = inj₂ (Plus e₁' e₂')
