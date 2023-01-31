@@ -2,7 +2,7 @@
 module LetInward where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [])
+open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Unit
 open import Data.Product
 open import Data.Sum
@@ -10,7 +10,6 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Lang
-open import SubCtx
 open import Live
 -- open import LiveFlex
 
@@ -87,29 +86,67 @@ strengthen ope (Plus e₁ e₂) with strengthen ope e₁ | strengthen ope e₂
 ... | inj₂ e₁' | inj₂ e₂' = inj₂ (Plus e₁' e₂')
 ... | _        | _        = inj₁ tt
 
-push-let : Expr Γ σ → Expr (σ ∷ Γ) τ → Expr Γ τ
-push-let decl (Var x) with strengthen-Ref (Drop _ (ope-id _)) x
-... | inj₁ tt = Let decl (Var x)
-... | inj₂ x' = Var x'
-push-let decl (App e₁ e₂) with strengthen (Drop _ (ope-id _)) e₁ | strengthen (Drop _ (ope-id _)) e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (App e₁ e₂)
-... | inj₁ tt  | inj₂ e₂' = App (push-let decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = App e₁' (push-let decl e₂)
+pop-at : (Γ : Ctx) → Ref τ Γ → Ctx
+pop-at (σ ∷ Γ) Top = Γ
+pop-at (σ ∷ Γ) (Pop i) = σ ∷ pop-at Γ i
+
+ope-pop-at : (Γ : Ctx) → (i : Ref τ Γ) → OPE (pop-at Γ i) Γ
+ope-pop-at (σ ∷ Γ) Top = Drop σ (ope-id Γ)
+ope-pop-at (σ ∷ Γ) (Pop i) = Keep σ (ope-pop-at Γ i)
+
+
+lift-Ref : {Γ₁ Γ₂ : Ctx} (f : Ref τ Γ₁ → Ref τ Γ₂) → Ref τ (σ ∷ Γ₁) → Ref τ (σ ∷ Γ₂)
+lift-Ref f Top = Top
+lift-Ref f (Pop x) = Pop (f x)
+
+flip-Ref : {σ₁ σ₂ : U} → Ref τ (σ₁ ∷ σ₂ ∷ Γ) → Ref τ (σ₂ ∷ σ₁ ∷ Γ)
+flip-Ref Top = Pop Top
+flip-Ref (Pop Top) = Top
+flip-Ref (Pop (Pop x)) = Pop (Pop x)
+
+rename-top-Ref : (Γ' : Ctx) (i : Ref σ Γ) → Ref τ (Γ' ++ Γ) → Ref τ (Γ' ++ (σ ∷ pop-at Γ i))
+rename-top-Ref (σ' ∷ Γ') i Top = Top
+rename-top-Ref (σ' ∷ Γ') i (Pop x) = Pop (rename-top-Ref Γ' i x)  -- just work through Γ' first
+rename-top-Ref [] Top x = x
+rename-top-Ref [] (Pop i) x = flip-Ref (lift-Ref (rename-top-Ref [] i) x)
+
+rename-top : (Γ' : Ctx) (i : Ref σ Γ) → Expr (Γ' ++ Γ) τ → Expr (Γ' ++ (σ ∷ pop-at Γ i)) τ
+rename-top Γ' i (Var x) = Var (rename-top-Ref Γ' i x)
+rename-top Γ' i (App e₁ e₂) = App (rename-top Γ' i e₁) (rename-top Γ' i e₂)
+rename-top Γ' i (Lam e) = Lam (rename-top (_ ∷ Γ') i e)
+rename-top Γ' i (Let e₁ e₂) = Let (rename-top Γ' i e₁) (rename-top (_ ∷ Γ') i e₂)
+rename-top Γ' i (Val v) = Val v
+rename-top Γ' i (Plus e₁ e₂) = Plus (rename-top Γ' i e₁) (rename-top Γ' i e₂)
+
+
+-- TODO: more general type, to allow for reordering and only optionally popping something?
+push-let : (i : Ref σ Γ) → Expr (pop-at Γ i) σ → Expr Γ τ → Expr (pop-at Γ i) τ
+push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
+... | Top = decl
+... | Pop x' = Var x'
+push-let i decl (App e₁ e₂) with strengthen (ope-pop-at _ i) e₁ | strengthen (ope-pop-at _ i) e₂
+... | inj₁ tt  | inj₁ tt  = Let decl (App (rename-top [] i e₁) (rename-top [] i e₂))
+... | inj₁ tt  | inj₂ e₂' = App (push-let i decl e₁) e₂'
+... | inj₂ e₁' | inj₁ tt  = App e₁' (push-let i decl e₂)
 ... | inj₂ e₁' | inj₂ e₂' = App e₁' e₂'
-push-let decl (Lam e) = Let decl (Lam e)  -- don't push into lambda
-push-let decl (Let {σ = σ} e₁ e₂) with strengthen (Drop _ (ope-id _)) e₁ | strengthen (Keep _ (Drop _ (ope-id _))) e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (Let e₁ e₂)
-... | inj₁ tt  | inj₂ e₂' = Let (push-let decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  =
-  let decl' = weaken (Drop σ (ope-id _)) decl
-  in Let e₁' {!!}  -- TODO: need to go under the binder here :/
+push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't push into lambda
+push-let i decl (Let e₁ e₂) with strengthen (ope-pop-at _ i) e₁ | strengthen (Keep _ (ope-pop-at _ i)) e₂
+... | inj₁ tt  | inj₁ tt  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
+... | inj₁ tt  | inj₂ e₂' = Let (push-let i decl e₁) e₂'
+... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (Drop _ (ope-id _)) decl) e₂)  -- going under the binder here
 ... | inj₂ e₁' | inj₂ e₂' = Let e₁' e₂'
-push-let decl (Val v) = Val v
-push-let decl (Plus e₁ e₂) with strengthen (Drop _ (ope-id _)) e₁ | strengthen (Drop _ (ope-id _)) e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (Plus e₁ e₂)
-... | inj₁ tt  | inj₂ e₂' = Plus (push-let decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Plus e₁' (push-let decl e₂)
+push-let i decl (Val v) = Val v
+push-let i decl (Plus e₁ e₂) with strengthen (ope-pop-at _ i) e₁ | strengthen (ope-pop-at _ i) e₂
+... | inj₁ tt  | inj₁ tt  = Let decl (Plus (rename-top [] i e₁) (rename-top [] i e₂))
+... | inj₁ tt  | inj₂ e₂' = Plus (push-let i decl e₁) e₂'
+... | inj₂ e₁' | inj₁ tt  = Plus e₁' (push-let i decl e₂)
 ... | inj₂ e₁' | inj₂ e₂' = Plus e₁' e₂'
+
+-- Another approach (instead of using a Ref) would look like this:
+-- push-let' : (Γ₁ Γ₂ : Ctx) → Expr (Γ₁ ++ Γ₂) σ → Expr (Γ₁ ++ (σ ∷ Γ₂)) τ → Expr (Γ₁ ++ Γ₂) τ
+
+-- TODO: something like that?
+-- push-let'' : (i : Ref σ Γ) → Expr Γ' σ → Expr Γ τ → (ren : ∀ μ → Ref μ Γ' → Ref μ Γ) → Expr Γ' τ
 
 {-
 data PartialEnv : (Γ : Ctx) (Δ Δ' : SubCtx Γ) → Set where
@@ -123,7 +160,7 @@ push-let' Γ Δ Δ' env (Var x) = {!!}
 push-let' Γ Δ Δ' env (App e e₁) = {!!}
 push-let' Γ Δ Δ' env (Lam e) = {!!}
 push-let' Γ Δ Δ' env (Let e e₁) = {!!}
-push-let' Γ Δ Δ' env (Val x) = {!!}
+push-let' Γ Δ Δ' env (Val v) = {!!}
 push-let' Γ Δ Δ' env (Plus e e₁) = {!!}
 
 -- TODO: can this simplify the code?
