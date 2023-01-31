@@ -13,13 +13,38 @@ ope-id : (Γ : Ctx) → OPE Γ Γ
 ope-id [] = Empty
 ope-id (x ∷ Γ) = Keep x (ope-id Γ)
 
+ope-! : (Γ : Ctx) → OPE [] Γ
+ope-! [] = Empty
+ope-! (τ ∷ Γ) = Drop τ (ope-! Γ)
+
 ope-trans : ∀ {Γ₁ Γ₂ Γ₃} → OPE Γ₁ Γ₂ → OPE Γ₂ Γ₃ → OPE Γ₁ Γ₃
 ope-trans Empty b = b
 ope-trans a (Drop τ b) = Drop τ (ope-trans a b)
 ope-trans (Drop .τ a) (Keep τ b) = Drop τ (ope-trans a b)
 ope-trans (Keep .τ a) (Keep τ b) = Keep τ (ope-trans a b)
 
+-- OPEs from a singleton Ctx are isomorphic to Ref.
+ope-Ref : Ref σ Γ → OPE (σ ∷ []) Γ
+ope-Ref Top = Keep _ (ope-! _)
+ope-Ref (Pop x) = Drop _ (ope-Ref x)
+
+ref-OPE : OPE (σ ∷ []) Γ → Ref σ Γ
+ref-OPE (Drop τ ope) = Pop (ref-OPE ope)
+ref-OPE (Keep _ ope) = Top
+
 project-Env : ∀ {Γ' Γ} → OPE Γ' Γ → Env Γ → Env Γ'
 project-Env Empty env = env
 project-Env (Keep τ ope) (Cons v env) = Cons v (project-Env ope env)
 project-Env (Drop τ ope) (Cons v env) = project-Env ope env
+
+-- THINGS WITH OPEs
+
+Scoped : Set₁
+Scoped = Ctx → Set
+
+record _⇑_ (T : Scoped) (scope : Ctx) : Set where
+  constructor _↑_
+  field
+    {support} : Ctx
+    thing : T support
+    ope : OPE support scope
