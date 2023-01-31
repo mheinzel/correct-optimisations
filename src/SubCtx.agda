@@ -55,9 +55,17 @@ sing (Drop Δ) x       = Drop (sing Δ x)
 sing (Keep Δ) Top     = Keep ∅
 sing (Keep Δ) (Pop x) = Drop (sing Δ x)
 
+sing' : (Γ : Ctx) → Ref τ Γ → SubCtx Γ
+sing' (_ ∷ _) Top = Keep ∅
+sing' (_ ∷ Γ) (Pop x) = Drop (sing' Γ x)
+
 pop : SubCtx (σ ∷ Γ) → SubCtx Γ
 pop (Drop Δ) = Δ
 pop (Keep Δ) = Δ
+
+-- pop-ref : (Δ : SubCtx Γ) → Ref τ ⌊ Δ ⌋ → SubCtx Γ
+-- pop-ref (Drop Δ) x = {!!}
+-- pop-ref (Keep Δ) x = {!!}
 
 -- Relating subsets and environments
 
@@ -235,17 +243,18 @@ renameExpr-preserves Δ₁ Δ₂ H (Val v) env = refl
 renameExpr-preserves Δ₁ Δ₂ H (Plus e₁ e₂) env =
   cong₂ _+_ (renameExpr-preserves Δ₁ Δ₂ H e₁ env) (renameExpr-preserves Δ₁ Δ₂ H e₂ env)
 
-strengthen-Var : (Δ' Δ : SubCtx Γ) (H : Δ' ⊆ Δ) → Ref τ ⌊ Δ ⌋ → ⊤ ⊎ Ref τ ⌊ Δ' ⌋
-strengthen-Var (Drop Δ') (Drop Δ) H x = strengthen-Var Δ' Δ H x
-strengthen-Var (Drop Δ') (Keep Δ) H Top = inj₁ tt -- ref became invalid by strengthening
-strengthen-Var (Drop Δ') (Keep Δ) H (Pop x) = strengthen-Var Δ' Δ H x
-strengthen-Var (Keep Δ') (Keep Δ) H Top = inj₂ Top
-strengthen-Var (Keep Δ') (Keep Δ) H (Pop x) with strengthen-Var Δ' Δ H x
+{-
+strengthen-Ref : (Δ' Δ : SubCtx Γ) (H : Δ' ⊆ Δ) → Ref τ ⌊ Δ ⌋ → ⊤ ⊎ Ref τ ⌊ Δ' ⌋
+strengthen-Ref (Drop Δ') (Drop Δ) H x = strengthen-Ref Δ' Δ H x
+strengthen-Ref (Drop Δ') (Keep Δ) H Top = inj₁ tt -- ref became invalid by strengthening
+strengthen-Ref (Drop Δ') (Keep Δ) H (Pop x) = strengthen-Ref Δ' Δ H x
+strengthen-Ref (Keep Δ') (Keep Δ) H Top = inj₂ Top
+strengthen-Ref (Keep Δ') (Keep Δ) H (Pop x) with strengthen-Ref Δ' Δ H x
 ... | inj₁ tt = inj₁ tt
 ... | inj₂ x' = inj₂ (Pop x')
 
 strengthen : (Δ' Δ : SubCtx Γ) (H : Δ' ⊆ Δ) → Expr ⌊ Δ ⌋ τ → ⊤ ⊎ Expr ⌊ Δ' ⌋ τ
-strengthen Δ' Δ H (Var x) with strengthen-Var Δ' Δ H x 
+strengthen Δ' Δ H (Var x) with strengthen-Ref Δ' Δ H x 
 ... | inj₁ tt = inj₁ tt
 ... | inj₂ x' = inj₂ (Var x')
 strengthen Δ' Δ H (App e₁ e₂) with strengthen Δ' Δ H e₁ | strengthen Δ' Δ H e₂
@@ -267,3 +276,4 @@ strengthen Δ' Δ H (Plus e₁ e₂) with strengthen Δ' Δ H e₁ | strengthen 
 ... | inj₁ tt  | inj₂ e₂' = inj₁ tt
 ... | inj₂ e₁' | inj₁ tt  = inj₁ tt
 ... | inj₂ e₁' | inj₂ e₂' = inj₂ (Plus e₁' e₂')
+-}
