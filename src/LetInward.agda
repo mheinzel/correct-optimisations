@@ -11,33 +11,13 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Lang
 open import Live
--- open import LiveFlex
 
 -- Push the let-binding inwards as far as possible without
 -- - duplicating it
 -- - pushing it into a lambda
 
-{- Trying it based on LiveExpr
--- TODO: Can we assume that the binding must be live? (issues with Var case)
--- TODO: This would be easier with a less restrictive version of LiveExpr
--- IDEA: annotations are updated with each transformation, changes bubble up
--- IDEA/HACK: Also push binding into branches where they're not used, but don't recurse.
---            Then they can be removed again in a separate pass.
-push-let : LiveExpr Δ Δ₁ σ → LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ → LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
-push-let e₁ (Var x) = Let e₁ (Var x)
-push-let e₁ (App e₂ e₃) = {!!}
-push-let e₁ (Lam e₂) = Let e₁ (Lam e₂)
-push-let e₁ (Let e₂ e₃) = {!!}
-push-let e₁ (Val v) = Let e₁ (Val v)
-push-let e₁ (Plus {Γ} {Δ₂} {Δ₃} e₂ e₃) with Δ₂ | Δ₃
-... | Drop Δ₂ | Drop Δ₃ = {!!}
-... | Drop Δ₂ | Keep Δ₃ = let e₃' = push-let e₁ e₃
-                              e₂' = Live.Let e₁ e₂  -- hack, we want to strengthen
-                          in {! !}
-... | Keep Δ₂ | Drop Δ₃ = {!!}
-... | Keep Δ₂ | Keep Δ₃ = Let e₁ (Plus e₂ e₃)  -- don't duplicate
--}
-
+-- Working with plain OPEs here instead of SubCtx.
+-- Let's keep it separate for now and later look for ways to unify.
 data OPE : Ctx → Ctx → Set where
   Empty : OPE [] []
   Keep : {Γ' Γ : Ctx} (τ : U) → OPE Γ' Γ → OPE (τ ∷ Γ') (τ ∷ Γ)
@@ -94,6 +74,14 @@ ope-pop-at : (Γ : Ctx) → (i : Ref τ Γ) → OPE (pop-at Γ i) Γ
 ope-pop-at (σ ∷ Γ) Top = Drop σ (ope-id Γ)
 ope-pop-at (σ ∷ Γ) (Pop i) = Keep σ (ope-pop-at Γ i)
 
+strengthen-pop-at : (i : Ref σ Γ) → Expr Γ τ → ⊤ ⊎ Expr (pop-at Γ i) τ
+strengthen-pop-at i = strengthen (ope-pop-at _ i)
+
+strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr (σ' ∷ Γ) τ → ⊤ ⊎ Expr (σ' ∷ pop-at Γ i) τ
+strengthen-keep-pop-at i = strengthen (Keep _ (ope-pop-at _ i))
+
+-- NOTE: The following code feels like it requires more different operations than it should.
+-- But it's kind of expected: We are dealing with ordering preserving embeddings, but reordering the bindings.
 
 lift-Ref : {Γ₁ Γ₂ : Ctx} (f : Ref τ Γ₁ → Ref τ Γ₂) → Ref τ (σ ∷ Γ₁) → Ref τ (σ ∷ Γ₂)
 lift-Ref f Top = Top
@@ -118,53 +106,58 @@ rename-top Γ' i (Let e₁ e₂) = Let (rename-top Γ' i e₁) (rename-top (_ �
 rename-top Γ' i (Val v) = Val v
 rename-top Γ' i (Plus e₁ e₂) = Plus (rename-top Γ' i e₁) (rename-top Γ' i e₂)
 
-
--- TODO: more general type, to allow for reordering and only optionally popping something?
+-- TODO: can we find a more general type, to allow for reordering and only optionally popping something?
 push-let : (i : Ref σ Γ) → Expr (pop-at Γ i) σ → Expr Γ τ → Expr (pop-at Γ i) τ
 push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
 ... | Top = decl
 ... | Pop x' = Var x'
-push-let i decl (App e₁ e₂) with strengthen (ope-pop-at _ i) e₁ | strengthen (ope-pop-at _ i) e₂
+push-let i decl (App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
 ... | inj₁ tt  | inj₁ tt  = Let decl (App (rename-top [] i e₁) (rename-top [] i e₂))
 ... | inj₁ tt  | inj₂ e₂' = App (push-let i decl e₁) e₂'
 ... | inj₂ e₁' | inj₁ tt  = App e₁' (push-let i decl e₂)
 ... | inj₂ e₁' | inj₂ e₂' = App e₁' e₂'
 push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't push into lambda
-push-let i decl (Let e₁ e₂) with strengthen (ope-pop-at _ i) e₁ | strengthen (Keep _ (ope-pop-at _ i)) e₂
+push-let i decl (Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
 ... | inj₁ tt  | inj₁ tt  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
 ... | inj₁ tt  | inj₂ e₂' = Let (push-let i decl e₁) e₂'
 ... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (Drop _ (ope-id _)) decl) e₂)  -- going under the binder here
 ... | inj₂ e₁' | inj₂ e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
-push-let i decl (Plus e₁ e₂) with strengthen (ope-pop-at _ i) e₁ | strengthen (ope-pop-at _ i) e₂
+push-let i decl (Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
 ... | inj₁ tt  | inj₁ tt  = Let decl (Plus (rename-top [] i e₁) (rename-top [] i e₂))
 ... | inj₁ tt  | inj₂ e₂' = Plus (push-let i decl e₁) e₂'
 ... | inj₂ e₁' | inj₁ tt  = Plus e₁' (push-let i decl e₂)
 ... | inj₂ e₁' | inj₂ e₂' = Plus e₁' e₂'
 
--- Another approach (instead of using a Ref) would look like this:
--- push-let' : (Γ₁ Γ₂ : Ctx) → Expr (Γ₁ ++ Γ₂) σ → Expr (Γ₁ ++ (σ ∷ Γ₂)) τ → Expr (Γ₁ ++ Γ₂) τ
+-- This is the same signature as for `Let` itself.
+push-let' : Expr Γ σ → Expr (σ ∷ Γ) τ → Expr Γ τ
+push-let' decl e = push-let Top decl e
 
--- TODO: something like that?
--- push-let'' : (i : Ref σ Γ) → Expr Γ' σ → Expr Γ τ → (ren : ∀ μ → Ref μ Γ' → Ref μ Γ) → Expr Γ' τ
 
-{-
-data PartialEnv : (Γ : Ctx) (Δ Δ' : SubCtx Γ) → Set where
-  Empty   : PartialEnv [] Empty Empty
-  Leave   : PartialEnv Γ Δ Δ' → PartialEnv (τ ∷ Γ) (Keep Δ) (Keep Δ')
-  Provide : Expr Γ τ → PartialEnv Γ Δ Δ' → PartialEnv (τ ∷ Γ) (Keep Δ) (Drop Δ')
+{- NOTE: `strengthen` traverses the AST every time, which is inefficient.
 
-push-let' : (Γ : Ctx) (Δ Δ' : SubCtx Γ) → PartialEnv Γ Δ Δ' → Expr ⌊ Δ ⌋ τ → Expr ⌊ Δ' ⌋ τ
--- push-let' : (Δ : SubCtx Γ) → Expr ⌊ Δ ⌋ σ → Expr ⌊ Keep {Γ} {σ} Δ ⌋ τ → Expr ⌊ Δ ⌋ τ
-push-let' Γ Δ Δ' env (Var x) = {!!}
-push-let' Γ Δ Δ' env (App e e₁) = {!!}
-push-let' Γ Δ Δ' env (Lam e) = {!!}
-push-let' Γ Δ Δ' env (Let e e₁) = {!!}
-push-let' Γ Δ Δ' env (Val v) = {!!}
-push-let' Γ Δ Δ' env (Plus e e₁) = {!!}
-
--- TODO: can this simplify the code?
-potentially-push-let : (Δ : SubCtx (σ ∷ Γ)) → Expr ⌊ pop Δ ⌋ σ → Expr ⌊ Δ ⌋ τ → Expr ⌊ pop Δ ⌋ τ
-potentially-push-let (Drop Δ) decl e = e
-potentially-push-let (Keep Δ) decl e = push-let Δ decl e
+Another idea is to use LiveExpr
+-- TODO: Can we assume that the binding must be live? (issues with Var case)
+-- TODO: This would be easier with a less restrictive version of LiveExpr
+-- IDEA: annotations are updated with each transformation, changes bubble up
+-- IDEA/HACK: Also push binding into branches where they're not used, but don't recurse.
+--            Then they can be removed again in a separate pass.
+push-let : LiveExpr Δ Δ₁ σ → LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ → LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
+push-let e₁ (Var x) = Let e₁ (Var x)
+push-let e₁ (App e₂ e₃) = {!!}
+push-let e₁ (Lam e₂) = Let e₁ (Lam e₂)
+push-let e₁ (Let e₂ e₃) = {!!}
+push-let e₁ (Val v) = Let e₁ (Val v)
+push-let e₁ (Plus {Γ} {Δ₂} {Δ₃} e₂ e₃) with Δ₂ | Δ₃
+... | Drop Δ₂ | Drop Δ₃ = {!!}
+... | Drop Δ₂ | Keep Δ₃ = let e₃' = push-let e₁ e₃
+                              e₂' = Live.Let e₁ e₂  -- hack, we want to strengthen
+                          in {! !}
+... | Keep Δ₂ | Drop Δ₃ = {!!}
+... | Keep Δ₂ | Keep Δ₃ = Let e₁ (Plus e₂ e₃)  -- don't duplicate
 -}
+
+-- NOTE: there is an alternative phrasing:
+-- push-let : {σ : U} (Γ₁ Γ₂ : Ctx) → Expr (Γ₁ ++ Γ₂) σ → Expr (Γ₁ ++ (σ ∷ Γ₂)) τ → Expr (Γ₁ ++ Γ₂) τ
+
+-- TODO: what would it look like to push multiple bindings simultaneously?
