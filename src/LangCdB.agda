@@ -31,6 +31,10 @@ ope-Union₂ (left u) = Drop _ (ope-Union₂ u)
 ope-Union₂ (right u) = Keep _ (ope-Union₂ u)
 ope-Union₂ (both u) = Keep _ (ope-Union₂ u)
 
+union-Γ₁-[] : ∀ {Γ₁ Γ} → Union Γ₁ [] Γ → Γ₁ ≡ Γ
+union-Γ₁-[] done = refl
+union-Γ₁-[] (left {τ} u) = cong (τ ∷_) (union-Γ₁-[] u)
+
 -- Another kind of "cover", a bit like `pop` for SubCtx
 data Bind (τ : U) : Ctx → Ctx → Set where
   dead : Bind τ Γ Γ
