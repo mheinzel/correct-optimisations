@@ -10,6 +10,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Lang
+open import OPE
 open import Live
 
 -- Push the let-binding inwards as far as possible without
@@ -18,14 +19,6 @@ open import Live
 
 -- Working with plain OPEs here instead of SubCtx.
 -- Let's keep it separate for now and later look for ways to unify.
-data OPE : Ctx → Ctx → Set where
-  Empty : OPE [] []
-  Keep : {Γ' Γ : Ctx} (τ : U) → OPE Γ' Γ → OPE (τ ∷ Γ') (τ ∷ Γ)
-  Drop : {Γ' Γ : Ctx} (τ : U) → OPE Γ' Γ → OPE Γ' (τ ∷ Γ)
-
-ope-id : (Γ : Ctx) → OPE Γ Γ
-ope-id [] = Empty
-ope-id (x ∷ Γ) = Keep x (ope-id Γ)
 
 weaken-Ref : {Γ' Γ : Ctx} (ope : OPE Γ' Γ) → Ref σ Γ' → Ref σ Γ
 weaken-Ref (Keep τ ope) Top = Top
