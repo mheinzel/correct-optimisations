@@ -148,3 +148,5 @@ from ope (Val v) =
   Val v
 from ope (Plus u e₁ e₂) =
   Plus (from (ope-trans (ope-Union₁ u) ope) e₁) (from (ope-trans (ope-Union₂ u) ope) e₂)
+
+-- TODO: prove into/from semantics preserving!
