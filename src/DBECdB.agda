@@ -16,31 +16,31 @@ open import OPE
 -- Only remove directly dead bindings.
 dbe : (Γ : Ctx) → Expr τ Γ → Expr τ ⇑ Γ
 dbe {τ} .(τ ∷ []) Var =
-  Var ↑ Keep τ Empty
+  Var ↑ oz os
 dbe Γ (App u e₁ e₂) =
-  let e₁' ↑ ope₁ = dbe _ e₁
-      e₂' ↑ ope₂ = dbe _ e₂
-      u'  ↑ ope  = cover-Union (ope-trans ope₁ (ope-Union₁ u)) (ope-trans ope₂ (ope-Union₂ u))
-  in App u' e₁' e₂' ↑ ope
+  let e₁' ↑ θ₁ = dbe _ e₁
+      e₂' ↑ θ₂ = dbe _ e₂
+      u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+  in App u' e₁' e₂' ↑ θ
 dbe Γ (Lam {σ} b e) =
-  let e' ↑ ope' = dbe _ e
-      b' ↑ ope  = cover-Bind (ope-trans ope' (ope-Bind b))
-  in Lam b' e' ↑ ope
+  let e' ↑ θ' = dbe _ e
+      b' ↑ θ  = cover-Bind (θ' ₒ o-Bind b)
+  in Lam b' e' ↑ θ
 dbe Γ (Let dead u e₁ e₂) =   -- NOTE: We check liveness given based on the the variable usage in the input Expr.
-  let e₂' ↑ ope₂ = dbe _ e₂  -- But dbe e₂ might reveal the variable to be dead even if previously marked live!
-  in e₂' ↑ ope-trans ope₂ (ope-Union₂ u)
+  let e₂' ↑ θ₂ = dbe _ e₂  -- But dbe e₂ might reveal the variable to be dead even if previously marked live!
+  in e₂' ↑ (θ₂ ₒ o-Union₂ u)
 dbe Γ (Let {σ} live u e₁ e₂) =
-  let e₁' ↑ ope₁  = dbe _ e₁
-      e₂' ↑ ope₂  = dbe _ e₂
-      b'  ↑ ope₂' = cover-Bind (ope-trans ope₂ (ope-Bind live))
-      u'  ↑ ope   = cover-Union (ope-trans ope₁ (ope-Union₁ u)) (ope-trans ope₂' (ope-Union₂ u))
-  in (Let b' u' e₁' e₂') ↑ ope
-dbe .[] (Val v) = Val v ↑ Empty
+  let e₁' ↑ θ₁  = dbe _ e₁
+      e₂' ↑ θ₂  = dbe _ e₂
+      b'  ↑ θ₂' = cover-Bind (θ₂ ₒ o-Bind live)
+      u'  ↑ θ   = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂' ₒ o-Union₂ u)
+  in (Let b' u' e₁' e₂') ↑ θ
+dbe .[] (Val v) = Val v ↑ oz
 dbe Γ (Plus u e₁ e₂) =
-  let e₁' ↑ ope₁ = dbe _ e₁
-      e₂' ↑ ope₂ = dbe _ e₂
-      u'  ↑ ope  = cover-Union (ope-trans ope₁ (ope-Union₁ u)) (ope-trans ope₂ (ope-Union₂ u))
-  in Plus u' e₁' e₂' ↑ ope
+  let e₁' ↑ θ₁ = dbe _ e₁
+      e₂' ↑ θ₂ = dbe _ e₂
+      u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+  in Plus u' e₁' e₂' ↑ θ
 
 -- TODO: iterate!
 -- TODO: prove semantics-preserving

@@ -14,36 +14,36 @@ open import LangCdB
 open import OPE
 
 let-? : ∀ {σ τ Γ₁ Γ₂ Γ Γ₂'} → Bind σ Γ₂ Γ₂' → Union Γ₁ Γ₂' Γ → Expr σ Γ₁ → Expr τ Γ₂ → Expr τ ⇑ Γ
-let-? dead u e₁ e₂ = e₂ ↑ (ope-Union₂ u)
-let-? live u e₁ e₂ = Let live u e₁ e₂ ↑ ope-id _
+let-? dead u e₁ e₂ = e₂ ↑ (o-Union₂ u)
+let-? live u e₁ e₂ = Let live u e₁ e₂ ↑ oi
 
 -- Also remove bindings that are tagged live in the input Expr,
 -- but where the body is revealed to not use the top variable after the recursive call.
-dbe : (Γ : Ctx) → Expr τ Γ → Expr τ ⇑ Γ
-dbe {τ} .(τ ∷ []) Var =
-  Var ↑ Keep τ Empty
-dbe Γ (App u e₁ e₂) =
-  let e₁' ↑ ope₁ = dbe _ e₁
-      e₂' ↑ ope₂ = dbe _ e₂
-      u'  ↑ ope  = cover-Union (ope-trans ope₁ (ope-Union₁ u)) (ope-trans ope₂ (ope-Union₂ u))
-  in App u' e₁' e₂' ↑ ope
-dbe Γ (Lam {σ} b e) =
-  let e' ↑ ope' = dbe _ e
-      b' ↑ ope  = cover-Bind (ope-trans ope' (ope-Bind b))
-  in Lam b' e' ↑ ope
-dbe Γ (Let {σ} b u e₁ e₂) =
-  let e₁' ↑ ope₁  = dbe _ e₁
-      e₂' ↑ ope₂  = dbe _ e₂
-      b'  ↑ ope₂' = cover-Bind (ope-trans ope₂ (ope-Bind b))
-      u'  ↑ ope   = cover-Union (ope-trans ope₁ (ope-Union₁ u)) (ope-trans ope₂' (ope-Union₂ u))
-      e'  ↑ ope-? = let-? b' u' e₁' e₂'
-  in e' ↑ (ope-trans ope-? ope)
-dbe .[] (Val v) = Val v ↑ Empty
-dbe Γ (Plus u e₁ e₂) =
-  let e₁' ↑ ope₁ = dbe _ e₁
-      e₂' ↑ ope₂ = dbe _ e₂
-      u'  ↑ ope  = cover-Union (ope-trans ope₁ (ope-Union₁ u)) (ope-trans ope₂ (ope-Union₂ u))
-  in Plus u' e₁' e₂' ↑ ope
+dbe : Expr τ Γ → Expr τ ⇑ Γ
+dbe Var =
+  Var ↑ oz os
+dbe (App u e₁ e₂) =
+  let e₁' ↑ θ₁ = dbe e₁
+      e₂' ↑ θ₂ = dbe e₂
+      u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+  in App u' e₁' e₂' ↑ θ
+dbe (Lam b e) =
+  let e' ↑ θ' = dbe e
+      b' ↑ θ  = cover-Bind (θ' ₒ o-Bind b)
+  in Lam b' e' ↑ θ
+dbe (Let {σ} b u e₁ e₂) =
+  let e₁' ↑ θ₁  = dbe e₁
+      e₂' ↑ θ₂  = dbe e₂
+      b'  ↑ θ₂' = cover-Bind (θ₂ ₒ o-Bind b)
+      u'  ↑ θ   = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂' ₒ o-Union₂ u)  -- TODO: can this be simplified?
+      e'  ↑ θ?  = let-? b' u' e₁' e₂'
+  in e' ↑ (θ? ₒ θ)
+dbe (Val v) = Val v ↑ oz
+dbe (Plus u e₁ e₂) =
+  let e₁' ↑ θ₁ = dbe e₁
+      e₂' ↑ θ₂ = dbe e₂
+      u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+  in Plus u' e₁' e₂' ↑ θ
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 -- TODO: prove semantics preserving!

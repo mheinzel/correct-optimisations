@@ -1,41 +1,62 @@
+-- Trying shorter notation, as in Conor's paper
 module OPE where
 
 open import Data.List using (_∷_ ; [])
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 
 open import Lang
 
-data OPE : Ctx → Ctx → Set where
-  Empty : OPE [] []
-  Drop : {Γ' Γ : Ctx} (τ : U) → OPE Γ' Γ → OPE Γ' (τ ∷ Γ)
-  Keep : {Γ' Γ : Ctx} (τ : U) → OPE Γ' Γ → OPE (τ ∷ Γ') (τ ∷ Γ)
+infix 21 _o'
+infix 21 _os
 
-ope-id : (Γ : Ctx) → OPE Γ Γ
-ope-id [] = Empty
-ope-id (x ∷ Γ) = Keep x (ope-id Γ)
+data _⊑_ : Ctx → Ctx → Set where
+  _o' : {Γ₁ Γ₂ : Ctx} → Γ₁ ⊑ Γ₂ →      Γ₁  ⊑ (τ ∷ Γ₂)
+  _os : {Γ₁ Γ₂ : Ctx} → Γ₁ ⊑ Γ₂ → (τ ∷ Γ₁) ⊑ (τ ∷ Γ₂)
+  oz  : [] ⊑ []
 
-ope-! : (Γ : Ctx) → OPE [] Γ
-ope-! [] = Empty
-ope-! (τ ∷ Γ) = Drop τ (ope-! Γ)
+-- θ ϕ ψ
 
-ope-trans : ∀ {Γ₁ Γ₂ Γ₃} → OPE Γ₁ Γ₂ → OPE Γ₂ Γ₃ → OPE Γ₁ Γ₃
-ope-trans Empty b = b
-ope-trans a (Drop τ b) = Drop τ (ope-trans a b)
-ope-trans (Drop .τ a) (Keep τ b) = Drop τ (ope-trans a b)
-ope-trans (Keep .τ a) (Keep τ b) = Keep τ (ope-trans a b)
+oi : Γ ⊑ Γ
+oi {[]} = oz
+oi {x ∷ Γ} = oi os
+
+-- [] is an initial object.
+oe : {Γ : Ctx} → [] ⊑ Γ
+oe {[]} = oz
+oe {τ ∷ Γ} = oe o'
+
+infixr 19 _ₒ_
+
+_ₒ_ : ∀ {Γ₁ Γ₂ Γ₃} → Γ₁ ⊑ Γ₂ → Γ₂ ⊑ Γ₃ → Γ₁ ⊑ Γ₃
+θ    ₒ ϕ o' = (θ ₒ ϕ) o'
+θ o' ₒ ϕ os = (θ ₒ ϕ) o'
+θ os ₒ ϕ os = (θ ₒ ϕ) os
+oz   ₒ oz   = oz
+
+law-ₒoi : ∀ {Γ₁ Γ₂} → (θ : Γ₁ ⊑ Γ₂) → θ ₒ oi ≡ θ
+law-ₒoi oz     = refl
+law-ₒoi (θ o') = cong (_o') (law-ₒoi θ)
+law-ₒoi (θ os) = cong (_os) (law-ₒoi θ)
+
+law-oiₒ : ∀ {Γ₁ Γ₂} → (θ : Γ₁ ⊑ Γ₂) → oi ₒ θ ≡ θ
+law-oiₒ oz     = refl
+law-oiₒ (θ o') = cong (_o') (law-oiₒ θ)
+law-oiₒ (θ os) = cong (_os) (law-oiₒ θ)
 
 -- OPEs from a singleton Ctx are isomorphic to Ref.
-ope-Ref : Ref σ Γ → OPE (σ ∷ []) Γ
-ope-Ref Top = Keep _ (ope-! _)
-ope-Ref (Pop x) = Drop _ (ope-Ref x)
+o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
+o-Ref Top     = oe os
+o-Ref (Pop x) = (o-Ref x) o'
 
-ref-OPE : OPE (σ ∷ []) Γ → Ref σ Γ
-ref-OPE (Drop τ ope) = Pop (ref-OPE ope)
-ref-OPE (Keep _ ope) = Top
+ref-o : (τ ∷ []) ⊑ Γ → Ref τ Γ
+ref-o (θ o') = Pop (ref-o θ)
+ref-o (θ os) = Top
 
-project-Env : ∀ {Γ' Γ} → OPE Γ' Γ → Env Γ → Env Γ'
-project-Env Empty env = env
-project-Env (Keep τ ope) (Cons v env) = Cons v (project-Env ope env)
-project-Env (Drop τ ope) (Cons v env) = project-Env ope env
+project-Env : ∀ {Γ₁ Γ₂} → Γ₁ ⊑ Γ₂ → Env Γ₂ → Env Γ₁
+project-Env oz     env          = env
+project-Env (θ os) (Cons v env) = Cons v (project-Env θ env)
+project-Env (θ o') (Cons v env) = project-Env θ env
+
 
 -- THINGS WITH OPEs
 
@@ -47,4 +68,11 @@ record _⇑_ (T : Scoped) (scope : Ctx) : Set where
   field
     {support} : Ctx
     thing : T support
-    ope : OPE support scope
+    thinning : support ⊑ scope
+
+-- Arrow with a dot above in Conor's notation.
+_→F_ : Scoped → Scoped → Set
+S →F T = ∀ {i} → S i → T i
+
+map⇑ : {S T : Scoped} → (S →F T) → ((S ⇑_) →F (T ⇑_))
+map⇑ f (s ↑ θ) = f s ↑ θ

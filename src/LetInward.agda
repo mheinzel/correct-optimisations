@@ -20,42 +20,42 @@ open import Live
 -- Working with plain OPEs here instead of SubCtx.
 -- Let's keep it separate for now and later look for ways to unify.
 
-weaken-Ref : {Γ' Γ : Ctx} (ope : OPE Γ' Γ) → Ref σ Γ' → Ref σ Γ
-weaken-Ref (Keep τ ope) Top = Top
-weaken-Ref (Keep τ ope) (Pop x) = Pop (weaken-Ref ope x)
-weaken-Ref (Drop τ ope) x = Pop (weaken-Ref ope x)
+weaken-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ' → Ref σ Γ
+weaken-Ref (θ os) Top = Top
+weaken-Ref (θ os) (Pop x) = Pop (weaken-Ref θ x)
+weaken-Ref (θ o') x = Pop (weaken-Ref θ x)
 
-weaken : {Γ' Γ : Ctx} (ope : OPE Γ' Γ) → Expr Γ' τ → Expr Γ τ
-weaken ope (Var x) = Var (weaken-Ref ope x)
-weaken ope (App e₁ e₂) = App (weaken ope e₁) (weaken ope e₂)
-weaken ope (Lam e) = Lam (weaken (Keep _ ope) e)
-weaken ope (Let e₁ e₂) = Let (weaken ope e₁) (weaken (Keep _ ope) e₂)
-weaken ope (Val x) = Val x
-weaken ope (Plus e₁ e₂) = Plus (weaken ope e₁) (weaken ope e₂)
+weaken : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr Γ' τ → Expr Γ τ
+weaken θ (Var x) = Var (weaken-Ref θ x)
+weaken θ (App e₁ e₂) = App (weaken θ e₁) (weaken θ e₂)
+weaken θ (Lam e) = Lam (weaken (θ os) e)
+weaken θ (Let e₁ e₂) = Let (weaken θ e₁) (weaken (θ os) e₂)
+weaken θ (Val x) = Val x
+weaken θ (Plus e₁ e₂) = Plus (weaken θ e₁) (weaken θ e₂)
   
-strengthen-Ref : {Γ' Γ : Ctx} (ope : OPE Γ' Γ) → Ref σ Γ → ⊤ ⊎ Ref σ Γ'
-strengthen-Ref (Keep τ ope) Top = inj₂ Top
-strengthen-Ref (Keep τ ope) (Pop x) with strengthen-Ref ope x
+strengthen-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ → ⊤ ⊎ Ref σ Γ'
+strengthen-Ref (θ os) Top = inj₂ Top
+strengthen-Ref (θ os) (Pop x) with strengthen-Ref θ x
 ... | inj₁ tt = inj₁ tt
 ... | inj₂ x' = inj₂ (Pop x')
-strengthen-Ref (Drop τ ope) Top = inj₁ tt -- ref became invalid by strengthening
-strengthen-Ref (Drop τ ope) (Pop x) = strengthen-Ref ope x
+strengthen-Ref (θ o') Top = inj₁ tt -- ref became invalid by strengthening
+strengthen-Ref (θ o') (Pop x) = strengthen-Ref θ x
 
-strengthen : {Γ' Γ : Ctx} (ope : OPE Γ' Γ) → Expr Γ τ → ⊤ ⊎ Expr Γ' τ
-strengthen ope (Var x) with strengthen-Ref ope x
+strengthen : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr Γ τ → ⊤ ⊎ Expr Γ' τ
+strengthen θ (Var x) with strengthen-Ref θ x
 ... | inj₁ tt = inj₁ tt
 ... | inj₂ x' = inj₂ (Var x') 
-strengthen ope (App e₁ e₂) with strengthen ope e₁ | strengthen ope e₂
+strengthen θ (App e₁ e₂) with strengthen θ e₁ | strengthen θ e₂
 ... | inj₂ e₁' | inj₂ e₂' = inj₂ (App e₁' e₂')
 ... | _        | _        = inj₁ tt
-strengthen ope (Lam {σ = σ} e) with strengthen (Keep σ ope) e
+strengthen θ (Lam {σ = σ} e) with strengthen (θ os) e
 ... | inj₂ e' = inj₂ (Lam e')
 ... | inj₁ tt = inj₁ tt
-strengthen ope (Let {σ = σ} e₁ e₂) with strengthen ope e₁ | strengthen (Keep σ ope) e₂
+strengthen θ (Let {σ = σ} e₁ e₂) with strengthen θ e₁ | strengthen (θ os) e₂
 ... | inj₂ e₁' | inj₂ e₂' = inj₂ (Let e₁' e₂')
 ... | _        | _        = inj₁ tt
-strengthen ope (Val x) = inj₂ (Val x)
-strengthen ope (Plus e₁ e₂) with strengthen ope e₁ | strengthen ope e₂
+strengthen θ (Val x) = inj₂ (Val x)
+strengthen θ (Plus e₁ e₂) with strengthen θ e₁ | strengthen θ e₂
 ... | inj₂ e₁' | inj₂ e₂' = inj₂ (Plus e₁' e₂')
 ... | _        | _        = inj₁ tt
 
@@ -63,15 +63,15 @@ pop-at : (Γ : Ctx) → Ref τ Γ → Ctx
 pop-at (σ ∷ Γ) Top = Γ
 pop-at (σ ∷ Γ) (Pop i) = σ ∷ pop-at Γ i
 
-ope-pop-at : (Γ : Ctx) → (i : Ref τ Γ) → OPE (pop-at Γ i) Γ
-ope-pop-at (σ ∷ Γ) Top = Drop σ (ope-id Γ)
-ope-pop-at (σ ∷ Γ) (Pop i) = Keep σ (ope-pop-at Γ i)
+o-pop-at : (i : Ref τ Γ) → pop-at Γ i ⊑ Γ
+o-pop-at Top = oi o'
+o-pop-at (Pop i) = (o-pop-at i) os
 
 strengthen-pop-at : (i : Ref σ Γ) → Expr Γ τ → ⊤ ⊎ Expr (pop-at Γ i) τ
-strengthen-pop-at i = strengthen (ope-pop-at _ i)
+strengthen-pop-at i = strengthen (o-pop-at i)
 
 strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr (σ' ∷ Γ) τ → ⊤ ⊎ Expr (σ' ∷ pop-at Γ i) τ
-strengthen-keep-pop-at i = strengthen (Keep _ (ope-pop-at _ i))
+strengthen-keep-pop-at i = strengthen ((o-pop-at i) os)
 
 -- NOTE: The following code feels like it requires more different operations than it should.
 -- But it's kind of expected: We are dealing with ordering preserving embeddings, but reordering the bindings.
@@ -113,7 +113,7 @@ push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't p
 push-let i decl (Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
 ... | inj₁ tt  | inj₁ tt  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
 ... | inj₁ tt  | inj₂ e₂' = Let (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (Drop _ (ope-id _)) decl) e₂)  -- going under the binder here
+... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
 ... | inj₂ e₁' | inj₂ e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
 push-let i decl (Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂

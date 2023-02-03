@@ -27,16 +27,18 @@ rename-top Γ' i e = {!!}
 -- push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
 
 push-let : {Γ₁ Γ₂ Γ : Ctx} (i : Ref σ Γ₂) → Expr σ Γ₁ → Expr τ Γ₂ → Union Γ₁ (pop-at Γ₂ i) Γ → Expr τ Γ
-push-let Top decl Var U with union-Γ₁-[] U
+push-let Top decl Var U with law-Union-Γ₁[] U
 ... | refl = decl
 push-let i decl (App u e₁ e₂) U = {!!}
 push-let i decl (Lam b e) U =
   Let live U decl (rename-top [] i (Lam b e))
 push-let i decl (Let b u e₁ e₂) U = {!!}
 push-let i decl (Plus u e₁ e₂) U =
-  let ope₁ = ope-Union₁ u
-      ope₂ = ope-Union₂ u
+  let ope₁ = o-Union₁ u
+      ope₂ = o-Union₂ u
   in {!!}
+
+-- TODO: continue
 
 {-
 push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
@@ -51,7 +53,7 @@ push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't p
 push-let i decl (Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
 ... | inj₁ tt  | inj₁ tt  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
 ... | inj₁ tt  | inj₂ e₂' = Let (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (Drop _ (ope-id _)) decl) e₂)  -- going under the binder here
+... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
 ... | inj₂ e₁' | inj₂ e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
 push-let i decl (Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂

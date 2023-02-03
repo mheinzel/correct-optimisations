@@ -19,30 +19,30 @@ data Union : (Γ₁ Γ₂ Γ : Ctx) → Set where
   right  : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union      Γ₁  (τ ∷ Γ₂) (τ ∷ Γ)
   both   : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union (τ ∷ Γ₁) (τ ∷ Γ₂) (τ ∷ Γ)
 
-ope-Union₁ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → OPE Γ₁ Γ
-ope-Union₁ done = Empty
-ope-Union₁ (left u) = Keep _ (ope-Union₁ u)
-ope-Union₁ (right u) = Drop _ (ope-Union₁ u)
-ope-Union₁ (both u) = Keep _ (ope-Union₁ u)
+o-Union₁ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Γ₁ ⊑ Γ
+o-Union₁ done      = oz
+o-Union₁ (left u)  = (o-Union₁ u) os
+o-Union₁ (right u) = (o-Union₁ u) o'
+o-Union₁ (both u)  = (o-Union₁ u) os
 
-ope-Union₂ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → OPE Γ₂ Γ
-ope-Union₂ done = Empty
-ope-Union₂ (left u) = Drop _ (ope-Union₂ u)
-ope-Union₂ (right u) = Keep _ (ope-Union₂ u)
-ope-Union₂ (both u) = Keep _ (ope-Union₂ u)
+o-Union₂ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Γ₂ ⊑ Γ
+o-Union₂ done      = oz
+o-Union₂ (left u)  = (o-Union₂ u) o'
+o-Union₂ (right u) = (o-Union₂ u) os
+o-Union₂ (both u)  = (o-Union₂ u) os
 
-union-Γ₁-[] : ∀ {Γ₁ Γ} → Union Γ₁ [] Γ → Γ₁ ≡ Γ
-union-Γ₁-[] done = refl
-union-Γ₁-[] (left {τ} u) = cong (τ ∷_) (union-Γ₁-[] u)
+law-Union-Γ₁[] : ∀ {Γ₁ Γ} → Union Γ₁ [] Γ → Γ₁ ≡ Γ
+law-Union-Γ₁[] done = refl
+law-Union-Γ₁[] (left {τ} u) = cong (τ ∷_) (law-Union-Γ₁[] u)
 
 -- Another kind of "cover", a bit like `pop` for SubCtx
 data Bind (τ : U) : Ctx → Ctx → Set where
   dead : Bind τ Γ Γ
   live : Bind τ (τ ∷ Γ) Γ
 
-ope-Bind : ∀ {Γ Γ'} → Bind σ Γ Γ' → OPE Γ (σ ∷ Γ')
-ope-Bind {σ} {Γ} {Γ'} dead = Drop σ (ope-id Γ')
-ope-Bind {σ} {Γ} {Γ'} live = Keep σ (ope-id Γ')
+o-Bind : ∀ {Γ Γ'} → Bind σ Γ Γ' → Γ ⊑ (σ ∷ Γ')
+o-Bind {σ} {Γ} {Γ'} dead = oi o'
+o-Bind {σ} {Γ} {Γ'} live = oi os
 
 data Expr : (σ : U) (Γ : Ctx) → Set where
   Var :
@@ -77,39 +77,39 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
     (e₂ : Expr NAT Γ₂) →
     Expr NAT Γ
 
-eval : ∀ {Γ' Γ} → Expr τ Γ' → OPE Γ' Γ → Env Γ → ⟦ τ ⟧
-eval Var ope env =
-  lookup Top (project-Env ope env)
-eval (App u e₁ e₂) ope env =
-  eval e₁ (ope-trans (ope-Union₁ u) ope) env
-    (eval e₂ (ope-trans (ope-Union₂ u) ope) env)
-eval (Lam {σ} b e) ope env =
-  λ v → eval e (ope-trans (ope-Bind b) (Keep σ ope)) (Cons v env)
-eval (Let b u e₁ e₂) ope env =
-  eval e₂ (ope-trans (ope-Bind b) (Keep _ (ope-trans (ope-Union₂ u) ope)))
-    (Cons (eval e₁ (ope-trans (ope-Union₁ u) ope) env) env)
-eval (Val v) ope env = v
-eval (Plus u e₁ e₂) ope env =
-    eval e₁ (ope-trans (ope-Union₁ u) ope) env
-  + eval e₂ (ope-trans (ope-Union₂ u) ope) env
+eval : ∀ {Γ' Γ} → Expr τ Γ' → Γ' ⊑ Γ → Env Γ → ⟦ τ ⟧
+eval Var ϕ env =
+  lookup Top (project-Env ϕ env)
+eval (App u e₁ e₂) ϕ env =
+  eval e₁ (o-Union₁ u ₒ ϕ) env
+    (eval e₂ (o-Union₂ u ₒ ϕ) env)
+eval (Lam {σ} b e) ϕ env =
+  λ v → eval e (o-Bind b ₒ ϕ os) (Cons v env)
+eval (Let b u e₁ e₂) ϕ env =
+  eval e₂ (o-Bind b ₒ (o-Union₂ u ₒ ϕ) os)
+    (Cons (eval e₁ (o-Union₁ u ₒ ϕ) env) env)
+eval (Val v) ϕ env = v
+eval (Plus u e₁ e₂) ϕ env =
+    eval e₁ (o-Union₁ u ₒ ϕ) env
+  + eval e₂ (o-Union₂ u ₒ ϕ) env
 
 -- CONVERSION
 
-cover-Union : ∀ {Γ₁ Γ₂ Γ} → OPE Γ₁ Γ → OPE Γ₂ Γ → Union Γ₁ Γ₂ ⇑ Γ
-cover-Union Empty Empty = done ↑ Empty
-cover-Union (Drop τ ope₁) (Drop .τ ope₂) = let c ↑ ope = cover-Union ope₁ ope₂ in       c ↑ Drop τ ope
-cover-Union (Drop τ ope₁) (Keep .τ ope₂) = let c ↑ ope = cover-Union ope₁ ope₂ in right c ↑ Keep τ ope
-cover-Union (Keep τ ope₁) (Drop .τ ope₂) = let c ↑ ope = cover-Union ope₁ ope₂ in left  c ↑ Keep τ ope
-cover-Union (Keep τ ope₁) (Keep .τ ope₂) = let c ↑ ope = cover-Union ope₁ ope₂ in both  c ↑ Keep τ ope
+cover-Union : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Union Γ₁ Γ₂ ⇑ Γ
+cover-Union oz oz = done ↑ oz
+cover-Union (θ₁ o') (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in       c ↑ θ o'
+cover-Union (θ₁ o') (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in right c ↑ θ os
+cover-Union (θ₁ os) (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in left  c ↑ θ os
+cover-Union (θ₁ os) (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in both  c ↑ θ os
 
-cover-Bind : ∀ {Γ' Γ σ} → OPE Γ' (σ ∷ Γ) → Bind σ Γ' ⇑ Γ
-cover-Bind (Drop _ ope) = dead ↑ ope
-cover-Bind (Keep _ ope) = live ↑ ope
+cover-Bind : ∀ {Γ' Γ σ} → Γ' ⊑ (σ ∷ Γ) → Bind σ Γ' ⇑ Γ
+cover-Bind (θ o') = dead ↑ θ
+cover-Bind (θ os) = live ↑ θ
 
 -- decide which variables are used or not
 into : Lang.Expr Γ σ → Expr σ ⇑ Γ
 into (Var {σ} x) =
-  Var {σ} ↑ ope-Ref x
+  Var {σ} ↑ o-Ref x
 into (App e₁ e₂) =
   let e₁' ↑ ope₁ = into e₁
       e₂' ↑ ope₂ = into e₂
@@ -126,27 +126,27 @@ into (Let e₁ e₂) =
       u   ↑ ope   = cover-Union ope₁ ope₂'
   in Let b u e₁' e₂' ↑ ope
 into (Val v) =
-  (Val v) ↑ ope-! _
+  (Val v) ↑ oe
 into (Plus e₁ e₂) =
   let e₁' ↑ ope₁ = into e₁
       e₂' ↑ ope₂ = into e₂
       u   ↑ ope  = cover-Union ope₁ ope₂
   in Plus u e₁' e₂' ↑ ope
 
-from : ∀ {Γ' Γ σ} → OPE Γ' Γ → Expr σ Γ' → Lang.Expr Γ σ
+from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → Lang.Expr Γ σ
 from ope Var =
-  Var (ref-OPE ope)
+  Var (ref-o ope)
 from ope (App u e₁ e₂) =
-  App (from (ope-trans (ope-Union₁ u) ope) e₁) (from (ope-trans (ope-Union₂ u) ope) e₂)
+  App (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
 from ope (Lam b e) =
-  Lam (from (ope-trans (ope-Bind b) (Keep _ ope)) e)
+  Lam (from (o-Bind b ₒ ope os) e)
 from ope (Let b u e₁ e₂) =
   Let
-    (from (ope-trans (ope-Union₁ u) ope) e₁)
-    (from (ope-trans (ope-Bind b) (Keep _ (ope-trans (ope-Union₂ u) ope))) e₂)
+    (from (o-Union₁ u ₒ ope) e₁)
+    (from (o-Bind b ₒ (o-Union₂ u ₒ ope) os) e₂)
 from ope (Val v) =
   Val v
 from ope (Plus u e₁ e₂) =
-  Plus (from (ope-trans (ope-Union₁ u) ope) e₁) (from (ope-trans (ope-Union₂ u) ope) e₂)
+  Plus (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
 
 -- TODO: prove into/from semantics preserving!
