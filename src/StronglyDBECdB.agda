@@ -46,4 +46,34 @@ dbe (Plus u e₁ e₂) =
   in Plus u' e₁' e₂' ↑ θ
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
+
 -- TODO: prove semantics preserving!
+dbe-correct :
+  {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let e' ↑ θ' = dbe e
+  in eval e' (θ' ₒ θ) env ≡ eval e θ env
+dbe-correct Var env θ =
+  cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
+dbe-correct (App u e₁ e₂) env θ =
+  let
+      e₁' ↑ θ₁ = dbe e₁
+      e₂' ↑ θ₂ = dbe e₂
+      h₁ = dbe-correct e₁ env (o-Union₁ u ₒ θ)
+      h₂ = dbe-correct e₂ env (o-Union₂ u ₒ θ)
+      u' ↑ θ' = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+  in
+    eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
+      (eval e₂' (o-Union₂ u' ₒ θ' ₒ θ) env)
+  ≡⟨ {!!} ⟩  -- TODO: how cumbersome will this be?
+    eval e₁' (θ₁ ₒ o-Union₁ u ₒ θ) env
+      (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
+  ≡⟨ cong₂ (λ f x → f x) h₁ h₂ ⟩
+    eval e₁ (o-Union₁ u ₒ θ) env
+      (eval e₂ (o-Union₂ u ₒ θ) env)
+  ∎
+{-
+dbe-correct (Lam b e) env θ = {!!}
+dbe-correct (Let b u e₁ e₂) env θ = {!!}
+dbe-correct (Val v) env θ = {!!}
+dbe-correct (Plus u e₁ e₂) env θ = {!!}
+-}
