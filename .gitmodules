@@ -1,0 +1,3 @@
+[submodule "generic-syntax"]
+	path = generic-syntax
+	url = https://github.com/mheinzel/generic-syntax
