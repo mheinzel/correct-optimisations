@@ -1,17 +1,19 @@
--- Dead Binding Elimination (simple)
-module DBE where
+-- Dead Binding Elimination using strongly live variable analysis
+--
+-- Based on DBE.agda.
+module DeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Data.Sum
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang
-open import SubCtx
-open import Recursion
-open import Live
+open import Core
+open import DeBruijn.Lang
+open import DeBruijn.SubCtx
+open import DeBruijn.StronglyLive
 
 sing-ref : (Δ : SubCtx Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ sing Δ x ⌋
 sing-ref {[]} Empty ()
@@ -30,7 +32,7 @@ dbe (App {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) =
 dbe (Lam {Δ = Δ} {Δ₁ = Δ₁} e₁) =
   Lam (renameExpr Δ₁ (Keep (pop Δ₁)) (⊆-refl (pop Δ₁)) (dbe e₁))
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) =
-  injExpr₂ Δ₁ Δ₂ (dbe e₂)
+  dbe e₂
 dbe (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) =
   Let
     (injExpr₁ Δ₁ Δ₂ (dbe e₁))
@@ -70,13 +72,11 @@ dbe-correct (Lam {Δ₁ = Δ₁} e₁) Δᵤ env H =
       evalLive (Keep Δᵤ) e₁ (Cons v env) _
     ∎
 dbe-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ env H =
-    eval (renameExpr (Δ₁ ∪ Δ₂) Δᵤ _ (injExpr₂ Δ₁ Δ₂ (dbe e₂))) env
-  ≡⟨ cong (λ e → eval e env) (renameExpr-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H (dbe e₂)) ⟩
     eval (renameExpr Δ₂ Δᵤ _ (dbe e₂)) env
   ≡⟨ renameExpr-preserves Δ₂ Δᵤ _ (dbe e₂) env ⟩
-    eval (dbe e₂) (prjEnv Δ₂ Δᵤ _ env)
+     eval (dbe e₂) (prjEnv Δ₂ Δᵤ _ env)
   ≡⟨ sym (renameExpr-preserves (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂) env) ⟩
-    eval (renameExpr (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂)) env
+     eval (renameExpr (Drop Δ₂) (Drop Δᵤ) _ (dbe e₂)) env
   ≡⟨ dbe-correct e₂ (Drop Δᵤ) env _ ⟩
     evalLive (Drop Δᵤ) e₂ env _
   ∎
@@ -132,62 +132,10 @@ optimise-correct {Γ} Δ e env =
     eval e env
   ∎
 
-mutual
-  -- Keep optimising as long as the number of bindings decreases.
-  -- This is not structurally recursive, but we have a Well-Foundedness proof.
-  fix-optimise-wf : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → WF.Acc _<-bindings_ (Δ , e) →
-    Σ[ Δ' ∈ SubCtx Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
-  fix-optimise-wf {Γ} Δ e accu =
-    let Δ' , e' = optimise Δ e
-        H = Δ'⊆Δ (proj₂ (analyse Δ e))
-    in fix-optimise-wf-helper Δ Δ' e e' H accu
 
-  -- Without the helper, there were issues with the with-abstraction using a
-  -- result of the let-binding.
-  fix-optimise-wf-helper :
-    (Δ Δ' : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) →
-    (H' : Δ' ⊆ Δ) → WF.Acc _<-bindings_ (Δ , e) →
-    Σ[ Δ'' ∈ SubCtx Γ ] ((Δ'' ⊆ Δ) × Expr ⌊ Δ'' ⌋ σ)
-  fix-optimise-wf-helper Δ Δ' e e' H' (WF.acc g) with num-bindings e' <? num-bindings e
-  ... | inj₂ p = Δ' , (H' , e')
-  ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimise-wf Δ' e' (g (Δ' , e') p)
-                 in Δ'' , (⊆-trans Δ'' Δ' Δ H'' H') , e''
+module Iteration where
+  import DeBruijn.DeadBinding as DBE
 
-fix-optimise : (Δ : SubCtx Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ] ((Δ' ⊆ Δ) × Expr ⌊ Δ' ⌋ σ)
-fix-optimise {Γ} Δ e = fix-optimise-wf Δ e (<-bindings-wf (Δ , e))
-
-mutual
-  -- Not pretty, but it works.
-  fix-optimise-wf-correct : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) (accu : WF.Acc _<-bindings_ (Δ , e)) →
-    let Δ'' , (H'' , e'') = fix-optimise-wf Δ e accu
-    in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e env
-  fix-optimise-wf-correct Δ e env accu =
-    let Δ' , e' = optimise Δ e
-        H' = Δ'⊆Δ (proj₂ (analyse Δ e))
-        Δ'' , (H'' , e'') = fix-optimise-wf-helper Δ Δ' e e' H' accu
-    in eval e'' (prjEnv Δ'' Δ H'' env)
-     ≡⟨ fix-optimise-wf-helper-correct Δ Δ' e e' env H' accu ⟩
-       eval e' (prjEnv Δ' Δ H' env)
-     ≡⟨ optimise-correct Δ e env ⟩
-       eval e env
-     ∎
-
-  fix-optimise-wf-helper-correct :
-    (Δ Δ' : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (e' : Expr ⌊ Δ' ⌋ σ) (env : Env ⌊ Δ ⌋) →
-    (H' : Δ' ⊆ Δ) (accu : WF.Acc _<-bindings_ (Δ , e)) →
-    let Δ'' , (H'' , e'') = fix-optimise-wf-helper Δ Δ' e e' H' accu
-    in eval e'' (prjEnv Δ'' Δ H'' env) ≡ eval e' (prjEnv Δ' Δ H' env)
-  fix-optimise-wf-helper-correct Δ Δ' e e' env H' (WF.acc g) with num-bindings e' <? num-bindings e
-  ... | inj₂ p = refl
-  ... | inj₁ p = let Δ'' , (H'' , e'') = fix-optimise-wf Δ' e' (g (Δ' , e') p)
-                 in eval e'' (prjEnv Δ'' Δ (⊆-trans Δ'' Δ' Δ H'' H') env)
-                  ≡⟨ cong (eval e'') (sym (prjEnv-trans Δ'' Δ' Δ H'' H' env)) ⟩
-                    eval e'' (prjEnv Δ'' Δ' H'' (prjEnv Δ' Δ H' env))
-                  ≡⟨ fix-optimise-wf-correct Δ' e' (prjEnv Δ' Δ H' env) (g (Δ' , e') p) ⟩
-                    eval e' (prjEnv Δ' Δ H' env)
-                  ∎
-
-fix-optimise-correct : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
-  let Δ' , (H' , e') = fix-optimise Δ e
-  in eval e' (prjEnv Δ' Δ H' env) ≡ eval e env
-fix-optimise-correct Δ e env = fix-optimise-wf-correct Δ e env (<-bindings-wf (Δ , e))
+  -- TODO: how feasible is this?
+  optimise-converges : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → DBE.optimise Δ e ≡ optimise Δ e
+  optimise-converges Δ e = {!!}

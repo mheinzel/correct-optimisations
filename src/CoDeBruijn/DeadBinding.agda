@@ -1,6 +1,6 @@
 -- Dead binding elimination,
 -- Using co-de-Bruijn representation.
-module DBECdB where
+module CoDeBruijn.DeadBinding where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -8,9 +8,8 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang hiding (Expr ; eval)
-import Lang
-open import LangCdB
+open import Core
+open import CoDeBruijn.Lang
 open import OPE
 
 -- Only remove directly dead bindings.

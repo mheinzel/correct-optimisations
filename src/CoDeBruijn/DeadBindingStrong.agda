@@ -1,6 +1,6 @@
 -- Dead binding elimination, but in a single pass (equivalent to strongly live variable analysis)
 -- Using co-de-Bruijn representation.
-module StronglyDBECdB where
+module CoDeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -8,9 +8,8 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang hiding (Expr ; eval)
-import Lang
-open import LangCdB
+open import Core
+open import CoDeBruijn.Lang
 open import OPE
 
 let-? : ∀ {σ τ Γ₁ Γ₂ Γ Γ₂'} → Bind σ Γ₂ Γ₂' → Union Γ₁ Γ₂' Γ → Expr σ Γ₁ → Expr τ Γ₂ → Expr τ ⇑ Γ

@@ -1,5 +1,5 @@
 -- Live variable analysis
-module Live where
+module DeBruijn.Live where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -7,8 +7,9 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang
-open import SubCtx
+open import Core
+open import DeBruijn.Lang
+open import DeBruijn.SubCtx
 
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
 -- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?

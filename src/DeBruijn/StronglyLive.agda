@@ -1,7 +1,7 @@
 -- Strongly Live variable analysis
 --
 -- Based on Live.agda.
-module StronglyLive where
+module DeBruijn.StronglyLive where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -9,8 +9,9 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang
-open import SubCtx
+open import Core
+open import DeBruijn.Lang
+open import DeBruijn.SubCtx
 
 -- Free variables from declaration of a binding are only live, if the body uses the binding.
 combine : SubCtx Γ → SubCtx (σ ∷ Γ) → SubCtx Γ

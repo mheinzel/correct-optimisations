@@ -1,5 +1,5 @@
 -- using co-de-Bruijn representation
-module LangCdB where
+module CoDeBruijn.Lang where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -7,10 +7,9 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang hiding (Expr ; eval)
-import Lang
+open import Core
+import DeBruijn.Lang as DeBruijn
 open import OPE
-open import SubCtx
 
 -- aka Cover
 data Union : (Γ₁ Γ₂ Γ : Ctx) → Set where
@@ -107,46 +106,46 @@ cover-Bind (θ o') = dead ↑ θ
 cover-Bind (θ os) = live ↑ θ
 
 -- decide which variables are used or not
-into : Lang.Expr Γ σ → Expr σ ⇑ Γ
-into (Var {σ} x) =
+into : DeBruijn.Expr Γ σ → Expr σ ⇑ Γ
+into (DeBruijn.Var {σ} x) =
   Var {σ} ↑ o-Ref x
-into (App e₁ e₂) =
+into (DeBruijn.App e₁ e₂) =
   let e₁' ↑ ope₁ = into e₁
       e₂' ↑ ope₂ = into e₂
       u   ↑ ope  = cover-Union ope₁ ope₂
   in App u e₁' e₂' ↑ ope
-into (Lam e) =
+into (DeBruijn.Lam e) =
   let e' ↑ ope' = into e
       b  ↑ ope  = cover-Bind ope'
   in Lam b e' ↑ ope
-into (Let e₁ e₂) =
+into (DeBruijn.Let e₁ e₂) =
   let e₁' ↑ ope₁  = into e₁
       e₂' ↑ ope₂  = into e₂
       b   ↑ ope₂' = cover-Bind ope₂
       u   ↑ ope   = cover-Union ope₁ ope₂'
   in Let b u e₁' e₂' ↑ ope
-into (Val v) =
+into (DeBruijn.Val v) =
   (Val v) ↑ oe
-into (Plus e₁ e₂) =
+into (DeBruijn.Plus e₁ e₂) =
   let e₁' ↑ ope₁ = into e₁
       e₂' ↑ ope₂ = into e₂
       u   ↑ ope  = cover-Union ope₁ ope₂
   in Plus u e₁' e₂' ↑ ope
 
-from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → Lang.Expr Γ σ
+from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr Γ σ
 from ope Var =
-  Var (ref-o ope)
+  DeBruijn.Var (ref-o ope)
 from ope (App u e₁ e₂) =
-  App (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
+  DeBruijn.App (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
 from ope (Lam b e) =
-  Lam (from (o-Bind b ₒ ope os) e)
+  DeBruijn.Lam (from (o-Bind b ₒ ope os) e)
 from ope (Let b u e₁ e₂) =
-  Let
+  DeBruijn.Let
     (from (o-Union₁ u ₒ ope) e₁)
     (from (o-Bind b ₒ (o-Union₂ u ₒ ope) os) e₂)
 from ope (Val v) =
-  Val v
+  DeBruijn.Val v
 from ope (Plus u e₁ e₂) =
-  Plus (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
+  DeBruijn.Plus (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
 
 -- TODO: prove into/from semantics preserving!

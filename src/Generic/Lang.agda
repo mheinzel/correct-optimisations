@@ -1,6 +1,6 @@
 {-# OPTIONS --sized-types #-}
 
-module LangGeneric where
+module Generic.Lang where
 
 open import Data.Product
 open import Data.Nat using (_+_)
@@ -13,8 +13,9 @@ open import Generic.Syntax
 open import Generic.Semantics
 open import Data.Environment
 open import Data.Var
-open import Lang using (U; _⇒_; NAT; ⟦_⟧; Ctx)
-import Lang
+
+open import Core
+import DeBruijn.Lang as DeBruijn
 
 data `Lang : Set where
   `App  : U → U → `Lang
@@ -28,7 +29,7 @@ Lang = `σ `Lang $ λ where
   (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
   (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
   (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
-  (`Val τ)   → `σ Lang.⟦ τ ⟧ λ _ → `∎ τ
+  (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
   `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
 
 pattern App  e₁ e₂  = `App _ _ , e₁ , e₂ , refl
@@ -40,22 +41,22 @@ pattern Plus e₁ e₂  = `Plus    , e₁ , e₂ , refl
 Expr : U ─Scoped
 Expr = Tm Lang ∞
 
-into-Var : ∀ {Γ τ} → Lang.Ref τ Γ → Var τ Γ
-into-Var Lang.Top = z
-into-Var (Lang.Pop x) = s (into-Var x)
+into-Var : ∀ {Γ τ} → Ref τ Γ → Var τ Γ
+into-Var Top = z
+into-Var (Pop x) = s (into-Var x)
 
 -- Just to check that this is the same as our original language.
-into : ∀ {Γ τ} → Lang.Expr Γ τ → Expr τ Γ
-into (Lang.Var x)      = `var (into-Var x)
-into (Lang.App e₁ e₂)  = `con (App (into e₁) (into e₂))
-into (Lang.Lam e)      = `con (Lam (into e))
-into (Lang.Let e₁ e₂)  = `con (Let (into e₁) (into e₂))
-into (Lang.Val v)      = `con (Val v)
-into (Lang.Plus e₁ e₂) = `con (Plus (into e₁) (into e₂))
+into : ∀ {Γ τ} → DeBruijn.Expr Γ τ → Expr τ Γ
+into (DeBruijn.Var x)      = `var (into-Var x)
+into (DeBruijn.App e₁ e₂)  = `con (App (into e₁) (into e₂))
+into (DeBruijn.Lam e)      = `con (Lam (into e))
+into (DeBruijn.Let e₁ e₂)  = `con (Let (into e₁) (into e₂))
+into (DeBruijn.Val v)      = `con (Val v)
+into (DeBruijn.Plus e₁ e₂) = `con (Plus (into e₁) (into e₂))
 
 
 Value : U ─Scoped
-Value τ Γ = Lang.⟦ τ ⟧
+Value τ Γ = Core.⟦ τ ⟧
 
 th^Value : ∀ {τ} → Thinnable (Value τ)
 th^Value v = λ _ → v
@@ -73,23 +74,23 @@ Semantics.alg Eval = λ where
 eval : ∀ {Γ Γ' σ s} → (Γ ─Env) Value Γ' → Tm Lang s σ Γ → Value σ Γ'
 eval env t = Semantics.semantics Eval env t
 
-LangExpr : U ─Scoped
-LangExpr τ Γ = Lang.Expr Γ τ  -- grrr
+DeBruijnExpr : U ─Scoped
+DeBruijnExpr τ Γ = DeBruijn.Expr Γ τ  -- grrr
 
-Ref-Var : ∀ {σ Γ} → Var σ Γ → Lang.Ref σ Γ
-Ref-Var z = Lang.Top
-Ref-Var (s x) = Lang.Pop (Ref-Var x)
+Ref-Var : ∀ {σ Γ} → Var σ Γ → Ref σ Γ
+Ref-Var z = Top
+Ref-Var (s x) = Pop (Ref-Var x)
 
 -- Could also use Ref instead of Var, but then we'd need th^Ref
-From : Semantics Lang Var LangExpr
+From : Semantics Lang Var DeBruijnExpr
 Semantics.th^𝓥 From = th^Var
-Semantics.var From = Lang.Var ∘ Ref-Var
+Semantics.var From = DeBruijn.Var ∘ Ref-Var
 Semantics.alg From = λ where
-  (App e₁ e₂)  → Lang.App e₁ e₂
-  (Lam e)      → Lang.Lam (e (pack s) (ε ∙ z))
-  (Let e₁ e₂)  → Lang.Let e₁ (e₂ (pack s) (ε ∙ z))
-  (Val v)      → Lang.Val v
-  (Plus e₁ e₂) → Lang.Plus e₁ e₂
+  (App e₁ e₂)  → DeBruijn.App e₁ e₂
+  (Lam e)      → DeBruijn.Lam (e (pack s) (ε ∙ z))
+  (Let e₁ e₂)  → DeBruijn.Let e₁ (e₂ (pack s) (ε ∙ z))
+  (Val v)      → DeBruijn.Val v
+  (Plus e₁ e₂) → DeBruijn.Plus e₁ e₂
 
-from : ∀ {Γ Γ' σ s} → (Γ ─Env) Var Γ' → Tm Lang s σ Γ → Lang.Expr Γ' σ
+from : ∀ {Γ Γ' σ s} → (Γ ─Env) Var Γ' → Tm Lang s σ Γ → DeBruijn.Expr Γ' σ
 from env t = Semantics.semantics From env t

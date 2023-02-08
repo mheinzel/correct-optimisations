@@ -5,9 +5,10 @@ open import Data.Nat renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
-open import Lang
-open import SubCtx
-open import DBE
+open import Core
+open import DeBruijn.Lang
+open import DeBruijn.SubCtx
+open import DeBruijn.DeadBinding
 
 -- Examples
 

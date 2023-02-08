@@ -1,5 +1,5 @@
 -- Let Floating (inwards) using co-de-Bruijn representation
-module LetInwardCdB where
+module CoDeBruijn.LetInward where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
@@ -9,8 +9,8 @@ open import Data.Sum
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Lang hiding (Expr ; Var ; App ; Lam ; Let ; Plus)
-open import LangCdB
+open import Core
+open import CoDeBruijn.Lang
 open import OPE
 
 -- Push the let-binding inwards as far as possible without

@@ -4,7 +4,7 @@ module OPE where
 open import Data.List using (_∷_ ; [])
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 
-open import Lang
+open import Core
 
 infix 21 _o'
 infix 21 _os

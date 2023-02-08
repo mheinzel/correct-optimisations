@@ -1,4 +1,4 @@
-module SubCtx where
+module DeBruijn.SubCtx where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat)
 open import Data.List using (List ; _∷_ ; [])
@@ -8,7 +8,8 @@ open import Data.Sum
 open import Data.Empty
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 
-open import Lang
+open import Core
+open import DeBruijn.Lang
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
 -- and values include Agda functions.
