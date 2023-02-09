@@ -43,6 +43,16 @@ law-oiₒ oz     = refl
 law-oiₒ (θ o') = cong (_o') (law-oiₒ θ)
 law-oiₒ (θ os) = cong (_os) (law-oiₒ θ)
 
+law-ₒₒ :
+  ∀ {Γ₁ Γ₂ Γ₃ Γ₄} →
+  (θ : Γ₁ ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) (ψ : Γ₃ ⊑ Γ₄) →
+  θ ₒ (ϕ ₒ ψ) ≡ (θ ₒ ϕ) ₒ ψ
+law-ₒₒ θ ϕ (ψ o') = cong _o' (law-ₒₒ θ ϕ ψ)
+law-ₒₒ θ (ϕ o') (ψ os) = cong _o' (law-ₒₒ θ ϕ ψ)
+law-ₒₒ (θ o') (ϕ os) (ψ os) = cong _o' (law-ₒₒ θ ϕ ψ)
+law-ₒₒ (θ os) (ϕ os) (ψ os) = cong _os (law-ₒₒ θ ϕ ψ)
+law-ₒₒ oz oz oz = refl
+
 -- OPEs from a singleton Ctx are isomorphic to Ref.
 o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
 o-Ref Top     = oe os
