@@ -36,10 +36,10 @@ dbe (App u e₁ e₂) =
       e₂' ↑ θ₂ = dbe e₂
       u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
   in App u' e₁' e₂' ↑ θ
-dbe (Lam b e) =
+dbe (Lam (ψ \\ e)) =
   let e' ↑ θ' = dbe e
-      b' ↑ θ  = cover-Bind (θ' ₒ o-Bind b)
-  in Lam b' e' ↑ θ
+      -- b' ↑ θ  = cover-Bind (θ' ₒ o-Bind b)
+  in Lam ({!!} \\ e') ↑ {!!}
 dbe (Let {σ} b u e₁ e₂) =
   let e₁' ↑ θ₁  = dbe e₁
       e₂' ↑ θ₂  = dbe e₂

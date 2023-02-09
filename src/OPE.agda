@@ -1,7 +1,8 @@
 -- Trying shorter notation, as in Conor's paper
 module OPE where
 
-open import Data.List using (_∷_ ; [])
+open import Data.Product
+open import Data.List using (_∷_ ; [] ; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 
 open import Core
@@ -52,6 +53,25 @@ law-ₒₒ θ (ϕ o') (ψ os) = cong _o' (law-ₒₒ θ ϕ ψ)
 law-ₒₒ (θ o') (ϕ os) (ψ os) = cong _o' (law-ₒₒ θ ϕ ψ)
 law-ₒₒ (θ os) (ϕ os) (ψ os) = cong _os (law-ₒₒ θ ϕ ψ)
 law-ₒₒ oz oz oz = refl
+
+_++⊑_ : ∀ {Γ₁ Γ₂ Γ₁' Γ₂'} → Γ₁ ⊑ Γ₂ → Γ₁' ⊑ Γ₂' → (Γ₁ ++ Γ₁') ⊑ (Γ₂ ++ Γ₂')
+(θ o') ++⊑ ϕ = (θ ++⊑ ϕ) o'
+(θ os) ++⊑ ϕ = (θ ++⊑ ϕ) os
+oz ++⊑ ϕ = ϕ
+
+_⊣_ :
+  ∀ {Γ Γ₂} →
+  (Γ₁ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) →
+  Σ[ Γ₁' ∈ Ctx ]
+    Σ[ Γ₂' ∈ Ctx ]
+      Σ[ θ ∈ (Γ₁' ⊑ Γ₁) ]
+        Σ[ ϕ ∈ (Γ₂' ⊑ Γ₂) ]
+          Σ (Γ ≡ Γ₁' ++ Γ₂') λ { refl → ψ ≡ θ ++⊑ ϕ }
+[] ⊣ ψ = [] , _ , oz , ψ , refl , refl
+(τ ∷ Γ₁) ⊣ (ψ o')       with Γ₁ ⊣ ψ
+(τ ∷ Γ₁) ⊣ (.(θ ++⊑ ϕ) o') | Γ₁' , Γ₂' , θ , ϕ , refl , refl = Γ₁' , Γ₂' , θ o' , ϕ , refl , refl
+(τ ∷ Γ₁) ⊣ (ψ os)       with Γ₁ ⊣ ψ
+(τ ∷ Γ₁) ⊣ (.(θ ++⊑ ϕ) os) | Γ₁' , Γ₂' , θ , ϕ , refl , refl = τ ∷ Γ₁' , Γ₂' , θ os , ϕ , refl , refl
 
 -- OPEs from a singleton Ctx are isomorphic to Ref.
 o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ

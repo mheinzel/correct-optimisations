@@ -2,7 +2,7 @@
 module CoDeBruijn.Lang where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [])
+open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
@@ -34,6 +34,13 @@ law-Union-Γ₁[] : ∀ {Γ₁ Γ} → Union Γ₁ [] Γ → Γ₁ ≡ Γ
 law-Union-Γ₁[] done = refl
 law-Union-Γ₁[] (left {τ} u) = cong (τ ∷_) (law-Union-Γ₁[] u)
 
+data _⊢_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
+  _\\_ : ∀ {Γ''} → Γ'' ⊑ Γ' → T (Γ'' ++ Γ) → (Γ' ⊢ T) Γ
+
+_\\R_ : {T : Scoped} (Γ' : Ctx) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+Γ' \\R (t ↑ ψ)       with Γ' ⊣ ψ
+Γ' \\R (t ↑ .(θ ++⊑ ϕ)) | _ , _ , θ , ϕ , refl , refl = (θ \\ t) ↑ ϕ
+
 -- Another kind of "cover", a bit like `pop` for SubCtx
 data Bind (τ : U) : Ctx → Ctx → Set where
   dead : Bind τ Γ Γ
@@ -54,9 +61,8 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
     (e₂ : Expr σ Γ₂) →
     Expr τ Γ
   Lam :
-    ∀ {σ τ Γ₁ Γ} →
-    (b : Bind σ Γ₁ Γ) →
-    Expr τ Γ₁ →
+    ∀ {σ τ Γ} →
+    ((σ ∷ []) ⊢ Expr τ) Γ →
     Expr (σ ⇒ τ) Γ
   Let :
     ∀ {σ τ Γ₁ Γ₂ Γ Γ₂'} →
@@ -82,8 +88,8 @@ eval Var ϕ env =
 eval (App u e₁ e₂) ϕ env =
   eval e₁ (o-Union₁ u ₒ ϕ) env
     (eval e₂ (o-Union₂ u ₒ ϕ) env)
-eval (Lam {σ} b e) ϕ env =
-  λ v → eval e (o-Bind b ₒ ϕ os) (Cons v env)
+eval (Lam {σ} (θ \\ e)) ϕ env =
+  λ v → eval e (θ ++⊑ ϕ) (Cons v env)
 eval (Let b u e₁ e₂) ϕ env =
   eval e₂ (o-Bind b ₒ (o-Union₂ u ₒ ϕ) os)
     (Cons (eval e₁ (o-Union₁ u ₒ ϕ) env) env)
@@ -105,47 +111,48 @@ cover-Bind : ∀ {Γ' Γ σ} → Γ' ⊑ (σ ∷ Γ) → Bind σ Γ' ⇑ Γ
 cover-Bind (θ o') = dead ↑ θ
 cover-Bind (θ os) = live ↑ θ
 
+DeBruijnExpr : U → Scoped
+DeBruijnExpr τ Γ = DeBruijn.Expr Γ τ
+
 -- decide which variables are used or not
 into : DeBruijn.Expr Γ σ → Expr σ ⇑ Γ
 into (DeBruijn.Var {σ} x) =
   Var {σ} ↑ o-Ref x
 into (DeBruijn.App e₁ e₂) =
-  let e₁' ↑ ope₁ = into e₁
-      e₂' ↑ ope₂ = into e₂
-      u   ↑ ope  = cover-Union ope₁ ope₂
-  in App u e₁' e₂' ↑ ope
+  let e₁' ↑ θ₁ = into e₁
+      e₂' ↑ θ₂ = into e₂
+      u   ↑ θ  = cover-Union θ₁ θ₂
+  in App u e₁' e₂' ↑ θ
 into (DeBruijn.Lam e) =
-  let e' ↑ ope' = into e
-      b  ↑ ope  = cover-Bind ope'
-  in Lam b e' ↑ ope
+  map⇑ Lam ((_ ∷ []) \\R into e)
 into (DeBruijn.Let e₁ e₂) =
-  let e₁' ↑ ope₁  = into e₁
-      e₂' ↑ ope₂  = into e₂
-      b   ↑ ope₂' = cover-Bind ope₂
-      u   ↑ ope   = cover-Union ope₁ ope₂'
-  in Let b u e₁' e₂' ↑ ope
+  let e₁' ↑ θ₁  = into e₁
+      e₂' ↑ θ₂  = into e₂
+      b   ↑ θ₂' = cover-Bind θ₂
+      u   ↑ θ   = cover-Union θ₁ θ₂'
+  in Let b u e₁' e₂' ↑ θ
 into (DeBruijn.Val v) =
   (Val v) ↑ oe
 into (DeBruijn.Plus e₁ e₂) =
-  let e₁' ↑ ope₁ = into e₁
-      e₂' ↑ ope₂ = into e₂
-      u   ↑ ope  = cover-Union ope₁ ope₂
-  in Plus u e₁' e₂' ↑ ope
+  let e₁' ↑ θ₁ = into e₁
+      e₂' ↑ θ₂ = into e₂
+      u   ↑ θ  = cover-Union θ₁ θ₂
+  in Plus u e₁' e₂' ↑ θ
 
 from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr Γ σ
-from ope Var =
-  DeBruijn.Var (ref-o ope)
-from ope (App u e₁ e₂) =
-  DeBruijn.App (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
-from ope (Lam b e) =
-  DeBruijn.Lam (from (o-Bind b ₒ ope os) e)
-from ope (Let b u e₁ e₂) =
+from θ Var =
+  DeBruijn.Var (ref-o θ)
+from θ (App u e₁ e₂) =
+  DeBruijn.App (from (o-Union₁ u ₒ θ) e₁) (from (o-Union₂ u ₒ θ) e₂)
+from θ (Lam (ψ \\ e)) =
+  DeBruijn.Lam (from (ψ ++⊑ θ) e)
+from θ (Let b u e₁ e₂) =
   DeBruijn.Let
-    (from (o-Union₁ u ₒ ope) e₁)
-    (from (o-Bind b ₒ (o-Union₂ u ₒ ope) os) e₂)
-from ope (Val v) =
+    (from (o-Union₁ u ₒ θ) e₁)
+    (from (o-Bind b ₒ (o-Union₂ u ₒ θ) os) e₂)
+from θ (Val v) =
   DeBruijn.Val v
-from ope (Plus u e₁ e₂) =
-  DeBruijn.Plus (from (o-Union₁ u ₒ ope) e₁) (from (o-Union₂ u ₒ ope) e₂)
+from θ (Plus u e₁ e₂) =
+  DeBruijn.Plus (from (o-Union₁ u ₒ θ) e₁) (from (o-Union₂ u ₒ θ) e₂)
 
 -- TODO: prove into/from semantics preserving!
