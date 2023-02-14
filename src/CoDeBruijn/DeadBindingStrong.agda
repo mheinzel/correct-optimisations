@@ -59,7 +59,6 @@ dbe (Plus u e₁ e₂) =
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
 
-{-
 -- Is this just a part of Union forming a coproduct?
 law-o-Union₁ :
   ∀ {Γ₁ Γ₂ Γ} → (θ₁ : Γ₁ ⊑ Γ) → (θ₂ : Γ₂ ⊑ Γ) →
@@ -100,6 +99,18 @@ helper-assoc θ₁ θ₁' θ₂ θ₂' θ h =
     θ₂ ₒ θ₂' ₒ θ
   ∎
 
+{-
+dbe-correct-bound :
+  Γ' Γ Γₑ ψ
+  (e : Expr τ (Γ' ++ Γ))
+  (env : Env (Γ'' ++ Γₑ))
+  θ : Γ ⊑ Γₑ
+  θ' : (Γ' ++ Γ) ⊑ (Γ'' ++ Γ)
+  let ⊣r ϕ₁ ϕ₂ _ = Γ'' ⊣ θ'
+  eval e ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) env
+  eval e ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ θ)) env
+-}
+
 -- TODO: prove semantics preserving!
 dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
@@ -129,6 +140,7 @@ dbe-correct (App u e₁ e₂) env θ =
     eval e₁ (o-Union₁ u ₒ θ) env
       (eval e₂ (o-Union₂ u ₒ θ) env)
   ∎
+{-
 dbe-correct (Lam dead e) env θ =
   let e' ↑ θ' = dbe e
   in
@@ -169,8 +181,23 @@ dbe-correct (Lam b e) env θ =
     ≡⟨ {!!} ⟩
       eval e (o-Bind b ₒ θ os) (Cons v env)
     ∎
+-}
+dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ with _↑_ {Expr _} (_⇑_.thing (dbe e)) (_⇑_.thinning (dbe e)) | dbe e
+dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e'' ↑ θ'' | e' ↑ θ' with Γ'' ⊣ θ' | \\R-lemma {Expr _} (Γ'' ⊣ θ') e'
+dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e'' ↑ θ'' | _↑_ {Δ} e' θ' | ⊣r ϕ₁ ϕ₂ (refl , refl) | refl , refl =
+  extensionality {!!} {!!} λ v →
+    let h = dbe-correct e (Cons v env) (ψ ++⊑ θ)
+    in
+      eval e' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
+    ≡⟨ cong (λ x → eval e' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
+      -- TODO: probably need some with-clause to see that θ' is the same as _⇑_.thinning (dbe e), aka θ''
+      eval e' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ θ)) (Cons v env)
+    ≡⟨ {!h!} ⟩
+      eval e' ({! _⇑_.thinning (dbe e) !} ₒ (ψ ++⊑ θ)) (Cons v env)
+    ≡⟨ {!h!} ⟩
+      eval e (ψ ++⊑ θ) (Cons v env)
+    ∎
     
 dbe-correct (Let b u e₁ e₂) env θ = {!!}
 dbe-correct (Val v) env θ = {!!}
 dbe-correct (Plus u e₁ e₂) env θ = {!!}
--}

@@ -44,9 +44,32 @@ record _⊢_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
 map⊢ : ∀ {Γ₁ Γ₂ Γ} {T : Scoped} → Γ₁ ⊑ Γ₂ → (Γ₁ ⊢ T) Γ → (Γ₂ ⊢ T) Γ
 map⊢ ϕ (θ \\ t) = (θ ₒ ϕ) \\ t
 
+{- original definition
 _\\R_ : {T : Scoped} (Γ' : Ctx) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
 Γ' \\R (t ↑ ψ)       with Γ' ⊣ ψ
-Γ' \\R (t ↑ .(θ ++⊑ ϕ)) | _ , _ , θ , ϕ , refl , refl = (θ \\ t) ↑ ϕ
+Γ' \\R (t ↑ .(θ ++⊑ ϕ)) | ⊣r θ ϕ (refl , refl) = (θ \\ t) ↑ ϕ
+-}
+
+\\R-helper : ∀ {T Γ Γ' Γ''} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Γ' ⊣R ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
+\\R-helper (⊣r ϕ₁ ϕ₂ (refl , refl)) t = (ϕ₁ \\ t) ↑ ϕ₂
+
+_\\R_ : ∀ {T Γ} (Γ' : Ctx) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+Γ' \\R (t ↑ ψ) = \\R-helper (Γ' ⊣ ψ) t
+
+\\R-lemma : {T : Scoped} → ∀ {Γ Γ' Γ''} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → (r : Γ' ⊣R ψ) → (t : T Γ'') →
+  (_⊣R_.Γ₁' r ≡ _⊢_.bound (_⇑_.thing (\\R-helper {T = T} r t)))
+  × (_⊣R_.Γ₂' r ≡ _⇑_.support (\\R-helper {T = T} r t))
+\\R-lemma (⊣r ϕ₁ ϕ₂ (refl , refl)) t = refl , refl
+
+{-
+\\R-≡ : {T : Scoped} {Γ' Γ'' : Ctx} → (t : T Γ'') → (ψ : Γ'' ⊑ (Γ' ++ Γ)) →
+  let ⊣r θ ϕ H = Γ' ⊣ ψ
+      (hθ \\ ht) ↑ hϕ = Γ' \\R (t ↑ ψ)
+  in
+  (hθ ≡ θ) × (hϕ ≡ ϕ)
+\\R-≡ t ψ = ?
+-}
+
 
 -- Another kind of "cover", a bit like `pop` for SubCtx
 data Bind (τ : U) : Ctx → Ctx → Set where
