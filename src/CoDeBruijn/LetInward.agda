@@ -30,8 +30,8 @@ push-let : {Γ₁ Γ₂ Γ : Ctx} (i : Ref σ Γ₂) → Expr σ Γ₁ → Expr 
 push-let Top decl Var U with law-Union-Γ₁[] U
 ... | refl = decl
 push-let i decl (App u e₁ e₂) U = {!!}
-push-let i decl (Lam b e) U =
-  Let live U decl (rename-top [] i (Lam b e))
+push-let i decl (Lam e) U =
+  Let live U decl (rename-top [] i (Lam e))
 push-let i decl (Let b u e₁ e₂) U = {!!}
 push-let i decl (Plus u e₁ e₂) U =
   let ope₁ = o-Union₁ u

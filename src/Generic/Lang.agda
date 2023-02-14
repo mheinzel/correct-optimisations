@@ -67,7 +67,7 @@ Semantics.var Eval = λ v → v
 Semantics.alg Eval = λ where
   (App v₁ v₂)  → v₁ v₂
   (Lam e)      → λ v → e identity (ε ∙ v)
-  (Let v e)  → e identity (ε ∙ v)
+  (Let v e)    → e identity (ε ∙ v)
   (Val v)      → v
   (Plus v₁ v₂) → v₁ + v₂
 

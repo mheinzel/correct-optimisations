@@ -96,7 +96,7 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
     Expr (σ ⇒ τ) Γ
   Let :
     ∀ {σ τ Γ₁ Γ₂ Γ Γ₂'} →
-    (b : Bind σ Γ₂ Γ₂') →
+    (b : Bind σ Γ₂ Γ₂') →  -- TODO: use _⊢_ instead, like in Lam
     (u : Union Γ₁ Γ₂' Γ) →
     (e₁ : Expr σ Γ₁) →
     (e₂ : Expr τ Γ₂) →
@@ -186,3 +186,11 @@ from θ (Plus u e₁ e₂) =
   DeBruijn.Plus (from (o-Union₁ u ₒ θ) e₁) (from (o-Union₂ u ₒ θ) e₂)
 
 -- TODO: prove into/from semantics preserving!
+-- may need to be more general?
+{-
+conversion-correct :
+  (e : DeBruijn.Expr Γ τ) (env : Env Γ) →
+  let e' ↑ θ = into e
+  in DeBruijn.eval (from oi e') (project-Env θ env) ≡ DeBruijn.eval e env
+conversion-correct e env = {!!}
+-}
