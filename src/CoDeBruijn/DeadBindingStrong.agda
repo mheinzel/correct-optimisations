@@ -7,6 +7,7 @@ open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
+open import Function using (_∘_)
 
 open import Core
 open import CoDeBruijn.Lang
@@ -36,10 +37,11 @@ dbe (App u e₁ e₂) =
       e₂' ↑ θ₂ = dbe e₂
       u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
   in App u' e₁' e₂' ↑ θ
-dbe (Lam (ψ \\ e)) =
-  let e' ↑ θ' = dbe e
-      -- b' ↑ θ  = cover-Bind (θ' ₒ o-Bind b)
-  in Lam ({!!} \\ e') ↑ {!!}
+dbe (Lam {σ} (_\\_ {bound = Γ''} ψ e)) =
+  let (ϕ \\ e') ↑ θ = Γ'' \\R dbe e
+  in Lam ((ϕ ₒ ψ) \\ e') ↑ θ
+  -- this gets in the way of evaluation
+  -- map⇑ (Lam ∘ map⊢ ψ) (Γ'' \\R dbe e)
 dbe (Let {σ} b u e₁ e₂) =
   let e₁' ↑ θ₁  = dbe e₁
       e₂' ↑ θ₂  = dbe e₂

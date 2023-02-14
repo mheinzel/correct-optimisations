@@ -34,8 +34,15 @@ law-Union-Γ₁[] : ∀ {Γ₁ Γ} → Union Γ₁ [] Γ → Γ₁ ≡ Γ
 law-Union-Γ₁[] done = refl
 law-Union-Γ₁[] (left {τ} u) = cong (τ ∷_) (law-Union-Γ₁[] u)
 
-data _⊢_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
-  _\\_ : ∀ {Γ''} → Γ'' ⊑ Γ' → T (Γ'' ++ Γ) → (Γ' ⊢ T) Γ
+record _⊢_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
+  constructor _\\_
+  field
+    {bound} : Ctx
+    thinning : bound ⊑ Γ'
+    thing : T (bound ++ Γ)
+
+map⊢ : ∀ {Γ₁ Γ₂ Γ} {T : Scoped} → Γ₁ ⊑ Γ₂ → (Γ₁ ⊢ T) Γ → (Γ₂ ⊢ T) Γ
+map⊢ ϕ (θ \\ t) = (θ ₒ ϕ) \\ t
 
 _\\R_ : {T : Scoped} (Γ' : Ctx) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
 Γ' \\R (t ↑ ψ)       with Γ' ⊣ ψ
