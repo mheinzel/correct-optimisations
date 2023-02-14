@@ -182,19 +182,14 @@ dbe-correct (Lam b e) env θ =
       eval e (o-Bind b ₒ θ os) (Cons v env)
     ∎
 -}
-dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ with _↑_ {Expr _} (_⇑_.thing (dbe e)) (_⇑_.thinning (dbe e)) | dbe e
-dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e'' ↑ θ'' | e' ↑ θ' with Γ'' ⊣ θ' | \\R-lemma {Expr _} (Γ'' ⊣ θ') e'
-dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e'' ↑ θ'' | _↑_ {Δ} e' θ' | ⊣r ϕ₁ ϕ₂ (refl , refl) | refl , refl =
-  extensionality {!!} {!!} λ v →
-    let h = dbe-correct e (Cons v env) (ψ ++⊑ θ)
-    in
+dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ with dbe e   | dbe-correct e
+dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e' ↑ θ' | h with Γ'' ⊣ θ'
+dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+  extensionality _ _ λ v →
       eval e' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
     ≡⟨ cong (λ x → eval e' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
-      -- TODO: probably need some with-clause to see that θ' is the same as _⇑_.thinning (dbe e), aka θ''
       eval e' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ θ)) (Cons v env)
-    ≡⟨ {!h!} ⟩
-      eval e' ({! _⇑_.thinning (dbe e) !} ₒ (ψ ++⊑ θ)) (Cons v env)
-    ≡⟨ {!h!} ⟩
+    ≡⟨ h (Cons v env) (ψ ++⊑ θ) ⟩
       eval e (ψ ++⊑ θ) (Cons v env)
     ∎
     
