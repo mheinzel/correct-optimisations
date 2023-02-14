@@ -57,15 +57,6 @@ _\\R_ : ∀ {T Γ} (Γ' : Ctx) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
 Γ' \\R (t ↑ ψ) = \\R-helper (Γ' ⊣ ψ) t
 
 
--- Another kind of "cover", a bit like `pop` for SubCtx
-data Bind (τ : U) : Ctx → Ctx → Set where
-  dead : Bind τ Γ Γ
-  live : Bind τ (τ ∷ Γ) Γ
-
-o-Bind : ∀ {Γ Γ'} → Bind σ Γ Γ' → Γ ⊑ (σ ∷ Γ')
-o-Bind {σ} {Γ} {Γ'} dead = oi o'
-o-Bind {σ} {Γ} {Γ'} live = oi os
-
 data Expr : (σ : U) (Γ : Ctx) → Set where
   Var :
     ∀ {σ} →
@@ -81,11 +72,10 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
     ((σ ∷ []) ⊢ Expr τ) Γ →
     Expr (σ ⇒ τ) Γ
   Let :
-    ∀ {σ τ Γ₁ Γ₂ Γ Γ₂'} →
-    (b : Bind σ Γ₂ Γ₂') →  -- TODO: use _⊢_ instead, like in Lam
-    (u : Union Γ₁ Γ₂' Γ) →
+    ∀ {σ τ Γ₁ Γ₂ Γ} →
+    (u : Union Γ₁ Γ₂ Γ) →
     (e₁ : Expr σ Γ₁) →
-    (e₂ : Expr τ Γ₂) →
+    (e₂ : ((σ ∷ []) ⊢ Expr τ) Γ₂) →
     Expr τ Γ
   Val :
     ∀ {σ} →
@@ -106,8 +96,8 @@ eval (App u e₁ e₂) ϕ env =
     (eval e₂ (o-Union₂ u ₒ ϕ) env)
 eval (Lam {σ} (θ \\ e)) ϕ env =
   λ v → eval e (θ ++⊑ ϕ) (Cons v env)
-eval (Let b u e₁ e₂) ϕ env =
-  eval e₂ (o-Bind b ₒ (o-Union₂ u ₒ ϕ) os)
+eval (Let u e₁ (θ \\ e₂)) ϕ env =
+  eval e₂ (θ ++⊑ (o-Union₂ u ₒ ϕ))
     (Cons (eval e₁ (o-Union₁ u ₒ ϕ) env) env)
 eval (Val v) ϕ env = v
 eval (Plus u e₁ e₂) ϕ env =
@@ -123,13 +113,6 @@ cover-Union (θ₁ o') (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in ri
 cover-Union (θ₁ os) (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in left  c ↑ θ os
 cover-Union (θ₁ os) (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in both  c ↑ θ os
 
-cover-Bind : ∀ {Γ' Γ σ} → Γ' ⊑ (σ ∷ Γ) → Bind σ Γ' ⇑ Γ
-cover-Bind (θ o') = dead ↑ θ
-cover-Bind (θ os) = live ↑ θ
-
-DeBruijnExpr : U → Scoped
-DeBruijnExpr τ Γ = DeBruijn.Expr Γ τ
-
 -- decide which variables are used or not
 into : DeBruijn.Expr Γ σ → Expr σ ⇑ Γ
 into (DeBruijn.Var {σ} x) =
@@ -143,10 +126,9 @@ into (DeBruijn.Lam e) =
   map⇑ Lam ((_ ∷ []) \\R into e)
 into (DeBruijn.Let e₁ e₂) =
   let e₁' ↑ θ₁  = into e₁
-      e₂' ↑ θ₂  = into e₂
-      b   ↑ θ₂' = cover-Bind θ₂
-      u   ↑ θ   = cover-Union θ₁ θ₂'
-  in Let b u e₁' e₂' ↑ θ
+      e₂' ↑ θ₂  = (_ ∷ []) \\R into e₂
+      u   ↑ θ   = cover-Union θ₁ θ₂
+  in Let u e₁' e₂' ↑ θ
 into (DeBruijn.Val v) =
   (Val v) ↑ oe
 into (DeBruijn.Plus e₁ e₂) =
@@ -162,10 +144,10 @@ from θ (App u e₁ e₂) =
   DeBruijn.App (from (o-Union₁ u ₒ θ) e₁) (from (o-Union₂ u ₒ θ) e₂)
 from θ (Lam (ψ \\ e)) =
   DeBruijn.Lam (from (ψ ++⊑ θ) e)
-from θ (Let b u e₁ e₂) =
+from θ (Let u e₁ (ϕ \\ e₂)) =
   DeBruijn.Let
     (from (o-Union₁ u ₒ θ) e₁)
-    (from (o-Bind b ₒ (o-Union₂ u ₒ θ) os) e₂)
+    (from (ϕ ++⊑ (o-Union₂ u ₒ θ)) e₂)
 from θ (Val v) =
   DeBruijn.Val v
 from θ (Plus u e₁ e₂) =

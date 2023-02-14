@@ -3,7 +3,7 @@
 module CoDeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [])
+open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
@@ -23,9 +23,9 @@ postulate
     ((x : S) -> f x ≡ g x) ->
     f ≡ g
 
-let-? : ∀ {σ τ Γ₁ Γ₂ Γ Γ₂'} → Bind σ Γ₂ Γ₂' → Union Γ₁ Γ₂' Γ → Expr σ Γ₁ → Expr τ Γ₂ → Expr τ ⇑ Γ
-let-? dead u e₁ e₂ = e₂ ↑ (o-Union₂ u)
-let-? live u e₁ e₂ = Let live u e₁ e₂ ↑ oi
+let-? : ∀ {σ τ Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Expr σ Γ₁ → ((σ ∷ []) ⊢ Expr τ) Γ₂ → Expr τ ⇑ Γ
+let-? u e₁ (oz o' \\ e₂) = e₂ ↑ o-Union₂ u
+let-? u e₁ (oz os \\ e₂) = Let u e₁ ((oz os) \\ e₂) ↑ oi
 
 -- Also remove bindings that are tagged live in the input Expr,
 -- but where the body is revealed to not use the top variable after the recursive call.
@@ -42,12 +42,11 @@ dbe (Lam {σ} (_\\_ {bound = Γ'} ψ e)) =
   in Lam ((ϕ ₒ ψ) \\ e') ↑ θ
   -- this gets in the way of evaluation
   -- map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
-dbe (Let {σ} b u e₁ e₂) =
-  let e₁' ↑ θ₁  = dbe e₁
-      e₂' ↑ θ₂  = dbe e₂
-      b'  ↑ θ₂' = cover-Bind (θ₂ ₒ o-Bind b)
-      u'  ↑ θ   = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂' ₒ o-Union₂ u)  -- TODO: can this be simplified?
-      e'  ↑ θ?  = let-? b' u' e₁' e₂'
+dbe (Let {σ} u e₁ (_\\_ {bound = Γ'} ψ e₂)) =
+  let e₁'        ↑ θ₁  = dbe e₁
+      (ϕ \\ e₂') ↑ θ₂  = Γ' \\R dbe e₂
+      u'  ↑ θ   = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+      e'  ↑ θ?  = let-? u' e₁' ((ϕ ₒ ψ) \\ e₂')
   in e' ↑ (θ? ₒ θ)
 dbe (Val v) = Val v ↑ oz
 dbe (Plus u e₁ e₂) =
@@ -140,6 +139,6 @@ dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r
       eval e (ψ ++⊑ θ) (Cons v env)
     ∎
     
-dbe-correct (Let b u e₁ e₂) env θ = {!!}
+dbe-correct (Let u e₁ e₂) env θ = {!!}
 dbe-correct (Val v) env θ = {!!}
 dbe-correct (Plus u e₁ e₂) env θ = {!!}
