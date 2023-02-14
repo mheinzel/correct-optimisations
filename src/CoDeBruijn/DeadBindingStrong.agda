@@ -37,11 +37,11 @@ dbe (App u e₁ e₂) =
       e₂' ↑ θ₂ = dbe e₂
       u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
   in App u' e₁' e₂' ↑ θ
-dbe (Lam {σ} (_\\_ {bound = Γ''} ψ e)) =
-  let (ϕ \\ e') ↑ θ = Γ'' \\R dbe e
+dbe (Lam {σ} (_\\_ {bound = Γ'} ψ e)) =
+  let (ϕ \\ e') ↑ θ = Γ' \\R dbe e
   in Lam ((ϕ ₒ ψ) \\ e') ↑ θ
   -- this gets in the way of evaluation
-  -- map⇑ (Lam ∘ map⊢ ψ) (Γ'' \\R dbe e)
+  -- map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
 dbe (Let {σ} b u e₁ e₂) =
   let e₁' ↑ θ₁  = dbe e₁
       e₂' ↑ θ₂  = dbe e₂
@@ -99,18 +99,6 @@ helper-assoc θ₁ θ₁' θ₂ θ₂' θ h =
     θ₂ ₒ θ₂' ₒ θ
   ∎
 
-{-
-dbe-correct-bound :
-  Γ' Γ Γₑ ψ
-  (e : Expr τ (Γ' ++ Γ))
-  (env : Env (Γ'' ++ Γₑ))
-  θ : Γ ⊑ Γₑ
-  θ' : (Γ' ++ Γ) ⊑ (Γ'' ++ Γ)
-  let ⊣r ϕ₁ ϕ₂ _ = Γ'' ⊣ θ'
-  eval e ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) env
-  eval e ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ θ)) env
--}
-
 -- TODO: prove semantics preserving!
 dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
@@ -140,51 +128,10 @@ dbe-correct (App u e₁ e₂) env θ =
     eval e₁ (o-Union₁ u ₒ θ) env
       (eval e₂ (o-Union₂ u ₒ θ) env)
   ∎
-{-
-dbe-correct (Lam dead e) env θ =
-  let e' ↑ θ' = dbe e
-  in
-  extensionality _ _ λ v →
-    let h = dbe-correct e (Cons v env) (θ o')
-    in
-      eval e' ((oi ₒ (θ' ₒ oi) ₒ θ) o') (Cons v env)
-    ≡⟨ cong (λ x → eval e' (x o') (Cons v env))
-         (trans (law-oiₒ _) (cong (_ₒ θ) (law-ₒoi θ'))) ⟩
-      eval e' ((θ' ₒ θ) o') (Cons v env)
-    ≡⟨ h ⟩
-      eval e (θ o') (Cons v env)
-    ≡⟨ cong (λ x → eval e (x o') (Cons v env)) (sym (law-oiₒ θ)) ⟩
-      eval e ((oi ₒ θ) o') (Cons v env)
-    ∎
-dbe-correct (Lam live e) env θ =
-  let e' ↑ θ' = dbe e
-      b' ↑ θ'' = cover-Bind (θ' ₒ oi os)
-  in
-  extensionality _ _ λ v →
-    let h = dbe-correct e (Cons v env) (θ os)
-    in
-      eval e' (o-Bind b' ₒ (θ'' ₒ θ) os) (Cons v env)
-    ≡⟨ {!!} ⟩  -- TODO meh
-      eval e' (θ' ₒ θ os) (Cons v env)
-    ≡⟨ h ⟩
-      eval e (θ os) (Cons v env)
-    ≡⟨ cong (λ x → eval e (x os) (Cons v env)) (sym (law-oiₒ θ)) ⟩
-      eval e ((oi ₒ θ) os) (Cons v env)
-    ∎
-dbe-correct (Lam b e) env θ =
-  let e' ↑ θ' = dbe e
-      h = dbe-correct e env {!o-Bind b ₒ θ!}
-      b' ↑ θ'' = cover-Bind (θ' ₒ o-Bind b)
-  in
-  extensionality {!!} {!!} λ v →
-      eval e' (o-Bind b' ₒ (θ'' ₒ θ) os) (Cons v env)
-    ≡⟨ {!!} ⟩
-      eval e (o-Bind b ₒ θ os) (Cons v env)
-    ∎
--}
-dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ with dbe e   | dbe-correct e
-dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e' ↑ θ' | h with Γ'' ⊣ θ'
-dbe-correct (Lam (_\\_ {bound = Γ''} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+
+dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ with dbe e   | dbe-correct e
+dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h with Γ' ⊣ θ'
+dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r ϕ₁ ϕ₂ (refl , refl) =
   extensionality _ _ λ v →
       eval e' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
     ≡⟨ cong (λ x → eval e' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
