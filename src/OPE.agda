@@ -98,6 +98,18 @@ project-Env oz     env          = env
 project-Env (θ os) (Cons v env) = Cons v (project-Env θ env)
 project-Env (θ o') (Cons v env) = project-Env θ env
 
+law-project-Env-ₒ :
+  ∀ {Γ₁ Γ₂ Γ₃} (θ : Γ₁ ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) (env : Env Γ₃) →
+  project-Env (θ ₒ ϕ) env ≡ project-Env θ (project-Env ϕ env)
+law-project-Env-ₒ θ (ϕ o') (Cons v env) = law-project-Env-ₒ θ ϕ env
+law-project-Env-ₒ (θ o') (ϕ os) (Cons v env) = law-project-Env-ₒ θ ϕ env
+law-project-Env-ₒ (θ os) (ϕ os) (Cons v env) = cong (Cons v) (law-project-Env-ₒ θ ϕ env)
+law-project-Env-ₒ oz oz env = refl
+
+law-project-Env-oi : (env : Env Γ) → project-Env oi env ≡ env
+law-project-Env-oi Nil = refl
+law-project-Env-oi (Cons x env) = cong (Cons x) (law-project-Env-oi env)
+
 
 -- THINGS WITH OPEs
 

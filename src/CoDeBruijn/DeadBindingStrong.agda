@@ -13,20 +13,20 @@ open import Core
 open import CoDeBruijn.Lang
 open import OPE
 
--- This is needed because our notion of semantical equivalence is "same evaluation result",
--- and values include Agda functions.
--- We might want something different?
-postulate
-  -- extensionality : {A B : Set} → (f g : A → B) (H : (x : A) → f x ≡ g x) → f ≡ g
-  extensionality :
-    {S : Set} {T : S -> Set} (f g : (x : S) -> T x) ->
-    ((x : S) -> f x ≡ g x) ->
-    f ≡ g
-
 let-? : ∀ {σ τ Γ} → (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 let-? (pair (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) = e₂ ↑ θ₂  -- remove binding
 let-? (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) = Let (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) ↑ oi
 
+lemma-let-? :
+  (p : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ) →
+  (env : Env Γ) →
+  let e' ↑ θ = let-? p
+  in eval (Let p) oi env ≡ eval e' θ env
+lemma-let-? (pair (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) env =
+  trans
+    (lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ oi) env) env) θ₂ (oi o'))
+    (cong (eval e₂ θ₂) (law-project-Env-oi env))
+lemma-let-? (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) env = refl
 
 -- Also remove bindings that are tagged live in the input Expr,
 -- but where the body is revealed to not use the top variable after the recursive call.
@@ -109,9 +109,11 @@ dbe-correct (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) env θ
       (eval e₂ (ϕ₂ ₒ θ) env)
   ∎
 
-dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ with dbe e   | dbe-correct e
-dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h with Γ' ⊣ θ'
-dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ
+  with dbe e   | dbe-correct e
+...  | e' ↑ θ' | h
+  with Γ' ⊣ θ'
+...  | ⊣r ϕ₁ ϕ₂ (refl , refl) =
   extensionality _ _ λ v →
       eval e' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
     ≡⟨ cong (λ x → eval e' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
@@ -120,8 +122,24 @@ dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r
       eval e (ψ ++⊑ θ) (Cons v env)
     ∎
 
+dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) env θ
+  with dbe e₁    | dbe e₂    | dbe-correct e₁ | dbe-correct e₂
+...  | e₁' ↑ θ₁' | e₂' ↑ θ₂' | h₁             | h₂
+  with Γ' ⊣ θ₂'               | cop (θ₁' ₒ θ₁) ({!!} ₒ θ₂)
+...  | ⊣r ϕ₁ ϕ₂ (refl , refl) | coproduct Γ' ψ' θ₁'' θ₂'' p₁ p₂ c =
+  let h₁ = h₁ env (θ₁ ₒ θ)
+      h₂ = h₂ (Cons (eval e₁ (θ₁ ₒ θ) env) env) (ψ ++⊑ (θ₂ ₒ θ))
+  in
+    {!!}
+  ≡⟨ {!!} ⟩
+    eval e₂' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ (θ₂ ₒ θ))) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂' _ (Cons x env)) h₁ ⟩
+    eval e₂' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ (θ₂ ₒ θ))) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+  ≡⟨ h₂ ⟩
+    eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+  ∎
+
 {-
-dbe-correct (Let u e₁ e₂) env θ = {!!}
 dbe-correct (Val v) env θ = {!!}
 dbe-correct (Plus u e₁ e₂) env θ = {!!}
 -}

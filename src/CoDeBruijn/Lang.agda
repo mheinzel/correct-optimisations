@@ -5,13 +5,22 @@ open import Data.Unit
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
-open import Function using (_∘_)
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
+open import Function using (_∘_ ; _$_)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
 import DeBruijn.Lang as DeBruijn
 open import OPE
+
+-- This is needed because our notion of semantical equivalence is "same evaluation result",
+-- and values include Agda functions.
+-- We might want something different?
+postulate
+  extensionality :
+    {S : Set} {T : S -> Set} (f g : (x : S) -> T x) ->
+    ((x : S) -> f x ≡ g x) ->
+    f ≡ g
 
 data Cover : {Γ₁ Γ₂ Γ : Ctx} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
   _c's : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_o' {τ} θ₁) (θ₂ os)
@@ -90,6 +99,34 @@ eval (Val v) ϕ env =
 eval (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) ϕ env =
     eval e₁ (θ₁ ₒ ϕ) env
   + eval e₂ (θ₂ ₒ ϕ) env
+
+-- TODO: clean up, factor out?
+lemma-eval :
+  ∀ {Γ₁ Γ₂ Γ₃ τ} →
+  (e : Expr τ Γ₁) (env : Env Γ₃) (θ : Γ₁ ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) →
+  eval e (θ ₒ ϕ) env ≡ eval e θ (project-Env ϕ env)
+lemma-eval Var env θ ϕ = cong (lookup Top) (law-project-Env-ₒ θ ϕ env)
+lemma-eval (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) env θ ϕ =
+  cong₂ _$_
+    (trans (cong (λ x → eval e₁ x env) (law-ₒₒ θ₁ θ ϕ)) (lemma-eval e₁ env (θ₁ ₒ θ) ϕ))
+    (trans (cong (λ x → eval e₂ x env) (law-ₒₒ θ₂ θ ϕ)) (lemma-eval e₂ env (θ₂ ₒ θ) ϕ))
+lemma-eval (Lam (ψ \\ e)) env θ ϕ =
+  extensionality _ _ λ v →
+    let h = trans (cong (λ x → x ++⊑ (θ ₒ ϕ)) (sym (law-ₒoi ψ))) (law-commute-ₒ++⊑ ψ oi θ ϕ)
+    in trans (cong (λ x → eval e x (Cons v env)) h) (lemma-eval e (Cons v env) (ψ ++⊑ θ) (ϕ os))
+lemma-eval (Let (pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c)) env θ ϕ =
+  let h₁ = lemma-eval e₁ env (θ₁ ₒ θ) ϕ
+      h₂ = lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ θ) (project-Env ϕ env)) env) (ψ ++⊑ (θ₂ ₒ θ)) (ϕ os)
+      shuffle  = trans (cong₂ _++⊑_ (sym (law-ₒoi ψ)) (law-ₒₒ θ₂ θ ϕ)) (law-commute-ₒ++⊑ ψ oi (θ₂ ₒ θ) ϕ)
+      H₁ = cong (λ x → Cons x (project-Env ϕ env)) (trans (cong (λ x → eval e₁ x env) (law-ₒₒ θ₁ θ ϕ)) h₁)
+  in  trans
+        (cong (λ x → eval e₂ _ (Cons x env)) (trans (cong (λ x → eval e₁ x env) (law-ₒₒ θ₁ θ ϕ)) h₁))
+        (trans (cong (λ x → eval e₂ x _) shuffle) h₂)
+lemma-eval (Val v) env θ ϕ = refl
+lemma-eval (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) env θ ϕ =
+  cong₂ _+_
+    (trans (cong (λ x → eval e₁ x env) (law-ₒₒ θ₁ θ ϕ)) (lemma-eval e₁ env (θ₁ ₒ θ) ϕ))
+    (trans (cong (λ x → eval e₂ x env) (law-ₒₒ θ₂ θ ϕ)) (lemma-eval e₂ env (θ₂ ₒ θ) ϕ))
 
 -- CONVERSION
 
