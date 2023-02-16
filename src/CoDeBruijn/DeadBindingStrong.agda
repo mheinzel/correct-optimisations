@@ -7,7 +7,7 @@ open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
-open import Function using (_∘_)
+open import Function using (_∘_ ; _$_)
 
 open import Core
 open import CoDeBruijn.Lang
@@ -32,11 +32,12 @@ let-? u e₁ (oz os \\ e₂) = Let u e₁ ((oz os) \\ e₂) ↑ oi
 dbe : Expr τ Γ → Expr τ ⇑ Γ
 dbe Var =
   Var ↑ oz os
-dbe (App u e₁ e₂) =
+dbe (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
   let e₁' ↑ θ₁ = dbe e₁
       e₂' ↑ θ₂ = dbe e₂
-      u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
-  in App u' e₁' e₂' ↑ θ
+      p ↑ ψ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
+  in App p ↑ ψ
+  -- map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
 dbe (Lam {σ} (_\\_ {bound = Γ'} ψ e)) =
   let (ϕ \\ e') ↑ θ = Γ' \\R dbe e
   in Lam ((ϕ ₒ ψ) \\ e') ↑ θ
@@ -105,28 +106,45 @@ dbe-correct :
   in eval e' (θ' ₒ θ) env ≡ eval e θ env
 dbe-correct Var env θ =
   cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
-dbe-correct (App u e₁ e₂) env θ =
-  let
-      e₁' ↑ θ₁ = dbe e₁
+dbe-correct (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) env θ =
+  let e₁' ↑ θ₁ = dbe e₁
       e₂' ↑ θ₂ = dbe e₂
-      h₁ = dbe-correct e₁ env (o-Union₁ u ₒ θ)
-      h₂ = dbe-correct e₂ env (o-Union₂ u ₒ θ)
-      u' ↑ θ' = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+      pair (e₁'' ↑ ψ₁) (e₂'' ↑ ψ₂) c' ↑ ψ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
+      h₁ = dbe-correct e₁ env (ϕ₁ ₒ θ)
+      h₂ = dbe-correct e₂ env (ϕ₂ ₒ θ)
   in
-    eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
-      (eval e₂' (o-Union₂ u' ₒ θ' ₒ θ) env)
-  ≡⟨ cong (λ x → eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env (eval e₂' x env))
-      (helper-assoc _ _ _ _ _ (law-o-Union₂ (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u))) ⟩
-    eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
-      (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
-  ≡⟨ cong (λ x → eval e₁' x env _)
-      (helper-assoc _ _ _ _ _ (law-o-Union₁ (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u))) ⟩
-    eval e₁' (θ₁ ₒ o-Union₁ u ₒ θ) env
-      (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
-  ≡⟨ cong₂ (λ f x → f x) h₁ h₂ ⟩
-    eval e₁ (o-Union₁ u ₒ θ) env
-      (eval e₂ (o-Union₂ u ₒ θ) env)
+    eval e₁'' (ψ₁ ₒ ψ ₒ θ) env
+      (eval e₂'' (ψ₂ ₒ ψ ₒ θ) env)
+  ≡⟨ {!!} ⟩
+    eval e₁' (θ₁ ₒ ϕ₁ ₒ θ) env
+      (eval e₂' (θ₂ ₒ ϕ₂ ₒ θ) env)
+  ≡⟨ cong₂ _$_ h₁ h₂ ⟩
+    eval e₁ (ϕ₁ ₒ θ) env
+      (eval e₂ (ϕ₂ ₒ θ) env)
   ∎
+
+-- -correct (App u e₁ e₂) env θ =
+  -- let
+  --     e₁' ↑ θ₁ = dbe e₁
+  --     e₂' ↑ θ₂ = dbe e₂
+  --     h₁ = dbe-correct e₁ env (o-Union₁ u ₒ θ)
+  --     h₂ = dbe-correct e₂ env (o-Union₂ u ₒ θ)
+  --     u' ↑ θ' = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
+  -- in
+  --   eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
+  --     (eval e₂' (o-Union₂ u' ₒ θ' ₒ θ) env)
+  -- ≡⟨ cong (λ x → eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env (eval e₂' x env))
+  --     (helper-assoc _ _ _ _ _ (law-o-Union₂ (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u))) ⟩
+  --   eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
+  --     (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
+  -- ≡⟨ cong (λ x → eval e₁' x env _)
+  --     (helper-assoc _ _ _ _ _ (law-o-Union₁ (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u))) ⟩
+  --   eval e₁' (θ₁ ₒ o-Union₁ u ₒ θ) env
+  --     (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
+  -- ≡⟨ cong₂ (λ f x → f x) h₁ h₂ ⟩
+  --   eval e₁ (o-Union₁ u ₒ θ) env
+  --     (eval e₂ (o-Union₂ u ₒ θ) env)
+  -- ∎
 
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ with dbe e   | dbe-correct e
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h with Γ' ⊣ θ'

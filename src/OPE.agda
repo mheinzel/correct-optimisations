@@ -117,3 +117,6 @@ S →F T = ∀ {i} → S i → T i
 
 map⇑ : {S T : Scoped} → (S →F T) → ((S ⇑_) →F (T ⇑_))
 map⇑ f (s ↑ θ) = f s ↑ θ
+
+thin⇑ : {T : Scoped} {Γ₁ Γ₂ : Ctx} → Γ₁ ⊑ Γ₂ → T ⇑ Γ₁ → T ⇑ Γ₂
+thin⇑ ϕ (t ↑ θ) = t ↑ (θ ₒ ϕ)

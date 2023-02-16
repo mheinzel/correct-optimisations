@@ -1,9 +1,11 @@
 -- using co-de-Bruijn representation
 module CoDeBruijn.Lang where
 
+open import Data.Unit
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
+open import Function using (_∘_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
@@ -17,6 +19,20 @@ data Union : (Γ₁ Γ₂ Γ : Ctx) → Set where
   left   : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union (τ ∷ Γ₁)      Γ₂  (τ ∷ Γ)
   right  : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union      Γ₁  (τ ∷ Γ₂) (τ ∷ Γ)
   both   : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union (τ ∷ Γ₁) (τ ∷ Γ₂) (τ ∷ Γ)
+
+data Cover : {Γ₁ Γ₂ Γ : Ctx} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
+  _c's : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_o' {τ} θ₁) (θ₂ os)
+  _cs' : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ o')
+  _css : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ os)
+  czz  :                                                                   Cover oz           oz
+
+record _×R_ (S T : Scoped) (Γ : Ctx) : Set where
+  constructor pair
+  field
+    outl  : S ⇑ Γ
+    outr  : T ⇑ Γ
+    cover : Cover (_⇑_.thinning outl) (_⇑_.thinning outr)
+
 
 o-Union₁ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Γ₁ ⊑ Γ
 o-Union₁ done      = oz
@@ -62,10 +78,8 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
     ∀ {σ} →
     Expr σ (σ ∷ [])
   App :
-    ∀ {σ τ Γ₁ Γ₂ Γ} →
-    (u : Union Γ₁ Γ₂ Γ) →
-    (e₁ : Expr (σ ⇒ τ) Γ₁) →
-    (e₂ : Expr σ Γ₂) →
+    ∀ {σ τ Γ} →
+    (Expr (σ ⇒ τ) ×R Expr σ) Γ →
     Expr τ Γ
   Lam :
     ∀ {σ τ Γ} →
@@ -91,9 +105,9 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
 eval : ∀ {Γ' Γ} → Expr τ Γ' → Γ' ⊑ Γ → Env Γ → ⟦ τ ⟧
 eval Var ϕ env =
   lookup Top (project-Env ϕ env)
-eval (App u e₁ e₂) ϕ env =
-  eval e₁ (o-Union₁ u ₒ ϕ) env
-    (eval e₂ (o-Union₂ u ₒ ϕ) env)
+eval (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) ϕ env =
+  eval e₁ (θ₁ ₒ ϕ) env
+    (eval e₂ (θ₂ ₒ ϕ) env)
 eval (Lam {σ} (θ \\ e)) ϕ env =
   λ v → eval e (θ ++⊑ ϕ) (Cons v env)
 eval (Let u e₁ (θ \\ e₂)) ϕ env =
@@ -113,15 +127,29 @@ cover-Union (θ₁ o') (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in ri
 cover-Union (θ₁ os) (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in left  c ↑ θ os
 cover-Union (θ₁ os) (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in both  c ↑ θ os
 
+_,R_ : {S T : Scoped} {Γ : Ctx} → S ⇑ Γ → T ⇑ Γ → (S ×R T) ⇑ Γ
+(s ↑ θ o') ,R (t ↑ ϕ o') =
+  let p ↑ ψ = (s ↑ θ) ,R (t ↑ ϕ)
+  in p ↑ (ψ o')
+_,R_ {S} {T} (s ↑ θ o') (t ↑ ϕ os) =
+  let pair (s' ↑ θ')    (t' ↑ ϕ')     c      ↑ ψ    = _,R_ {S} {T ∘ (_ ∷_)} (s ↑ θ) (t ↑ ϕ)
+  in  pair (s' ↑ θ' o') (t' ↑ ϕ' os) (c c's) ↑ ψ os
+_,R_ {S} {T} (s ↑ (θ os)) (t ↑ (ϕ o')) =
+  let pair (s' ↑ θ')    (t' ↑ ϕ')     c      ↑ ψ    = _,R_ {S ∘ (_ ∷_)} {T} (s ↑ θ) (t ↑ ϕ)
+  in  pair (s' ↑ θ' os) (t' ↑ ϕ' o') (c cs') ↑ ψ os
+_,R_ {S} {T} (s ↑ (θ os)) (t ↑ (ϕ os)) =
+  let pair (s' ↑ θ')    (t' ↑ ϕ')     c      ↑ ψ    = _,R_ {S ∘ (_ ∷_)} {T ∘ (_ ∷_)} (s ↑ θ) (t ↑ ϕ)
+  in  pair (s' ↑ θ' os) (t' ↑ ϕ' os) (c css) ↑ ψ os
+_,R_ (s ↑ oz) (t ↑ oz) =
+  pair (s ↑ oz) (t ↑ oz) czz ↑ oz
+
+
 -- decide which variables are used or not
 into : DeBruijn.Expr Γ σ → Expr σ ⇑ Γ
 into (DeBruijn.Var {σ} x) =
   Var {σ} ↑ o-Ref x
 into (DeBruijn.App e₁ e₂) =
-  let e₁' ↑ θ₁ = into e₁
-      e₂' ↑ θ₂ = into e₂
-      u   ↑ θ  = cover-Union θ₁ θ₂
-  in App u e₁' e₂' ↑ θ
+  map⇑ App (into e₁ ,R into e₂)
 into (DeBruijn.Lam e) =
   map⇑ Lam ((_ ∷ []) \\R into e)
 into (DeBruijn.Let e₁ e₂) =
@@ -140,8 +168,8 @@ into (DeBruijn.Plus e₁ e₂) =
 from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr Γ σ
 from θ Var =
   DeBruijn.Var (ref-o θ)
-from θ (App u e₁ e₂) =
-  DeBruijn.App (from (o-Union₁ u ₒ θ) e₁) (from (o-Union₂ u ₒ θ) e₂)
+from θ (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
+  DeBruijn.App (from (ϕ₁ ₒ θ) e₁) (from (ϕ₂ ₒ θ) e₂)
 from θ (Lam (ψ \\ e)) =
   DeBruijn.Lam (from (ψ ++⊑ θ) e)
 from θ (Let u e₁ (ϕ \\ e₂)) =

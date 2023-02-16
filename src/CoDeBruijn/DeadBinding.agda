@@ -2,6 +2,7 @@
 -- Using co-de-Bruijn representation.
 module CoDeBruijn.DeadBinding where
 
+-- TODO: make compile
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
