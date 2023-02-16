@@ -127,21 +127,38 @@ cover-Union (θ₁ o') (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in ri
 cover-Union (θ₁ os) (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in left  c ↑ θ os
 cover-Union (θ₁ os) (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in both  c ↑ θ os
 
+-- Just to avoid a huge chain of Σ-types.
+record Coproduct {Γ₁ Γ₂ Γ : Ctx} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where
+  constructor coproduct
+  field
+    Γ' : Ctx
+    ψ  : Γ' ⊑ Γ
+    θ' : Γ₁ ⊑ Γ'
+    ϕ' : Γ₂ ⊑ Γ'
+    pθ : θ ≡ (θ' ₒ ψ)
+    pϕ : ϕ ≡ (ϕ' ₒ ψ)
+    c  : Cover θ' ϕ'
+
+cop : {Γ₁ Γ₂ Γ : Ctx} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) → Coproduct θ ϕ
+cop (θ o') (ϕ o') =
+  let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+  in  coproduct _ (ψ o') _ _ (cong _o' pθ) (cong _o' pϕ) c
+cop (θ o') (ϕ os) =
+  let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+  in  coproduct _ (ψ os) _ _ (cong _o' pθ) (cong _os pϕ) (c c's)
+cop (θ os) (ϕ o') =
+  let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+  in  coproduct _ (ψ os) _ _ (cong _os pθ) (cong _o' pϕ) (c cs')
+cop (θ os) (ϕ os) =
+  let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+  in  coproduct _ (ψ os) _ _ (cong _os pθ) (cong _os pϕ) (c css)
+cop oz oz =
+  coproduct _ oz _ _ refl refl czz
+
 _,R_ : {S T : Scoped} {Γ : Ctx} → S ⇑ Γ → T ⇑ Γ → (S ×R T) ⇑ Γ
-(s ↑ θ o') ,R (t ↑ ϕ o') =
-  let p ↑ ψ = (s ↑ θ) ,R (t ↑ ϕ)
-  in p ↑ (ψ o')
-_,R_ {S} {T} (s ↑ θ o') (t ↑ ϕ os) =
-  let pair (s' ↑ θ')    (t' ↑ ϕ')     c      ↑ ψ    = _,R_ {S} {T ∘ (_ ∷_)} (s ↑ θ) (t ↑ ϕ)
-  in  pair (s' ↑ θ' o') (t' ↑ ϕ' os) (c c's) ↑ ψ os
-_,R_ {S} {T} (s ↑ (θ os)) (t ↑ (ϕ o')) =
-  let pair (s' ↑ θ')    (t' ↑ ϕ')     c      ↑ ψ    = _,R_ {S ∘ (_ ∷_)} {T} (s ↑ θ) (t ↑ ϕ)
-  in  pair (s' ↑ θ' os) (t' ↑ ϕ' o') (c cs') ↑ ψ os
-_,R_ {S} {T} (s ↑ (θ os)) (t ↑ (ϕ os)) =
-  let pair (s' ↑ θ')    (t' ↑ ϕ')     c      ↑ ψ    = _,R_ {S ∘ (_ ∷_)} {T ∘ (_ ∷_)} (s ↑ θ) (t ↑ ϕ)
-  in  pair (s' ↑ θ' os) (t' ↑ ϕ' os) (c css) ↑ ψ os
-_,R_ (s ↑ oz) (t ↑ oz) =
-  pair (s ↑ oz) (t ↑ oz) czz ↑ oz
+(s ↑ θ) ,R (t ↑ ϕ) =
+  let coproduct _ ψ θ' ϕ' _ _ c = cop θ ϕ
+  in pair (s ↑ θ') (t ↑ ϕ') c ↑ ψ
 
 
 -- decide which variables are used or not

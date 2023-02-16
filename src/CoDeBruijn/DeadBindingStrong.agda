@@ -104,47 +104,27 @@ dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let e' ↑ θ' = dbe e
   in eval e' (θ' ₒ θ) env ≡ eval e θ env
+
 dbe-correct Var env θ =
   cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
-dbe-correct (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) env θ =
-  let e₁' ↑ θ₁ = dbe e₁
-      e₂' ↑ θ₂ = dbe e₂
-      pair (e₁'' ↑ ψ₁) (e₂'' ↑ ψ₂) c' ↑ ψ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
-      h₁ = dbe-correct e₁ env (ϕ₁ ₒ θ)
-      h₂ = dbe-correct e₂ env (ϕ₂ ₒ θ)
-  in
-    eval e₁'' (ψ₁ ₒ ψ ₒ θ) env
-      (eval e₂'' (ψ₂ ₒ ψ ₒ θ) env)
-  ≡⟨ {!!} ⟩
+
+dbe-correct (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) env θ
+  with dbe e₁   | dbe e₂   | dbe-correct e₁ env (ϕ₁ ₒ θ) | dbe-correct e₂ env (ϕ₂ ₒ θ) 
+...  | e₁' ↑ θ₁ | e₂' ↑ θ₂ | h₁                          | h₂
+  with cop (θ₁ ₒ ϕ₁) (θ₂ ₒ ϕ₂) 
+...  | coproduct Γ' ψ θ₁' θ₂' p₁ p₂ c =
+    eval e₁' (θ₁' ₒ ψ ₒ θ) env
+      (eval e₂' (θ₂' ₒ ψ ₒ θ) env)
+  ≡⟨ cong (λ x → eval e₁' _ _ (eval e₂' x env)) (helper-assoc _ _ _ _ _ (sym p₂)) ⟩
+    eval e₁' (θ₁' ₒ ψ ₒ θ) env
+      (eval e₂' (θ₂ ₒ ϕ₂ ₒ θ) env)
+  ≡⟨ cong (λ x → eval e₁' x env _) (helper-assoc _ _ _ _ _ (sym p₁)) ⟩
     eval e₁' (θ₁ ₒ ϕ₁ ₒ θ) env
       (eval e₂' (θ₂ ₒ ϕ₂ ₒ θ) env)
   ≡⟨ cong₂ _$_ h₁ h₂ ⟩
     eval e₁ (ϕ₁ ₒ θ) env
       (eval e₂ (ϕ₂ ₒ θ) env)
   ∎
-
--- -correct (App u e₁ e₂) env θ =
-  -- let
-  --     e₁' ↑ θ₁ = dbe e₁
-  --     e₂' ↑ θ₂ = dbe e₂
-  --     h₁ = dbe-correct e₁ env (o-Union₁ u ₒ θ)
-  --     h₂ = dbe-correct e₂ env (o-Union₂ u ₒ θ)
-  --     u' ↑ θ' = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
-  -- in
-  --   eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
-  --     (eval e₂' (o-Union₂ u' ₒ θ' ₒ θ) env)
-  -- ≡⟨ cong (λ x → eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env (eval e₂' x env))
-  --     (helper-assoc _ _ _ _ _ (law-o-Union₂ (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u))) ⟩
-  --   eval e₁' (o-Union₁ u' ₒ θ' ₒ θ) env
-  --     (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
-  -- ≡⟨ cong (λ x → eval e₁' x env _)
-  --     (helper-assoc _ _ _ _ _ (law-o-Union₁ (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u))) ⟩
-  --   eval e₁' (θ₁ ₒ o-Union₁ u ₒ θ) env
-  --     (eval e₂' (θ₂ ₒ o-Union₂ u ₒ θ) env)
-  -- ≡⟨ cong₂ (λ f x → f x) h₁ h₂ ⟩
-  --   eval e₁ (o-Union₁ u ₒ θ) env
-  --     (eval e₂ (o-Union₂ u ₒ θ) env)
-  -- ∎
 
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ with dbe e   | dbe-correct e
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h with Γ' ⊣ θ'
