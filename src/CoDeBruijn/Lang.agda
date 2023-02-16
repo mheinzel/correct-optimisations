@@ -13,13 +13,6 @@ open import Core
 import DeBruijn.Lang as DeBruijn
 open import OPE
 
--- aka Cover
-data Union : (Γ₁ Γ₂ Γ : Ctx) → Set where
-  done   :                               Union      []       []       []
-  left   : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union (τ ∷ Γ₁)      Γ₂  (τ ∷ Γ)
-  right  : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union      Γ₁  (τ ∷ Γ₂) (τ ∷ Γ)
-  both   : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Union (τ ∷ Γ₁) (τ ∷ Γ₂) (τ ∷ Γ)
-
 data Cover : {Γ₁ Γ₂ Γ : Ctx} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
   _c's : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_o' {τ} θ₁) (θ₂ os)
   _cs' : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ o')
@@ -32,23 +25,6 @@ record _×R_ (S T : Scoped) (Γ : Ctx) : Set where
     outl  : S ⇑ Γ
     outr  : T ⇑ Γ
     cover : Cover (_⇑_.thinning outl) (_⇑_.thinning outr)
-
-
-o-Union₁ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Γ₁ ⊑ Γ
-o-Union₁ done      = oz
-o-Union₁ (left u)  = (o-Union₁ u) os
-o-Union₁ (right u) = (o-Union₁ u) o'
-o-Union₁ (both u)  = (o-Union₁ u) os
-
-o-Union₂ : ∀ {Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Γ₂ ⊑ Γ
-o-Union₂ done      = oz
-o-Union₂ (left u)  = (o-Union₂ u) o'
-o-Union₂ (right u) = (o-Union₂ u) os
-o-Union₂ (both u)  = (o-Union₂ u) os
-
-law-Union-Γ₁[] : ∀ {Γ₁ Γ} → Union Γ₁ [] Γ → Γ₁ ≡ Γ
-law-Union-Γ₁[] done = refl
-law-Union-Γ₁[] (left {τ} u) = cong (τ ∷_) (law-Union-Γ₁[] u)
 
 record _⊢_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
   constructor _\\_
@@ -86,20 +62,16 @@ data Expr : (σ : U) (Γ : Ctx) → Set where
     ((σ ∷ []) ⊢ Expr τ) Γ →
     Expr (σ ⇒ τ) Γ
   Let :
-    ∀ {σ τ Γ₁ Γ₂ Γ} →
-    (u : Union Γ₁ Γ₂ Γ) →
-    (e₁ : Expr σ Γ₁) →
-    (e₂ : ((σ ∷ []) ⊢ Expr τ) Γ₂) →
+    ∀ {σ τ Γ} →
+    (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ →
     Expr τ Γ
   Val :
     ∀ {σ} →
     (v : ⟦ σ ⟧) →
     Expr σ []
   Plus :
-    ∀ {Γ₁ Γ₂ Γ} →
-    (u : Union Γ₁ Γ₂ Γ) →
-    (e₁ : Expr NAT Γ₁) →
-    (e₂ : Expr NAT Γ₂) →
+    ∀ {Γ} →
+    (Expr NAT ×R Expr NAT) Γ →
     Expr NAT Γ
 
 eval : ∀ {Γ' Γ} → Expr τ Γ' → Γ' ⊑ Γ → Env Γ → ⟦ τ ⟧
@@ -110,22 +82,16 @@ eval (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) ϕ env =
     (eval e₂ (θ₂ ₒ ϕ) env)
 eval (Lam {σ} (θ \\ e)) ϕ env =
   λ v → eval e (θ ++⊑ ϕ) (Cons v env)
-eval (Let u e₁ (θ \\ e₂)) ϕ env =
-  eval e₂ (θ ++⊑ (o-Union₂ u ₒ ϕ))
-    (Cons (eval e₁ (o-Union₁ u ₒ ϕ) env) env)
-eval (Val v) ϕ env = v
-eval (Plus u e₁ e₂) ϕ env =
-    eval e₁ (o-Union₁ u ₒ ϕ) env
-  + eval e₂ (o-Union₂ u ₒ ϕ) env
+eval (Let (pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c)) ϕ env =
+  eval e₂ (ψ ++⊑ (θ₂ ₒ ϕ))
+    (Cons (eval e₁ (θ₁ ₒ ϕ) env) env)
+eval (Val v) ϕ env =
+  v
+eval (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) ϕ env =
+    eval e₁ (θ₁ ₒ ϕ) env
+  + eval e₂ (θ₂ ₒ ϕ) env
 
 -- CONVERSION
-
-cover-Union : ∀ {Γ₁ Γ₂ Γ} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Union Γ₁ Γ₂ ⇑ Γ
-cover-Union oz oz = done ↑ oz
-cover-Union (θ₁ o') (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in       c ↑ θ o'
-cover-Union (θ₁ o') (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in right c ↑ θ os
-cover-Union (θ₁ os) (θ₂ o') = let c ↑ θ = cover-Union θ₁ θ₂ in left  c ↑ θ os
-cover-Union (θ₁ os) (θ₂ os) = let c ↑ θ = cover-Union θ₁ θ₂ in both  c ↑ θ os
 
 -- Just to avoid a huge chain of Σ-types.
 record Coproduct {Γ₁ Γ₂ Γ : Ctx} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where
@@ -170,17 +136,11 @@ into (DeBruijn.App e₁ e₂) =
 into (DeBruijn.Lam e) =
   map⇑ Lam ((_ ∷ []) \\R into e)
 into (DeBruijn.Let e₁ e₂) =
-  let e₁' ↑ θ₁  = into e₁
-      e₂' ↑ θ₂  = (_ ∷ []) \\R into e₂
-      u   ↑ θ   = cover-Union θ₁ θ₂
-  in Let u e₁' e₂' ↑ θ
+  map⇑ Let (into e₁ ,R ((_ ∷ []) \\R into e₂))
 into (DeBruijn.Val v) =
   (Val v) ↑ oe
 into (DeBruijn.Plus e₁ e₂) =
-  let e₁' ↑ θ₁ = into e₁
-      e₂' ↑ θ₂ = into e₂
-      u   ↑ θ  = cover-Union θ₁ θ₂
-  in Plus u e₁' e₂' ↑ θ
+  map⇑ Plus (into e₁ ,R into e₂)
 
 from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr Γ σ
 from θ Var =
@@ -189,14 +149,12 @@ from θ (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
   DeBruijn.App (from (ϕ₁ ₒ θ) e₁) (from (ϕ₂ ₒ θ) e₂)
 from θ (Lam (ψ \\ e)) =
   DeBruijn.Lam (from (ψ ++⊑ θ) e)
-from θ (Let u e₁ (ϕ \\ e₂)) =
-  DeBruijn.Let
-    (from (o-Union₁ u ₒ θ) e₁)
-    (from (ϕ ++⊑ (o-Union₂ u ₒ θ)) e₂)
+from θ (Let (pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c)) =
+  DeBruijn.Let (from (θ₁ ₒ θ) e₁) (from (ψ ++⊑ (θ₂ ₒ θ)) e₂)
 from θ (Val v) =
   DeBruijn.Val v
-from θ (Plus u e₁ e₂) =
-  DeBruijn.Plus (from (o-Union₁ u ₒ θ) e₁) (from (o-Union₂ u ₒ θ) e₂)
+from θ (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) =
+  DeBruijn.Plus (from (θ₁ ₒ θ) e₁) (from (θ₂ ₒ θ) e₂)
 
 -- TODO: prove into/from semantics preserving!
 -- may need to be more general?

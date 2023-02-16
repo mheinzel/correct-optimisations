@@ -23,9 +23,10 @@ postulate
     ((x : S) -> f x ≡ g x) ->
     f ≡ g
 
-let-? : ∀ {σ τ Γ₁ Γ₂ Γ} → Union Γ₁ Γ₂ Γ → Expr σ Γ₁ → ((σ ∷ []) ⊢ Expr τ) Γ₂ → Expr τ ⇑ Γ
-let-? u e₁ (oz o' \\ e₂) = e₂ ↑ o-Union₂ u
-let-? u e₁ (oz os \\ e₂) = Let u e₁ ((oz os) \\ e₂) ↑ oi
+let-? : ∀ {σ τ Γ} → (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+let-? (pair (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) = e₂ ↑ θ₂  -- remove binding
+let-? (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) = Let (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) ↑ oi
+
 
 -- Also remove bindings that are tagged live in the input Expr,
 -- but where the body is revealed to not use the top variable after the recursive call.
@@ -33,53 +34,35 @@ dbe : Expr τ Γ → Expr τ ⇑ Γ
 dbe Var =
   Var ↑ oz os
 dbe (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
-  let e₁' ↑ θ₁ = dbe e₁
-      e₂' ↑ θ₂ = dbe e₂
-      p ↑ ψ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
-  in App p ↑ ψ
-  -- map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
+  map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
+  -- let e₁' ↑ θ₁ = dbe e₁
+  --     e₂' ↑ θ₂ = dbe e₂
+  --     p ↑ ψ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
+  -- in App p ↑ ψ
 dbe (Lam {σ} (_\\_ {bound = Γ'} ψ e)) =
-  let (ϕ \\ e') ↑ θ = Γ' \\R dbe e
-  in Lam ((ϕ ₒ ψ) \\ e') ↑ θ
-  -- this gets in the way of evaluation
-  -- map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
-dbe (Let {σ} u e₁ (_\\_ {bound = Γ'} ψ e₂)) =
-  let e₁'        ↑ θ₁  = dbe e₁
-      (ϕ \\ e₂') ↑ θ₂  = Γ' \\R dbe e₂
-      u'  ↑ θ   = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
-      e'  ↑ θ?  = let-? u' e₁' ((ϕ ₒ ψ) \\ e₂')
-  in e' ↑ (θ? ₒ θ)
-dbe (Val v) = Val v ↑ oz
-dbe (Plus u e₁ e₂) =
-  let e₁' ↑ θ₁ = dbe e₁
-      e₂' ↑ θ₂ = dbe e₂
-      u'  ↑ θ  = cover-Union (θ₁ ₒ o-Union₁ u) (θ₂ ₒ o-Union₂ u)
-  in Plus u' e₁' e₂' ↑ θ
+  map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
+  -- let (ϕ \\ e') ↑ θ = Γ' \\R dbe e
+  -- in Lam ((ϕ ₒ ψ) \\ e') ↑ θ
+dbe (Let {σ} (pair (e₁ ↑ ϕ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ ϕ₂) c)) =
+  let p ↑ θ = thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
+  in thin⇑ θ (let-? p)
+  -- let e₁' ↑ θ₁  = dbe e₁
+  --     (ψ' \\ e₂') ↑ θ₂ = Γ' \\R dbe e₂
+  --     p ↑ θ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (((ψ' ₒ ψ) \\ e₂') ↑ (θ₂ ₒ ϕ₂))
+  --     p' ↑ θ? = let-? p
+  -- in p' ↑ (θ? ₒ θ)
+dbe (Val v) =
+  Val v ↑ oz
+dbe (Plus (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
+  map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
+  -- let e₁' ↑ θ₁ = dbe e₁
+  --     e₂' ↑ θ₂ = dbe e₂
+  --     p ↑ ψ = (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
+  -- in App p ↑ ψ
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
-
--- Is this just a part of Union forming a coproduct?
-law-o-Union₁ :
-  ∀ {Γ₁ Γ₂ Γ} → (θ₁ : Γ₁ ⊑ Γ) → (θ₂ : Γ₂ ⊑ Γ) →
-  let u ↑ θ = cover-Union θ₁ θ₂
-  in o-Union₁ u ₒ θ ≡ θ₁
-law-o-Union₁ (θ₁ o') (θ₂ o') = cong _o' (law-o-Union₁ θ₁ θ₂)
-law-o-Union₁ (θ₁ o') (θ₂ os) = cong _o' (law-o-Union₁ θ₁ θ₂)
-law-o-Union₁ (θ₁ os) (θ₂ o') = cong _os (law-o-Union₁ θ₁ θ₂)
-law-o-Union₁ (θ₁ os) (θ₂ os) = cong _os (law-o-Union₁ θ₁ θ₂)
-law-o-Union₁ oz oz = refl
-
-law-o-Union₂ :
-  ∀ {Γ₁ Γ₂ Γ} → (θ₁ : Γ₁ ⊑ Γ) → (θ₂ : Γ₂ ⊑ Γ) →
-  let u ↑ θ = cover-Union θ₁ θ₂
-  in o-Union₂ u ₒ θ ≡ θ₂
-law-o-Union₂ (θ₁ o') (θ₂ o') = cong _o' (law-o-Union₂ θ₁ θ₂)
-law-o-Union₂ (θ₁ o') (θ₂ os) = cong _os (law-o-Union₂ θ₁ θ₂)
-law-o-Union₂ (θ₁ os) (θ₂ o') = cong _o' (law-o-Union₂ θ₁ θ₂)
-law-o-Union₂ (θ₁ os) (θ₂ os) = cong _os (law-o-Union₂ θ₁ θ₂)
-law-o-Union₂ oz oz = refl
-
+-- TODO: implicit args?
 helper-assoc :
   ∀ {Γ Γ₁ Γ₂ Γ' Γ''} →
   (θ₁  : Γ  ⊑ Γ₁) →
@@ -136,7 +119,9 @@ dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ    | e' ↑ θ' | h    | ⊣r
     ≡⟨ h (Cons v env) (ψ ++⊑ θ) ⟩
       eval e (ψ ++⊑ θ) (Cons v env)
     ∎
-    
+
+{-
 dbe-correct (Let u e₁ e₂) env θ = {!!}
 dbe-correct (Val v) env θ = {!!}
 dbe-correct (Plus u e₁ e₂) env θ = {!!}
+-}
