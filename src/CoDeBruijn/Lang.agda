@@ -28,6 +28,12 @@ data Cover : {Γ₁ Γ₂ Γ : Ctx} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set wh
   _css : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ os)
   czz  :                                                                   Cover oz           oz
 
+cover-flip : {Γ₁ Γ₂ Γ : Ctx} {θ : Γ₁ ⊑ Γ} {ϕ : Γ₂ ⊑ Γ} → Cover θ ϕ → Cover ϕ θ
+cover-flip (c c's) = cover-flip c cs'
+cover-flip (c cs') = cover-flip c c's
+cover-flip (c css) = cover-flip c css
+cover-flip czz = czz
+
 record _×R_ (S T : Scoped) (Γ : Ctx) : Set where
   constructor pair
   field
@@ -127,6 +133,12 @@ lemma-eval (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) env θ ϕ =
   cong₂ _+_
     (trans (cong (λ x → eval e₁ x env) (law-ₒₒ θ₁ θ ϕ)) (lemma-eval e₁ env (θ₁ ₒ θ) ϕ))
     (trans (cong (λ x → eval e₂ x env) (law-ₒₒ θ₂ θ ϕ)) (lemma-eval e₂ env (θ₂ ₒ θ) ϕ))
+
+lemma-eval-Let :
+  {Γₑ Γ : Ctx} (p : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c = p
+  in  eval (Let p) θ env ≡ eval (App (pair ((Lam (ψ \\ e₂)) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c))) θ env
+lemma-eval-Let p env θ = refl
 
 -- CONVERSION
 
