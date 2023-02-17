@@ -111,7 +111,7 @@ dbe-correct-Lam :
       e₁' ↑ θ₁' = dbe e₁
       e = Lam l
       e' ↑ θ' = dbe e
-  in  -- need to simplify type of h to use this lemma?
+  in
   (h : (envₕ : Env (σ ∷ Γₑ)) (θₕ : (Γ' ++ Γ) ⊑ (σ ∷ Γₑ)) → eval e₁' (θ₁' ₒ θₕ) envₕ ≡ eval e₁ θₕ envₕ) →
   eval e' (θ' ₒ θ) env ≡ eval e θ env
 dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
@@ -127,6 +127,35 @@ dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
       eval e₁ (ψ ++⊑ θ) (Cons v env)
     ∎
 
+dbe-correct-App :
+  {Γₑ : Ctx} (p : (Expr (σ ⇒ τ) ×R Expr σ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c = p
+      e₁' ↑ θ₁' = dbe e₁
+      e₂' ↑ θ₂' = dbe e₂
+      e = App p
+      e' ↑ θ' = dbe e
+  in
+  (h₁ : (envₕ : Env Γₑ) (θₕ : Γ ⊑ Γₑ) → eval e₁' (θ₁' ₒ θ₁ ₒ θₕ) envₕ ≡ eval e₁ (θ₁ ₒ θₕ) envₕ) →
+  (h₂ : (envₕ : Env Γₑ) (θₕ : Γ ⊑ Γₑ) → eval e₂' (θ₂' ₒ θ₂ ₒ θₕ) envₕ ≡ eval e₂ (θ₂ ₒ θₕ) envₕ) →
+  eval e' (θ' ₒ θ) env ≡ eval e θ env
+dbe-correct-App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
+  with dbe e₁   | dbe e₂
+...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
+  with cop (θ₁' ₒ θ₁) (θ₂' ₒ θ₂) 
+...  | coproduct Γ' ψ θ₁'' θ₂'' p₁ p₂ c =
+    eval e₁' (θ₁'' ₒ ψ ₒ θ) env
+      (eval e₂' (θ₂'' ₒ ψ ₒ θ) env)
+   ≡⟨ cong (λ x → eval e₁' _ _ (eval e₂' x env)) (helper-assoc _ _ _ _ _ (sym p₂)) ⟩
+     eval e₁' (θ₁'' ₒ ψ ₒ θ) env
+       (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
+   ≡⟨ cong (λ x → eval e₁' x env _) (helper-assoc _ _ _ _ _ (sym p₁)) ⟩
+     eval e₁' (θ₁' ₒ θ₁ ₒ θ) env
+       (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
+   ≡⟨ cong₂ _$_ (h₁ env θ) (h₂ env θ) ⟩
+    eval e₁ (θ₁ ₒ θ) env
+      (eval e₂ (θ₂ ₒ θ) env)
+  ∎
+
 dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let e' ↑ θ' = dbe e
@@ -134,6 +163,11 @@ dbe-correct :
 
 dbe-correct Var env θ =
   cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
+
+dbe-correct (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
+  dbe-correct-App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+    (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ))
+    (λ envₕ θₕ → dbe-correct e₂ envₕ (θ₂ ₒ θₕ))
 
 dbe-correct (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
   let e = App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)
@@ -217,11 +251,12 @@ dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ�
       e₁' ↑ θ₁' = dbe e₁
       e₂' ↑ θ₂' = dbe e₂
       p ↑ θ'' = thin⇑ θ₁ (dbe e₁) ,R thin⇑ θ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
-      pair (e₁'' ↑ θ₁'') ((ψ' \\ e₂'') ↑ θ₂'') c = p
+      pair (e₁'' ↑ θ₁'') ((ψ' \\ e₂'') ↑ θ₂'') c'' = p
       e''' ↑ θ''' = let-? p
       l = lemma-let-?' p env (θ'' ₒ θ)
       h₁ = dbe-correct e₁ env (θ₁ ₒ θ)
       h₂ = dbe-correct e₂ (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env) (ψ ++⊑ (θ₂ ₒ θ))
+      H-Lam = dbe-correct-Lam (ψ \\ e₂) env (θ₂ ₒ θ) (dbe-correct e₂)
   in
     eval e' (θ' ₒ θ) env
   ≡⟨ refl ⟩
@@ -238,6 +273,12 @@ dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ�
     eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
   ≡⟨ cong (λ x → eval e₂ _ (Cons x env)) h₁ ⟩
     eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+  ≡⟨ {!!} ⟩
+    {!!}
+  ≡⟨ cong₂ _$_ H-Lam refl ⟩
+    _$_ (eval (Lam (ψ \\ e₂)) (θ₂ ₒ θ) env) (eval e₁ (θ₁ ₒ θ) env)
+  ≡⟨ refl ⟩
+    eval (App (pair ((Lam (ψ \\ e₂)) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c))) θ env
   ≡⟨ refl ⟩
     eval e θ env
   ∎
