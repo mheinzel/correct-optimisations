@@ -105,7 +105,27 @@ helper-assoc θ₁ θ₁' θ₂ θ₂' θ h =
 
 -- TODO: factor out handling of _×R_ and _⊢_ ?
 
--- dbe-correct-×R : 
+dbe-correct-Lam : 
+  {Γₑ : Ctx} (l : ((σ ∷ []) ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let _\\_ {bound = Γ'} ψ e₁ = l
+      e₁' ↑ θ₁' = dbe e₁
+      e = Lam l
+      e' ↑ θ' = dbe e
+  in  -- need to simplify type of h to use this lemma?
+  (h : (envₕ : Env (σ ∷ Γₑ)) (θₕ : (Γ' ++ Γ) ⊑ (σ ∷ Γₑ)) → eval e₁' (θ₁' ₒ θₕ) envₕ ≡ eval e₁ θₕ envₕ) →
+  eval e' (θ' ₒ θ) env ≡ eval e θ env
+dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
+  with dbe e₁
+...  | e₁' ↑ θ₁
+  with Γ' ⊣ θ₁
+...  | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+  extensionality _ _ λ v →  -- TODO: move extensionality out?
+      eval e₁' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
+    ≡⟨ cong (λ x → eval e₁' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
+      eval e₁' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ θ)) (Cons v env)
+    ≡⟨  h (Cons v env) (ψ ++⊑ θ) ⟩
+      eval e₁ (ψ ++⊑ θ) (Cons v env)
+    ∎
 
 dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
@@ -157,6 +177,9 @@ dbe-correct (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) env θ
   ∎
 
 -- dbe-correct-⊢ :
+dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
+  dbe-correct-Lam (ψ \\ e₁) env θ (dbe-correct e₁)
+  
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
   extensionality _ _ λ v →
     let e = Lam (ψ \\ e₁)
