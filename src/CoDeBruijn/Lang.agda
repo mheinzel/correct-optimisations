@@ -106,6 +106,10 @@ eval (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) ϕ env =
     eval e₁ (θ₁ ₒ ϕ) env
   + eval e₂ (θ₂ ₒ ϕ) env
 
+eval-binop : ∀ {Γ' Γ τ₁ τ₂ τ} → (eval-step : ⟦ τ₁ ⟧ → ⟦ τ₂ ⟧ → ⟦ τ ⟧) → (Expr τ₁ ×R Expr τ₂) Γ' → Γ' ⊑ Γ → Env Γ → ⟦ τ ⟧
+eval-binop eval-step (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) ϕ env =
+  eval-step (eval e₁ (θ₁ ₒ ϕ) env) (eval e₂ (θ₂ ₒ ϕ) env)
+
 -- TODO: clean up, factor out?
 lemma-eval :
   ∀ {Γ₁ Γ₂ Γ₃ τ} →
