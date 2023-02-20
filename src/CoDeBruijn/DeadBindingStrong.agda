@@ -127,32 +127,39 @@ dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
       eval e₁ (ψ ++⊑ θ) (Cons v env)
     ∎
 
-dbe-correct-App :
-  {Γₑ : Ctx} (p : (Expr (σ ⇒ τ) ×R Expr σ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+dbe-correct-×R :
+  {Γₑ : Ctx}
+  {τ₁ τ₂ τ : U} (eval-step : ⟦ τ₁ ⟧ → ⟦ τ₂ ⟧ → ⟦ τ ⟧) →
+  (p : (Expr τ₁ ×R Expr τ₂) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c = p
       e₁' ↑ θ₁' = dbe e₁
       e₂' ↑ θ₂' = dbe e₂
-      e = App p  -- TODO: abstract over App, support e.g. Plus
-      e' ↑ θ' = dbe e
+      -- pair (e₁' ↑ θ₁'') (e₂' ↑ θ₂'') c ↑ θ' = (e₁' ↑ (θ₁' ₒ θ₁)) ,R (e₂' ↑ (θ₂' ₒ θ₂))
+      pair (e₁'' ↑ θ₁'') (e₂'' ↑ θ₂'') c' ↑ θ' = _,R_ {Expr _} {Expr _} (e₁' ↑ (θ₁' ₒ θ₁)) (e₂' ↑ (θ₂' ₒ θ₂))
   in
   (h₁ : (envₕ : Env Γₑ) (θₕ : Γ ⊑ Γₑ) → eval e₁' (θ₁' ₒ θ₁ ₒ θₕ) envₕ ≡ eval e₁ (θ₁ ₒ θₕ) envₕ) →
   (h₂ : (envₕ : Env Γₑ) (θₕ : Γ ⊑ Γₑ) → eval e₂' (θ₂' ₒ θ₂ ₒ θₕ) envₕ ≡ eval e₂ (θ₂ ₒ θₕ) envₕ) →
-  eval e' (θ' ₒ θ) env ≡ eval e θ env
-dbe-correct-App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
+    eval-step (eval e₁'' (θ₁'' ₒ θ' ₒ θ) env) (eval e₂'' (θ₂'' ₒ θ' ₒ θ) env)
+  ≡ eval-step (eval e₁ (θ₁ ₒ θ) env) (eval e₂ (θ₂ ₒ θ) env)
+dbe-correct-×R eval-step (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
   with dbe e₁   | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with cop (θ₁' ₒ θ₁) (θ₂' ₒ θ₂) 
 ...  | coproduct Γ' ψ θ₁'' θ₂'' p₁ p₂ c =
-    eval e₁' (θ₁'' ₒ ψ ₒ θ) env
-      (eval e₂' (θ₂'' ₒ ψ ₒ θ) env)
-   ≡⟨ cong (λ x → eval e₁' _ _ (eval e₂' x env)) (helper-assoc _ _ _ _ _ (sym p₂)) ⟩
-     eval e₁' (θ₁'' ₒ ψ ₒ θ) env
+     eval-step
+       (eval e₁' (θ₁'' ₒ ψ ₒ θ) env)
+       (eval e₂' (θ₂'' ₒ ψ ₒ θ) env)
+   ≡⟨ cong (λ x → eval-step (eval e₁' _ _) (eval e₂' x env)) (helper-assoc _ _ _ _ _ (sym p₂)) ⟩
+     eval-step
+       (eval e₁' (θ₁'' ₒ ψ ₒ θ) env)
        (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
-   ≡⟨ cong (λ x → eval e₁' x env _) (helper-assoc _ _ _ _ _ (sym p₁)) ⟩
-     eval e₁' (θ₁' ₒ θ₁ ₒ θ) env
+   ≡⟨ cong (λ x → eval-step (eval e₁' x env) _) (helper-assoc _ _ _ _ _ (sym p₁)) ⟩
+     eval-step
+       (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env)
        (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
-   ≡⟨ cong₂ _$_ (h₁ env θ) (h₂ env θ) ⟩
-    eval e₁ (θ₁ ₒ θ) env
+   ≡⟨ cong₂ eval-step (h₁ env θ) (h₂ env θ) ⟩
+    eval-step
+      (eval e₁ (θ₁ ₒ θ) env)
       (eval e₂ (θ₂ ₒ θ) env)
   ∎
 
@@ -165,7 +172,7 @@ dbe-correct Var env θ =
   cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
 
 dbe-correct (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
-  dbe-correct-App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+  dbe-correct-×R _$_ (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ))
     (λ envₕ θₕ → dbe-correct e₂ envₕ (θ₂ ₒ θₕ))
 
@@ -282,9 +289,9 @@ dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ�
   --   {!!}
   -- ≡⟨ cong₂ _$_ H-Lam refl ⟩
   ≡⟨ {!y!} ⟩
-    -- eval 
+    -- eval e₂\\ ((ψ\\ ₒ ψ\\) ++⊏ ())
     {!!}
-  ≡⟨ dbe-correct-App (pair (Lam (ψ \\ e₂) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c)) env θ
+  ≡⟨ dbe-correct-×R _$_ (pair (Lam (ψ \\ e₂) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c)) env θ
       (λ envₕ θₕ → dbe-correct-Lam (ψ \\ e₂) envₕ (θ₂ ₒ θₕ) (dbe-correct e₂))
       (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ) ) ⟩
     eval (App (pair (Lam (ψ \\ e₂) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c))) θ env
@@ -309,7 +316,9 @@ dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ�
     eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
   ∎
 
-{-
-dbe-correct (Val v) env θ = {!!}
-dbe-correct (Plus u e₁ e₂) env θ = {!!}
--}
+dbe-correct (Val v) env θ = refl
+
+dbe-correct (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
+  dbe-correct-×R _+_ (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+    (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ))
+    (λ envₕ θₕ → dbe-correct e₂ envₕ (θ₂ ₒ θₕ))
