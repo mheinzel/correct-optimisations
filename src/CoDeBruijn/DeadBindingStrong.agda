@@ -40,8 +40,13 @@ lemma-let-?' p env θ =
     eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
   ≡⟨ cong (λ x → eval e₂ _ (Cons x env)) (trans (lemma-eval e₁ env θ₁ θ) (cong (λ x → eval e₁ x (project-Env θ env)) (sym (law-ₒoi θ₁) ))) ⟩
     eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) env)
-  ≡⟨ {!!} ⟩  -- Should be doable, but might require a few basic laws.
-            -- Instead, we could bake it into the lemma above from the beginning?
+  ≡⟨ cong (λ x → eval e₂ x (Cons (eval e₁ _ _) _)) (trans (cong (_++⊑ (θ₂ ₒ θ)) (sym (law-ₒoi ψ))) (law-commute-ₒ++⊑ ψ oi θ₂ θ)) ⟩
+    eval e₂ ((ψ ++⊑ θ₂) ₒ (oi ++⊑ θ)) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) env)
+  ≡⟨ lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) env) (ψ ++⊑ θ₂) (oi ++⊑ θ) ⟩
+    eval e₂ (ψ ++⊑ θ₂) (project-Env (oi ++⊑ θ) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) env))
+  ≡⟨ refl ⟩
+    eval e₂ (ψ ++⊑ θ₂) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) (project-Env θ env))
+  ≡⟨ cong (λ x → eval e₂ (ψ ++⊑ x) _) (sym (law-ₒoi θ₂)) ⟩
     eval e₂ (ψ ++⊑ (θ₂ ₒ oi)) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) (project-Env θ env))
   ≡⟨ lemma-let-? p (project-Env θ env) ⟩
     eval e' θ' (project-Env θ env)
