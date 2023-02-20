@@ -211,10 +211,35 @@ from θ (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) =
 
 -- TODO: prove into/from semantics preserving!
 -- may need to be more general?
-{-
 conversion-correct :
-  (e : DeBruijn.Expr Γ τ) (env : Env Γ) →
-  let e' ↑ θ = into e
-  in DeBruijn.eval (from oi e') (project-Env θ env) ≡ DeBruijn.eval e env
-conversion-correct e env = {!!}
--}
+  ∀ {Γₑ Γ τ} (e : DeBruijn.Expr Γ τ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let e' ↑ θ' = into e
+  in DeBruijn.eval (from θ' e') (project-Env θ env) ≡ DeBruijn.eval e (project-Env θ env)
+conversion-correct (DeBruijn.Var x) env θ = {!!}
+conversion-correct (DeBruijn.App e₁ e₂) env θ =
+  let e₁' ↑ θ₁ = into e₁
+      e₂' ↑ θ₂ = into e₂
+      coproduct _ _ _ _ p₁ p₂ _ = cop θ₁ θ₂
+      pair (_ ↑ θ₁') (_ ↑ θ₂') c ↑ θ' = into e₁ ,R into e₂
+  in cong₂ _$_
+      (trans (cong (λ x → DeBruijn.eval (from x e₁') _) (sym p₁)) (conversion-correct e₁ env θ))
+      (trans (cong (λ x → DeBruijn.eval (from x e₂') _) (sym p₂)) (conversion-correct e₂ env θ))
+conversion-correct (DeBruijn.Lam e) env θ
+  with into e  | conversion-correct e
+...  | e' ↑ θ' | h
+  with (_ ∷ []) ⊣ θ'
+... | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+  let (ψ \\ e'') ↑ θ'' = (_ ∷ []) \\R into e
+  in extensionality _ _ λ v →
+    h (Cons v env) (θ os)
+conversion-correct (DeBruijn.Let e₁ e₂) env θ = {!!}
+conversion-correct (DeBruijn.Val v) env θ =
+  refl
+conversion-correct (DeBruijn.Plus e₁ e₂) env θ =
+  let e₁' ↑ θ₁ = into e₁
+      e₂' ↑ θ₂ = into e₂
+      coproduct _ _ _ _ p₁ p₂ _ = cop θ₁ θ₂
+      pair (_ ↑ θ₁') (_ ↑ θ₂') c ↑ θ' = into e₁ ,R into e₂
+  in cong₂ _+_
+      (trans (cong (λ x → DeBruijn.eval (from x e₁') _) (sym p₁)) (conversion-correct e₁ env θ))
+      (trans (cong (λ x → DeBruijn.eval (from x e₂') _) (sym p₂)) (conversion-correct e₂ env θ))
