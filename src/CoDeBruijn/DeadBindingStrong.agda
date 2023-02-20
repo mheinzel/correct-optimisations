@@ -55,33 +55,20 @@ mutual
   dbe : Expr τ Γ → Expr τ ⇑ Γ
   dbe Var =
     Var ↑ oz os
-  dbe (App p) = map⇑ App (dbe-×R p)
-  dbe (Lam l) = map⇑ Lam (dbe-Lam l)
+  dbe (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
+    map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
+  dbe (Lam (_\\_ {bound = Γ'} ψ e)) =
+    map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
   dbe (Let p) =
-    let p' ↑ θ = dbe-Let p
-    in thin⇑ θ (let-? p')
-  dbe (Val v) = Val v ↑ oz
-  dbe (Plus p) = map⇑ Plus (dbe-×R p)
-
-  dbe-Lam : ((σ ∷ []) ⊢ Expr τ) Γ → ((σ ∷ []) ⊢ Expr τ) ⇑ Γ
-  dbe-Lam (_\\_ {bound = Γ'} ψ e) =
-    map⇑ (map⊢ ψ) (Γ' \\R dbe e)
-    -- let (ϕ \\ e') ↑ θ = Γ' \\R dbe e
-    -- in ((ϕ ₒ ψ) \\ e') ↑ θ
-
-  dbe-×R : (Expr σ ×R Expr τ) Γ → (Expr σ ×R Expr τ) ⇑ Γ
-  dbe-×R (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c) =
-    thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂)
-    -- let e₁' ↑ θ₁ = dbe e₁
-    --     e₂' ↑ θ₂ = dbe e₂
-    -- in  (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (e₂' ↑ (θ₂ ₒ ϕ₂))
+    mult⇑ (map⇑ let-? (dbe-Let p))
+  dbe (Val v) =
+    Val v ↑ oz
+  dbe (Plus (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
+    map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
 
   dbe-Let : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) ⇑ Γ
-  dbe-Let (pair (e₁ ↑ ϕ₁) (l ↑ ϕ₂) c) =
-    thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe-Lam l)
-    -- let e₁' ↑ θ₁  = dbe e₁
-    --     (ψ' \\ e₂') ↑ θ₂ = Γ' \\R dbe e₂
-    --     (e₁' ↑ (θ₁ ₒ ϕ₁)) ,R (((ψ' ₒ ψ) \\ e₂') ↑ (θ₂ ₒ ϕ₂))
+  dbe-Let (pair (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e) ↑ ϕ₂) c) =
+    thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e))
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
@@ -177,10 +164,13 @@ dbe-correct-Let :
   (h₂ : (envₕ : Env (σ ∷ Γₑ)) (θₕ : Γ ⊑ Γₑ) → eval e₂' (θ₂' ₒ (ψ ++⊑ (θ₂ ₒ θₕ))) envₕ ≡ eval e₂ (ψ ++⊑ (θ₂ ₒ θₕ)) envₕ) →
   eval (Let p') (θ' ₒ θ) env ≡ eval (Let p) θ env
 dbe-correct-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c) env θ h₁ h₂ =
-    {!eval-binop!}
+  let p' ↑ θ' = dbe-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)
+  in
+    eval (Let p') (θ' ₒ θ) env
   ≡⟨ {!!} ⟩
-    {!eval-binop!}
-    eval-binop (flip _$_) 
+    {!!} -- (flip _$_)  (Let p') (θ' ₒ θ) env
+  ≡⟨ {!!} ⟩
+    {!eval-binop (flip _$_) !}
   ≡⟨ dbe-correct-×R (flip _$_) (pair (e₁ ↑ θ₁) (Lam (_\\_ {bound = Γ'} ψ e₂) ↑ θ₂) c) env θ
       (λ envₕ θₕ → h₁ envₕ θₕ)
       (λ envₕ θₕ → dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₂) envₕ (θ₂ ₒ θₕ)
@@ -281,52 +271,18 @@ dbe-correct (Lam (_\\_ {bound = Γ'} ψ e)) env θ
 
 dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) env θ =
   let p = pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c
-      e = Let {σ} p
-      e' ↑ θ' = dbe e
-      e₁' ↑ θ₁' = dbe e₁
-      e₂' ↑ θ₂' = dbe e₂
-      -- p' ↑ θ' = _,R_ {Expr _} {Expr _} (e₁' ↑ (θ₁' ₒ θ₁)) (e₂' ↑ (θ₂' ₒ θ₂))
-      (ψ\\ \\ e₂\\) ↑ θ\\ = (Γ' \\R dbe e₂)
-      p ↑ θ'' = thin⇑ θ₁ (dbe e₁) ,R thin⇑ θ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
-      pair (e₁'' ↑ θ₁'') ((ψ' \\ e₂'') ↑ θ₂'') c' = p
-      e''' ↑ θ''' = let-? p
-      l = lemma-let-?' p env (θ'' ₒ θ)
-      h₁ = dbe-correct e₁ env (θ₁ ₒ θ)
-      h₂ = dbe-correct e₂ (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env) (ψ ++⊑ (θ₂ ₒ θ))
-      H-Lam = dbe-correct-Lam (ψ \\ e₂) env (θ₂ ₒ θ) {! dbe-correct e₂ !}
+      p' ↑ θ' = dbe-Let p
+      e' ↑ θ'' = let-? p'
   in
-    eval e' (θ' ₒ θ) env
-  ≡⟨ refl ⟩
-    eval e''' ((θ''' ₒ θ'') ₒ θ) env
-  ≡⟨ cong (λ x → eval e''' x env) (sym (law-ₒₒ θ''' θ'' θ)) ⟩
-    eval e''' (θ''' ₒ θ'' ₒ θ) env
-  ≡⟨ sym l ⟩
-    eval (Let p) (θ'' ₒ θ) env
-  ≡⟨ refl ⟩
-    eval-binop (flip _$_) (pair (e₁'' ↑ θ₁'') (Lam (ψ' \\ e₂'') ↑ θ₂'') c') (θ'' ₒ θ) env
-  ≡⟨ refl ⟩
-    eval e₂'' (ψ' ++⊑ (θ₂'' ₒ θ'' ₒ θ)) (Cons (eval e₁'' (θ₁'' ₒ θ'' ₒ θ) env) env)
-  -- ≡⟨ refl ⟩
-  --   eval e₂'' ({! ψ' ++⊑ θ₂'' ₒ θ'' ₒ θ !}) (Cons (eval e₁'' (θ₁'' ₒ θ'' ₒ θ) env) env)
-  -- ≡⟨ {!!} ⟩
-  --   eval e₂' (θ₂' ₒ (ψ ++⊑ (θ₂ ₒ θ))) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
-  -- ≡⟨ h₂ ⟩
-  --   eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
-  -- ≡⟨ cong (λ x → eval e₂ _ (Cons x env)) h₁ ⟩
-  --   eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
-  -- ≡⟨ {!!} ⟩
-  --   {!!}
-  -- ≡⟨ cong₂ _$_ H-Lam refl ⟩
-  ≡⟨ {!y!} ⟩
-    -- eval e₂\\ (ψ\\ ++⊑ (? ₒ ? ₒ θ)) (Cons eval 
-    {!!}
-    eval-binop (flip _$_) 
-  ≡⟨ dbe-correct-×R (flip _$_) (pair (e₁ ↑ θ₁) (Lam (ψ \\ e₂) ↑ θ₂) c) env θ
-      (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ) )
-      (λ envₕ θₕ → dbe-correct-Lam (ψ \\ e₂) envₕ (θ₂ ₒ θₕ) {! dbe-correct e₂ !}) ⟩
-    eval-binop (flip _$_) (pair (e₁ ↑ θ₁) (Lam (ψ \\ e₂) ↑ θ₂) c) θ env
-  ≡⟨ refl ⟩
-    eval e θ env
+    eval e' ((θ'' ₒ θ') ₒ θ) env
+  ≡⟨ cong (λ x → eval e' x env) (sym (law-ₒₒ θ'' θ' θ)) ⟩
+    eval e' (θ'' ₒ θ' ₒ θ) env
+  ≡⟨ sym (lemma-let-?' p' env (θ' ₒ θ)) ⟩
+    eval (Let p') (θ' ₒ θ) env
+  ≡⟨ dbe-correct-Let (pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c) env θ
+      (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ))
+      (λ envₕ θₕ → dbe-correct e₂ envₕ (ψ ++⊑ (θ₂ ₒ θₕ))) ⟩
+    eval (Let p) θ env
   ∎
 
 dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) env θ
@@ -352,5 +308,3 @@ dbe-correct (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
   dbe-correct-×R _+_ (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (λ envₕ θₕ → dbe-correct e₁ envₕ (θ₁ ₒ θₕ))
     (λ envₕ θₕ → dbe-correct e₂ envₕ (θ₂ ₒ θₕ))
-{-
--}
