@@ -131,7 +131,7 @@ dbe-correct-×R :
   --   eval-step (eval e₁'' (θ₁'' ₒ θ' ₒ θ) env) (eval e₂'' (θ₂'' ₒ θ' ₒ θ) env)
   -- ≡ eval-step (eval e₁ (θ₁ ₒ θ) env) (eval e₂ (θ₂ ₒ θ) env)
 dbe-correct-×R eval-step (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
-  with dbe e₁   | dbe e₂
+  with dbe e₁    | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with cop (θ₁' ₒ θ₁) (θ₂' ₒ θ₂) 
 ...  | coproduct Γ' ψ θ₁'' θ₂'' p₁ p₂ c =
@@ -152,6 +152,7 @@ dbe-correct-×R eval-step (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁
       (eval e₂ (θ₂ ₒ θ) env)
   ∎
 
+-- TODO: do without reusing stuff? (copy some bits from above)
 dbe-correct-Let : 
   {Γₑ : Ctx} (p : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let pair (e₁ ↑ θ₁) (l ↑ θ₂) c = p
@@ -163,9 +164,26 @@ dbe-correct-Let :
   (h₁ : (envₕ : Env Γₑ) (θₕ : Γ ⊑ Γₑ) → eval e₁' (θ₁' ₒ θ₁ ₒ θₕ) envₕ ≡ eval e₁ (θ₁ ₒ θₕ) envₕ) →
   (h₂ : (envₕ : Env (σ ∷ Γₑ)) (θₕ : Γ ⊑ Γₑ) → eval e₂' (θ₂' ₒ (ψ ++⊑ (θ₂ ₒ θₕ))) envₕ ≡ eval e₂ (ψ ++⊑ (θ₂ ₒ θₕ)) envₕ) →
   eval (Let p') (θ' ₒ θ) env ≡ eval (Let p) θ env
-dbe-correct-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c) env θ h₁ h₂ =
-  let p' ↑ θ' = dbe-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)
-  in
+dbe-correct-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c) env θ h₁ h₂
+  with dbe e₁    | dbe e₂
+...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
+  with Γ' ⊣ θ₂'
+...  | ⊣r ϕ₁ ϕ₂ (refl , refl)
+  with cop (θ₁' ₒ θ₁) (ϕ₂ ₒ θ₂) 
+...  | coproduct Γ' ψ' θ₁'' θ₂'' p₁ p₂ c =
+    eval e₂' ((ϕ₁ ₒ ψ) ++⊑ (θ₂'' ₒ ψ' ₒ θ)) (Cons (eval e₁' (θ₁'' ₒ ψ' ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂' _ (Cons (eval e₁' x env) env)) (helper-assoc _ _ _ _ _ (sym p₁)) ⟩
+    eval e₂' ((ϕ₁ ₒ ψ) ++⊑ (θ₂'' ₒ ψ' ₒ θ)) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂' x (Cons _ env)) (trans
+      (cong ((ϕ₁ ₒ ψ) ++⊑_) (helper-assoc _ _ _ _ _ (sym p₂)) )
+      (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ (θ₂ ₒ θ))) ⟩
+    eval e₂' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ (θ₂ ₒ θ))) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+  ≡⟨ h₂ (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env) θ ⟩
+    eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂ _ (Cons x env)) (h₁ env θ) ⟩
+    eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+  ∎
+  {-
     eval (Let p') (θ' ₒ θ) env
   ≡⟨ {!!} ⟩
     {!!} -- (flip _$_)  (Let p') (θ' ₒ θ) env
@@ -179,6 +197,7 @@ dbe-correct-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)
   ≡⟨ refl ⟩
     eval (Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) θ env
   ∎
+  -}
 
 dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
