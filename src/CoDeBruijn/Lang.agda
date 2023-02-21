@@ -210,36 +210,77 @@ from θ (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) =
   DeBruijn.Plus (from (θ₁ ₒ θ) e₁) (from (θ₂ ₒ θ) e₂)
 
 -- TODO: prove into/from semantics preserving!
--- may need to be more general?
-conversion-correct :
-  ∀ {Γₑ Γ τ} (e : DeBruijn.Expr Γ τ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+into-correct-Ref : (x : Ref τ Γ) (env : Env Γ) → lookup Top (project-Env (o-Ref x) env) ≡ lookup x env
+into-correct-Ref Top (Cons v env) = refl
+into-correct-Ref (Pop x) (Cons v env) = into-correct-Ref x env
+
+into-correct :
+  (e : DeBruijn.Expr Γ τ) (env : Env Γ) →
   let e' ↑ θ' = into e
-  in DeBruijn.eval (from θ' e') (project-Env θ env) ≡ DeBruijn.eval e (project-Env θ env)
-conversion-correct (DeBruijn.Var x) env θ = {!!}
-conversion-correct (DeBruijn.App e₁ e₂) env θ =
-  let e₁' ↑ θ₁ = into e₁
-      e₂' ↑ θ₂ = into e₂
-      coproduct _ _ _ _ p₁ p₂ _ = cop θ₁ θ₂
-      pair (_ ↑ θ₁') (_ ↑ θ₂') c ↑ θ' = into e₁ ,R into e₂
-  in cong₂ _$_
-      (trans (cong (λ x → DeBruijn.eval (from x e₁') _) (sym p₁)) (conversion-correct e₁ env θ))
-      (trans (cong (λ x → DeBruijn.eval (from x e₂') _) (sym p₂)) (conversion-correct e₂ env θ))
-conversion-correct (DeBruijn.Lam e) env θ
-  with into e  | conversion-correct e
+  in eval e' θ' env ≡ DeBruijn.eval e env
+into-correct (DeBruijn.Var x) env =
+  into-correct-Ref x env
+into-correct (DeBruijn.App e₁ e₂) env
+  with into e₁  | into e₂  | into-correct e₁ env | into-correct e₂ env
+...  | e₁' ↑ θ₁ | e₂' ↑ θ₂ | h₁                  | h₂
+  with cop θ₁ θ₂
+...  | coproduct _ ψ ϕ₁ ϕ₂ refl refl c =
+    eval e₁' (ϕ₁ ₒ ψ) env (eval e₂' (ϕ₂ ₒ ψ) env)
+  ≡⟨ cong₂ _$_ h₁ h₂ ⟩
+    DeBruijn.eval e₁ env (DeBruijn.eval e₂ env)
+  ∎
+into-correct (DeBruijn.Lam e) env
+  with into e  | into-correct e
 ...  | e' ↑ θ' | h
   with (_ ∷ []) ⊣ θ'
 ... | ⊣r ϕ₁ ϕ₂ (refl , refl) =
-  let (ψ \\ e'') ↑ θ'' = (_ ∷ []) \\R into e
-  in extensionality _ _ λ v →
-    h (Cons v env) (θ os)
-conversion-correct (DeBruijn.Let e₁ e₂) env θ = {!!}
-conversion-correct (DeBruijn.Val v) env θ =
+  extensionality _ _ λ v →
+    h (Cons v env)
+into-correct (DeBruijn.Let e₁ e₂) env
+  with into e₁  | into e₂  | into-correct e₁ env | into-correct e₂ (Cons (DeBruijn.eval e₁ env) env)
+...  | e₁' ↑ θ₁ | e₂' ↑ θ₂ | h₁                  | h₂
+  with (_ ∷ []) ⊣ θ₂
+... | ⊣r ψ θ₂' (refl , refl)
+  with cop θ₁ θ₂'
+...  | coproduct _ θ ϕ₁ ϕ₂ refl refl c =
+    eval e₂' (ψ ++⊑ (ϕ₂ ₒ θ)) (Cons (eval e₁' (ϕ₁ ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂' _ (Cons x env)) h₁ ⟩
+    eval e₂' (ψ ++⊑ (ϕ₂ ₒ θ)) (Cons (DeBruijn.eval e₁ env) env)
+  ≡⟨ h₂ ⟩
+    DeBruijn.eval e₂ (Cons (DeBruijn.eval e₁ env) env)
+  ∎
+into-correct (DeBruijn.Val v) env =
   refl
-conversion-correct (DeBruijn.Plus e₁ e₂) env θ =
-  let e₁' ↑ θ₁ = into e₁
-      e₂' ↑ θ₂ = into e₂
-      coproduct _ _ _ _ p₁ p₂ _ = cop θ₁ θ₂
-      pair (_ ↑ θ₁') (_ ↑ θ₂') c ↑ θ' = into e₁ ,R into e₂
-  in cong₂ _+_
-      (trans (cong (λ x → DeBruijn.eval (from x e₁') _) (sym p₁)) (conversion-correct e₁ env θ))
-      (trans (cong (λ x → DeBruijn.eval (from x e₂') _) (sym p₂)) (conversion-correct e₂ env θ))
+into-correct (DeBruijn.Plus e₁ e₂) env
+  with into e₁  | into e₂  | into-correct e₁ env | into-correct e₂ env
+...  | e₁' ↑ θ₁ | e₂' ↑ θ₂ | h₁                  | h₂
+  with cop θ₁ θ₂
+...  | coproduct _ ψ ϕ₁ ϕ₂ refl refl c =
+    eval e₁' (ϕ₁ ₒ ψ) env + eval e₂' (ϕ₂ ₒ ψ) env
+  ≡⟨ cong₂ _+_ h₁ h₂ ⟩
+    DeBruijn.eval e₁ env + DeBruijn.eval e₂ env
+  ∎
+
+from-correct-Var : (θ : (σ ∷ []) ⊑ Γ) (env : Env Γ) → lookup (ref-o θ) env ≡ lookup Top (project-Env θ env)
+from-correct-Var (θ o') (Cons x env) = from-correct-Var θ env
+from-correct-Var (θ os) (Cons x env) = refl
+
+from-correct :
+  ∀ {Γ' Γ τ} (e : Expr τ Γ') (env : Env Γ) (θ : Γ' ⊑ Γ) →
+  let e' = from θ e
+  in DeBruijn.eval e' env ≡ eval e θ env
+from-correct Var env θ =
+  from-correct-Var θ env
+from-correct (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) _)) env θ =
+  cong₂ _$_ (from-correct e₁ env (θ₁ ₒ θ)) (from-correct e₂ env (θ₂ ₒ θ))
+from-correct (Lam (ψ \\ e)) env θ =
+  extensionality _ _ λ v →
+    from-correct e (Cons v env) (ψ ++⊑ θ)
+from-correct (Let (pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) _)) env θ =
+  trans
+    (cong (λ x → DeBruijn.eval (from _ e₂) (Cons x env)) (from-correct e₁ env (θ₁ ₒ θ)))
+    (from-correct e₂ (Cons (eval e₁ (θ₁ ₒ θ) env) env) (ψ ++⊑ (θ₂ ₒ θ)))
+from-correct (Val v) env θ =
+  refl
+from-correct (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) _)) env θ =
+  cong₂ _+_ (from-correct e₁ env (θ₁ ₒ θ)) (from-correct e₂ env (θ₂ ₒ θ))
