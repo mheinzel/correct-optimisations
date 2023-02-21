@@ -24,45 +24,62 @@ pop-at (σ ∷ Γ) (Pop i) = σ ∷ pop-at Γ i
 rename-top : (Γ' : Ctx) (i : Ref σ Γ) → Expr τ (Γ' ++ Γ) → Expr τ (Γ' ++ (σ ∷ pop-at Γ i))
 rename-top Γ' i e = {!!}
 
+{-
+record _⊨_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
+  constructor _\\\_
+  field
+    {above} : Ctx
+    {below} : Ctx
+    thinning : bound ⊑ Γ'
+    thing : T (bound ++ Γ)
+-}
+
+lemma-∷ : {A : Set} {x y : A} {xs ys : List A} → x ∷ xs ≡ y ∷ ys → xs ≡ ys
+lemma-∷ refl = refl
+
+lemma-[x]≡ : ∀ Γ₁ Γ₂ (p : τ ∷ [] ≡ Γ₁ ++ (σ ∷ Γ₂)) → σ ≡ τ
+lemma-[x]≡ [] .[] refl = refl
+lemma-[x]≡ (x ∷ Γ₁) Γ₂ p with lemma-∷ p
+lemma-[x]≡ (x ∷ []) Γ₂ p | ()
+lemma-[x]≡ (x ∷ x₁ ∷ Γ₁) Γ₂ p | ()
+
 -- push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
 
-push-let : {Γ₁ Γ₂ Γ : Ctx} (i : Ref σ Γ₂) → Expr σ Γ₁ → Expr τ Γ₂ → Union Γ₁ (pop-at Γ₂ i) Γ → Expr τ Γ
-push-let Top decl Var U with law-Union-Γ₁[] U
+-- TODO: how to introduce reordering?
+-- TODO: ideally we would also require some kind of Cover-condition on the inputs,
+--       so we don't need to return a thinning/_⇑_
+push-let :
+  (Γ₁ Γ₂ : Ctx) (decl : Expr σ ⇑ (Γ₁ ++ Γ₂)) (body : Expr τ ⇑ (Γ₁ ++ (σ ∷ Γ₂))) →
+  Expr τ ⇑ (Γ₁ ++ Γ₂)
+push-let Γ₁ Γ₂ decl (Var ↑ θ)
+  with Γ₁ ⊣ θ
+... | ⊣r ϕ₁ (ϕ₂ o') (p₁ , p₂) = Var ↑ {!ϕ₁ ++⊑ ϕ₂!}  -- just need to apply p₁ somehow
+... | ⊣r ϕ₁ (ϕ₂ os) (p₁ , p₂)
+  with lemma-[x]≡ _ _ p₁
 ... | refl = decl
+push-let Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) ↑ θ) = {!!}  -- need to split (θ₁ ₒ θ) etc.
+push-let Γ₁ Γ₂ decl (Lam (ψ \\ e) ↑ θ)
+  with Γ₁ ⊣ θ
+...  | ⊣r ϕ₁ ϕ₂ (refl , refl)
+  with (_ ∷ []) ⊣ ϕ₂
+...  | ⊣r ψ' ϕ₂ (refl , refl) =
+  map⇑ Let (decl ,R ((ψ' \\ (Lam (ψ \\ {!e!}))) ↑ (ϕ₁ ++⊑ ϕ₂)))
+push-let Γ₁ Γ₂ decl (Let x ↑ θ) = {!!}
+push-let Γ₁ Γ₂ decl (Val v ↑ θ) = {!!}
+push-let Γ₁ Γ₂ decl (Plus x ↑ θ) = {!!}
+{-
+push-let : {Γ₁ Γ₂ Γ : Ctx} (i : Ref σ Γ) → Expr σ Γ₁ → Expr τ Γ₂ → Cover Γ₁ (pop-at Γ₂ i) Γ → Expr τ Γ
+push-let Top decl Var U = ?
 push-let i decl (App u e₁ e₂) U = {!!}
 push-let i decl (Lam e) U =
-  Let live U decl (rename-top [] i (Lam e))
+  ? -- Let live U decl (rename-top [] i (Lam e))
 push-let i decl (Let b u e₁ e₂) U = {!!}
 push-let i decl (Plus u e₁ e₂) U =
-  let ope₁ = o-Union₁ u
-      ope₂ = o-Union₂ u
-  in {!!}
+  {!!}
+-}
 
 -- TODO: continue
 
-{-
-push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
-... | Top = decl
-... | Pop x' = Var x'
-push-let i decl (App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (App (rename-top [] i e₁) (rename-top [] i e₂))
-... | inj₁ tt  | inj₂ e₂' = App (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = App e₁' (push-let i decl e₂)
-... | inj₂ e₁' | inj₂ e₂' = App e₁' e₂'
-push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't push into lambda
-push-let i decl (Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
-... | inj₁ tt  | inj₂ e₂' = Let (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
-... | inj₂ e₁' | inj₂ e₂' = Let e₁' e₂'
-push-let i decl (Val v) = Val v
-push-let i decl (Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (Plus (rename-top [] i e₁) (rename-top [] i e₂))
-... | inj₁ tt  | inj₂ e₂' = Plus (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Plus e₁' (push-let i decl e₂)
-... | inj₂ e₁' | inj₂ e₂' = Plus e₁' e₂'
--}
-
 -- This is the same signature as for `Let live` itself.
-push-let' : {Γ₁ Γ₂ Γ : Ctx} → Union Γ₁ Γ₂ Γ → Expr σ Γ₁ → Expr τ (σ ∷ Γ₂) → Expr τ Γ
-push-let' u decl e = push-let Top decl e u
+push-let' : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+push-let' (pair decl ((ψ \\ e) ↑ θ) cover) = push-let [] _ decl (e ↑ (ψ ++⊑ θ))
