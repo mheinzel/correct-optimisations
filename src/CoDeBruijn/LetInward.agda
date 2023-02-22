@@ -1,47 +1,43 @@
 -- Let Floating (inwards) using co-de-Bruijn representation
+--
+-- Push the let-binding inwards as far as possible without
+-- - duplicating it
+-- - pushing it into a lambda
 module CoDeBruijn.LetInward where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
+open import Data.List.Properties using (++-assoc ; ∷-injective ; ++-conicalˡ)
 open import Data.Unit
 open import Data.Product
 open import Data.Sum
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
 open import CoDeBruijn.Lang
 open import OPE
 
--- Push the let-binding inwards as far as possible without
--- - duplicating it
--- - pushing it into a lambda
 
-pop-at : (Γ : Ctx) → Ref τ Γ → Ctx
-pop-at (σ ∷ Γ) Top = Γ
-pop-at (σ ∷ Γ) (Pop i) = σ ∷ pop-at Γ i
+lemma-[x]≡ : ∀ Γ₁ Γ₂ (p : τ ∷ [] ≡ Γ₁ ++ (σ ∷ Γ₂)) → (σ ≡ τ) × (Γ₁ ≡ []) × (Γ₂ ≡ [])
+lemma-[x]≡ [] .[] refl = refl , refl , refl
+lemma-[x]≡ (x ∷ Γ₁) Γ₂ p with ∷-injective p
+lemma-[x]≡ (x ∷ []) Γ₂ p | _ , ()
+lemma-[x]≡ (x ∷ x₁ ∷ Γ₁) Γ₂ p | _ , ()
 
-rename-top : (Γ' : Ctx) (i : Ref σ Γ) → Expr τ (Γ' ++ Γ) → Expr τ (Γ' ++ (σ ∷ pop-at Γ i))
-rename-top Γ' i e = {!!}
-
-{-
-record _⊨_ (Γ' : Ctx) (T : Scoped) (Γ : Ctx) : Set where
-  constructor _\\\_
-  field
-    {above} : Ctx
-    {below} : Ctx
-    thinning : bound ⊑ Γ'
-    thing : T (bound ++ Γ)
--}
-
-lemma-∷ : {A : Set} {x y : A} {xs ys : List A} → x ∷ xs ≡ y ∷ ys → xs ≡ ys
-lemma-∷ refl = refl
-
-lemma-[x]≡ : ∀ Γ₁ Γ₂ (p : τ ∷ [] ≡ Γ₁ ++ (σ ∷ Γ₂)) → σ ≡ τ
-lemma-[x]≡ [] .[] refl = refl
-lemma-[x]≡ (x ∷ Γ₁) Γ₂ p with lemma-∷ p
-lemma-[x]≡ (x ∷ []) Γ₂ p | ()
-lemma-[x]≡ (x ∷ x₁ ∷ Γ₁) Γ₂ p | ()
+-- TODO: can this be unified with push-let?
+rename-top : (Γ' Γ₁ Γ₂ : Ctx) → Expr τ Γ → (Γ ≡ Γ' ++ Γ₁ ++ σ ∷ Γ₂) → Expr τ (Γ' ++ σ ∷ Γ₁ ++ Γ₂)
+rename-top Γ' Γ₁ Γ₂ Var p
+  with refl , p' , refl ← lemma-[x]≡ (Γ' ++ Γ₁) Γ₂ (trans p (sym (++-assoc Γ' Γ₁ (_ ∷ Γ₂))))
+  with refl ← ++-conicalˡ Γ' Γ₁ p'
+  with refl ← p'
+  = Var
+rename-top Γ' Γ₁ Γ₂ (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) p =
+  App (pair ({!rename-top!} ↑ {!!}) {!!} {!!})
+rename-top Γ' Γ₁ Γ₂ (Lam x) p = {!!}
+rename-top Γ' Γ₁ Γ₂ (Let x) p = {!!}
+rename-top Γ' Γ₁ Γ₂ (Val v) p = {!!}
+rename-top Γ' Γ₁ Γ₂ (Plus x) p = {!!}
 
 -- push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
 
@@ -53,17 +49,20 @@ push-let :
   Expr τ ⇑ (Γ₁ ++ Γ₂)
 push-let Γ₁ Γ₂ decl (Var ↑ θ)
   with Γ₁ ⊣ θ
-... | ⊣r ϕ₁ (ϕ₂ o') (p₁ , p₂) = Var ↑ {!ϕ₁ ++⊑ ϕ₂!}  -- just need to apply p₁ somehow
-... | ⊣r ϕ₁ (ϕ₂ os) (p₁ , p₂)
-  with lemma-[x]≡ _ _ p₁
-... | refl = decl
+...  | ⊣r ϕ₁ (ϕ₂ o') (p₁ , p₂) = Var ↑ {!ϕ₁ ++⊑ ϕ₂!}  -- just need to apply p₁ somehow
+...  | ⊣r ϕ₁ (ϕ₂ os) (p₁ , p₂)
+    with lemma-[x]≡ _ _ p₁
+...    | refl , _ , _ = decl
 push-let Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) ↑ θ) = {!!}  -- need to split (θ₁ ₒ θ) etc.
 push-let Γ₁ Γ₂ decl (Lam (ψ \\ e) ↑ θ)
   with Γ₁ ⊣ θ
 ...  | ⊣r ϕ₁ ϕ₂ (refl , refl)
-  with (_ ∷ []) ⊣ ϕ₂
-...  | ⊣r ψ' ϕ₂ (refl , refl) =
-  map⇑ Let (decl ,R ((ψ' \\ (Lam (ψ \\ {!e!}))) ↑ (ϕ₁ ++⊑ ϕ₂)))
+    with (_ ∷ []) ⊣ ϕ₂
+... | ⊣r (oz o') ϕ₂ (refl , refl) =
+    -- variable of the Lam is unused, this makes it easy
+    map⇑ Let (decl ,R ((oz o' \\ (Lam (ψ \\ e))) ↑ (ϕ₁ ++⊑ ϕ₂)))
+... | ⊣r (oz os) ϕ₂ (refl , refl) =
+    map⇑ Let (decl ,R ((oz os \\ (Lam (ψ \\ rename-top _ _ _ e refl))) ↑ (ϕ₁ ++⊑ ϕ₂)))
 push-let Γ₁ Γ₂ decl (Let x ↑ θ) = {!!}
 push-let Γ₁ Γ₂ decl (Val v ↑ θ) = {!!}
 push-let Γ₁ Γ₂ decl (Plus x ↑ θ) = {!!}
@@ -83,3 +82,4 @@ push-let i decl (Plus u e₁ e₂) U =
 -- This is the same signature as for `Let live` itself.
 push-let' : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 push-let' (pair decl ((ψ \\ e) ↑ θ) cover) = push-let [] _ decl (e ↑ (ψ ++⊑ θ))
+
