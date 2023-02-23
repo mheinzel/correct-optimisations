@@ -26,44 +26,84 @@ lemma-[x]≡ (x ∷ []) Γ₂ p | _ , ()
 lemma-[x]≡ (x ∷ y ∷ Γ₁) Γ₂ p | _ , ()
 
 lemma-[]≡++ :
-  (Γ₀ Γ₁ Γ₂ Γ₃ : Ctx) →
-  ([] ≡ Γ₀ ++ Γ₁ ++ Γ₂ ++ Γ₃) →
-  [] ≡ Γ₀ × [] ≡ Γ₁ × [] ≡ Γ₂ × [] ≡ Γ₃
-lemma-[]≡++ Γ₀ Γ₁ Γ₂ Γ₃ p
-  with refl ← ++-conicalˡ Γ₀ _ (sym p)
+  (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) →
+  ([] ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) →
+  [] ≡ Γ₁ × [] ≡ Γ₂ × [] ≡ Γ₃ × [] ≡ Γ₄
+lemma-[]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p
   with refl ← ++-conicalˡ Γ₁ _ (sym p)
-  with refl ← ++-conicalˡ Γ₂ _ (sym p) =
+  with refl ← ++-conicalˡ Γ₂ _ (sym p)
+  with refl ← ++-conicalˡ Γ₃ _ (sym p) =
   refl , refl , refl , p
 
 -- This feels more convoluted than it should be.
 lemma-[τ]≡++ :
-  (Γ₀ Γ₁ Γ₂ Γ₃ : Ctx) →
-  (τ ∷ [] ≡ Γ₀ ++ Γ₁ ++ Γ₂ ++ Γ₃) →
-  (τ ∷ [] ≡ Γ₀ ++ Γ₂ ++ Γ₁ ++ Γ₃)
-lemma-[τ]≡++ (_ ∷ Γ₀) Γ₁ Γ₂ Γ₃ p
-  with refl , refl , refl , refl ← lemma-[]≡++ Γ₀ Γ₁ Γ₂ Γ₃ (∷-injectiveʳ p) = p
-lemma-[τ]≡++ [] (_ ∷ Γ₁) Γ₂ Γ₃ p
-  with refl , refl , refl , refl ← lemma-[]≡++ [] Γ₁ Γ₂ Γ₃ (∷-injectiveʳ p) = p
-lemma-[τ]≡++ [] [] (_ ∷ Γ₂) Γ₃ p
-  with refl , refl , refl , refl ← lemma-[]≡++ [] [] Γ₂ Γ₃ (∷-injectiveʳ p) = p
-lemma-[τ]≡++ [] [] [] (_ ∷ Γ₃) p
-  with refl , refl , refl , refl ← lemma-[]≡++ [] [] [] Γ₃ (∷-injectiveʳ p) = p
+  (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) →
+  (τ ∷ [] ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) →
+  (τ ∷ [] ≡ Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
+lemma-[τ]≡++ (_ ∷ Γ₁) Γ₂ Γ₃ Γ₄ p
+  with refl , refl , refl , refl ← lemma-[]≡++ Γ₁ Γ₂ Γ₃ Γ₄ (∷-injectiveʳ p) = p
+lemma-[τ]≡++ [] (_ ∷ Γ₂) Γ₃ Γ₄ p
+  with refl , refl , refl , refl ← lemma-[]≡++ [] Γ₂ Γ₃ Γ₄ (∷-injectiveʳ p) = p
+lemma-[τ]≡++ [] [] (_ ∷ Γ₃) Γ₄ p
+  with refl , refl , refl , refl ← lemma-[]≡++ [] [] Γ₃ Γ₄ (∷-injectiveʳ p) = p
+lemma-[τ]≡++ [] [] [] (_ ∷ Γ₄) p
+  with refl , refl , refl , refl ← lemma-[]≡++ [] [] [] Γ₄ (∷-injectiveʳ p) = p
+
+cover++⊑4 :
+  {Γ₁ Γ₂ Γ₃ Γ₄ Γ₁' Γ₂' Γ₃' Γ₄' Γ₁'' Γ₂'' Γ₃'' Γ₄'' : Ctx} →
+  (θ₁ : Γ₁'  ⊑ Γ₁) (θ₂ : Γ₂'  ⊑ Γ₂) (θ₃ : Γ₃'  ⊑ Γ₃) (θ₄ : Γ₄'  ⊑ Γ₄)
+  (ϕ₁ : Γ₁'' ⊑ Γ₁) (ϕ₂ : Γ₂'' ⊑ Γ₂) (ϕ₃ : Γ₃'' ⊑ Γ₃) (ϕ₄ : Γ₄'' ⊑ Γ₄) →
+  Cover (θ₁ ++⊑ θ₂ ++⊑ θ₃ ++⊑ θ₄) (ϕ₁ ++⊑ ϕ₂ ++⊑ ϕ₃ ++⊑ ϕ₄) →
+  Cover (θ₁ ++⊑ θ₃ ++⊑ θ₂ ++⊑ θ₄) (ϕ₁ ++⊑ ϕ₃ ++⊑ ϕ₂ ++⊑ ϕ₄)
+cover++⊑4 {Γ₁} θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c =
+  let c₁ , c₂₃₄ = cover-split-++⊑ θ₁ ϕ₁ _ _ c
+      c₂ , c₃₄  = cover-split-++⊑ θ₂ ϕ₂ _ _ c₂₃₄
+      c₃ , c₄   = cover-split-++⊑ θ₃ ϕ₃ _ _ c₃₄
+  in
+  c₁ ++ᶜ c₃ ++ᶜ c₂ ++ᶜ c₄
+  
 
 coerce : {S : Scoped} {Γ' Γ : Ctx} → Γ ≡ Γ' → S Γ → S Γ'
 coerce refl e = e
 
-reorder-Ctx : (Γ₀ Γ₁ Γ₂ Γ₃ : Ctx) → Expr τ Γ → (Γ ≡ Γ₀ ++ Γ₁ ++ Γ₂ ++ Γ₃) → Expr τ (Γ₀ ++ Γ₂ ++ Γ₁ ++ Γ₃)
-reorder-Ctx Γ₀ Γ₁ Γ₂ Γ₃ Var p =
-  coerce {Expr _} (lemma-[τ]≡++ Γ₀ Γ₁ Γ₂ Γ₃ p) Var
-reorder-Ctx Γ₀ Γ₁ Γ₂ Γ₃ (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) p =
-  App (pair ({!reorder-Ctx!} ↑ {!!}) {!!} {!!})
-reorder-Ctx Γ₀ Γ₁ Γ₂ Γ₃ (Lam {σ} (_\\_ {Γ'} ψ e)) p =
+record ⊣R4 (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)) : Set where
+  constructor ⊣r4
+  field
+    {Γ₁'} : Ctx
+    {Γ₂'} : Ctx
+    {Γ₃'} : Ctx
+    {Γ₄'} : Ctx
+    ϕ₁ : Γ₁' ⊑ Γ₁
+    ϕ₂ : Γ₂' ⊑ Γ₂
+    ϕ₃ : Γ₃' ⊑ Γ₃
+    ϕ₄ : Γ₄' ⊑ Γ₄
+    H : Σ (Γ ≡ Γ₁' ++ Γ₂' ++ Γ₃' ++ Γ₄') λ { refl → ψ ≡ ϕ₁ ++⊑ ϕ₂ ++⊑ ϕ₃ ++⊑ ϕ₄ }
+
+⊣4 : (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)) → ⊣R4 Γ₁ Γ₂ Γ₃ Γ₄ ψ
+⊣4 Γ₁ Γ₂ Γ₃ Γ₄ ψ
+  with ⊣r {Γ₁'} {Γ₂₃₄'} ϕ₁ ϕ₂₃₄ (refl , refl) ← Γ₁ ⊣ ψ
+  with ⊣r {Γ₂'} {Γ₃₄'}  ϕ₂ ϕ₃₄  (refl , refl) ← Γ₂ ⊣ ϕ₂₃₄
+  with ⊣r {Γ₃'} {Γ₄'}   ϕ₃ ϕ₄   (refl , refl) ← Γ₃ ⊣ ϕ₃₄
+  = ⊣r4 ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl)
+
+reorder-Ctx : (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) → Expr τ Γ → (Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) → Expr τ (Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
+reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ Var p =
+  coerce {Expr _} (lemma-[τ]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p) Var
+reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl
+  with ⊣r4 {Γ₁'}  {Γ₂'}  {Γ₃'}  {Γ₄'}  θ₁ θ₂ θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ θ
+  with ⊣r4 {Γ₁''} {Γ₂''} {Γ₃''} {Γ₄''} ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ ϕ
+  =
+  App (pair
+         (reorder-Ctx Γ₁'  Γ₂'  Γ₃'  Γ₄'  e₁ refl ↑ (θ₁ ++⊑ θ₃ ++⊑ θ₂ ++⊑ θ₄))
+         (reorder-Ctx Γ₁'' Γ₂'' Γ₃'' Γ₄'' e₂ refl ↑ (ϕ₁ ++⊑ ϕ₃ ++⊑ ϕ₂ ++⊑ ϕ₄))
+         (cover++⊑4 θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c))
+reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Lam {σ} (_\\_ {Γ'} ψ e)) p =
   Lam (ψ \\ coerce {Expr _}
-              (++-assoc Γ' Γ₀ _)
-              (reorder-Ctx (Γ' ++ Γ₀) Γ₁ Γ₂ Γ₃ e (trans (cong (Γ' ++_) p) (sym (++-assoc Γ' Γ₀ _)))))
-reorder-Ctx Γ₀ Γ₁ Γ₂ Γ₃ (Let x) p = {!!}
-reorder-Ctx Γ₀ Γ₁ Γ₂ Γ₃ (Val v) p = {!!}
-reorder-Ctx Γ₀ Γ₁ Γ₂ Γ₃ (Plus x) p = {!!}
+              (++-assoc Γ' Γ₁ _)
+              (reorder-Ctx (Γ' ++ Γ₁) Γ₂ Γ₃ Γ₄ e (trans (cong (Γ' ++_) p) (sym (++-assoc Γ' Γ₁ _)))))
+reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Let x) p = {!!}
+reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Val v) p = {!!}
+reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus x) p = {!!}
 
 -- TODO: The might be a better specification for this?
 --       Ideally we would also require some kind of Cover-condition on the inputs,

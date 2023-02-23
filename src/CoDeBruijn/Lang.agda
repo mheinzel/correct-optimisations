@@ -28,6 +28,32 @@ data Cover : {Γ₁ Γ₂ Γ : Ctx} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set wh
   _css : ∀ {Γ₁ Γ₂ Γ} → {τ : U} {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ os)
   czz  :                                                                   Cover oz           oz
 
+infixr 19 _++ᶜ_
+
+_++ᶜ_ :
+  {Γ₁ Γ₂ Γ Γ₁' Γ₂' Γ' : Ctx} →
+  {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} {ϕ₁ : Γ₁' ⊑ Γ'} {ϕ₂ : Γ₂' ⊑ Γ'} →
+  Cover θ₁ θ₂ → Cover ϕ₁ ϕ₂ →
+  Cover (θ₁ ++⊑ ϕ₁) (θ₂ ++⊑ ϕ₂)
+(c c's) ++ᶜ c' = (c ++ᶜ c') c's
+(c cs') ++ᶜ c' = (c ++ᶜ c') cs'
+(c css) ++ᶜ c' = (c ++ᶜ c') css
+czz     ++ᶜ c' = c'
+
+cover-split-++⊑ :
+  {Γ₁ Γ₂ Γ Γ₁' Γ₂' Γ' : Ctx} →
+  (θ₁ : Γ₁ ⊑ Γ) (θ₂ : Γ₂ ⊑ Γ) (ϕ₁ : Γ₁' ⊑ Γ') (ϕ₂ : Γ₂' ⊑ Γ') →
+  Cover (θ₁ ++⊑ ϕ₁) (θ₂ ++⊑ ϕ₂) →
+  Cover θ₁ θ₂ × Cover ϕ₁ ϕ₂
+cover-split-++⊑ {Γ = []}    oz oz ϕ₁ ϕ₂ c = czz , c
+cover-split-++⊑ {Γ = τ ∷ Γ} (θ₁ o') (θ₂ os) ϕ₁ ϕ₂ (c c's) = let c' , c'' = cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c in (c' c's) , c''
+cover-split-++⊑ {Γ = τ ∷ Γ} (θ₁ os) (θ₂ o') ϕ₁ ϕ₂ (c cs') = let c' , c'' = cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c in (c' cs') , c''
+cover-split-++⊑ {Γ = τ ∷ Γ} (θ₁ os) (θ₂ os) ϕ₁ ϕ₂ (c css) = let c' , c'' = cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c in (c' css) , c''
+
+cover-oi : Cover {Γ} oi oi
+cover-oi {[]} = czz
+cover-oi {x ∷ Γ} = cover-oi css
+
 cover-flip : {Γ₁ Γ₂ Γ : Ctx} {θ : Γ₁ ⊑ Γ} {ϕ : Γ₂ ⊑ Γ} → Cover θ ϕ → Cover ϕ θ
 cover-flip (c c's) = cover-flip c cs'
 cover-flip (c cs') = cover-flip c c's
