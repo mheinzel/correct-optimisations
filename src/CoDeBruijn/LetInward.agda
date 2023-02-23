@@ -132,7 +132,12 @@ push-let Γ₁ Γ₂ decl (Var ↑ θ)
   with Γ₁ ⊣ θ
 ...  | ⊣r ϕ₁ (ϕ₂ o') (p₁ , p₂) = Var ↑ coerce {_⊑ (Γ₁ ++ Γ₂)} (sym p₁) (ϕ₁ ++⊑ ϕ₂)
 ...  | ⊣r ϕ₁ (ϕ₂ os) (p₁ , p₂) with refl , _ , _ ← lemma-[x]≡ _ _ p₁ = decl
-push-let Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) ↑ θ) = {!!}  -- need to split (θ₁ ₒ θ) etc.
+push-let Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c) ↑ ψ)
+  with ⊣r {Γ₁'}  {Γ₂'}  θ₁ θ₂ (refl , p)  ← Γ₁ ⊣ (θ ₒ ψ)
+  with ⊣r {Γ₁''} {Γ₂''} ϕ₁ ϕ₂ (refl , p') ← Γ₁ ⊣ (ϕ ₒ ψ) =
+  let e₁' = push-let {!!} {!!} decl {!e₁!}
+  in
+  {!!}  -- need to split (θ₁ ₒ θ) etc.
 
 push-let Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e) ↑ θ)
   with Γ₁ ⊣ θ
