@@ -122,6 +122,32 @@ reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) 
          (reorder-Ctx Γ₁'' Γ₂'' Γ₃'' Γ₄'' e₂ refl ↑ (ϕ₁ ++⊑ ϕ₃ ++⊑ ϕ₂ ++⊑ ϕ₄))
          (cover++⊑4 θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c))
 
+-- Here we know up front how the body's Ctx is split, and also ensure that the binding is used.
+push-let' :
+  ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx) (decl : Expr σ ⇑ Γ) (body : Expr τ Γ') (θ : (Γ₁ ++ Γ₂) ⊑ Γ)
+  (c : Cover (_⇑_.thinning decl) θ) (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
+  Expr τ Γ
+push-let' Γ₁ Γ₂ decl Var θ cover p = {!!}  -- fiddly, but doable
+push-let' Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ cover refl
+  with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =  -- should be impossible, but tricky to show!
+  App (pair (e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)) {!!}) -- now we're in trouble with the cover...
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
+  -- Here we also need to construct a new cover. It should be possible, as the new right subexpression
+  -- uses strictly more of the context, but we still need to write that code...
+  -- TODO: !!!
+  -- Maybe we should actually return a thinning for now, and later show that it's not necessary.
+  App (pair ({!!} ↑ {!!}) (push-let' Γ₁' Γ₂' {!!} e₂ {!!} {!!} refl ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)) {!!})
+...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  {!!}
+...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ os) (refl , refl) =
+  {!!}
+push-let' Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ cover refl = -- don't push into lambdas!
+  Let (pair decl (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ) cover)
+push-let' Γ₁ Γ₂ decl (Let x) θ cover p = {!!}
+push-let' Γ₁ Γ₂ decl (Val v) θ cover p = {!!}
+push-let' Γ₁ Γ₂ decl (Plus x) θ cover p = {!!}
+
 -- TODO: The might be a better specification for this?
 --       Ideally we would also require some kind of Cover-condition on the inputs,
 --       so we don't need to return a thinning/_⇑_
@@ -168,7 +194,13 @@ push-let i decl (Plus u e₁ e₂) U =
 
 -- TODO: continue
 
--- This is the same signature as for `Let live` itself.
-push-let' : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
-push-let' (pair decl ((ψ \\ e) ↑ θ) cover) = push-let [] _ decl (e ↑ (ψ ++⊑ θ))
+-- This is the same signature as for `Let live` itself, just with a thinning so we can drop the Let.
+-- (in case it was dead)
+push-let-top : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+push-let-top (pair (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) =
+  push-let' [] _ (decl ↑ ϕ) e θ c refl ↑ oi
+push-let-top (pair decl ((oz o' \\ e) ↑ θ) c) =
+  e ↑ θ   -- binding is unused, why bother?
+-- push-let-top (pair decl ((ψ \\ e) ↑ θ) cover) =
+--   push-let [] _ decl (e ↑ (ψ ++⊑ θ))
 
