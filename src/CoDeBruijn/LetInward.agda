@@ -123,30 +123,41 @@ reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) 
          (cover++⊑4 θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c))
 
 -- Here we know up front how the body's Ctx is split, and also ensure that the binding is used.
+-- We return a thinned value, but we could probably make it return an Expr τ Γ directly,
+-- if we show a few things about covers.
 push-let' :
   ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx) (decl : Expr σ ⇑ Γ) (body : Expr τ Γ') (θ : (Γ₁ ++ Γ₂) ⊑ Γ)
-  (c : Cover (_⇑_.thinning decl) θ) (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
-  Expr τ Γ
-push-let' Γ₁ Γ₂ decl Var θ cover p = {!!}  -- fiddly, but doable
-push-let' Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ cover refl
+  {- c : Cover (_⇑_.thinning decl) θ) -} (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
+  Expr τ ⇑ Γ
+
+push-let' Γ₁ Γ₂ decl Var θ p = {!!}  -- fiddly, but doable
+
+push-let' Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
-...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =  -- should be impossible, but tricky to show!
-  App (pair (e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)) {!!}) -- now we're in trouble with the cover...
+  -- Let not used at all (should be impossible, but tricky to show!)
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let used in right subexpression
 ...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
-  -- Here we also need to construct a new cover. It should be possible, as the new right subexpression
-  -- uses strictly more of the context, but we still need to write that code...
-  -- TODO: !!!
-  -- Maybe we should actually return a thinning for now, and later show that it's not necessary.
-  App (pair ({!!} ↑ {!!}) (push-let' Γ₁' Γ₂' {!!} e₂ {!!} {!!} refl ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)) {!!})
-...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
-  {!!}
+                                        -- Here, we should also be able to work in a smaller context, then thin⇑.
+                                        -- Parts of Γ might neither be free in decl nor e₂.
+                                        -- This is necessary if we want to pass down a cover.
+  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R push-let' Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  -- Let used in left subexpression
+...  | ⊣r {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  map⇑ App (push-let' Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let used in both subexpressions
 ...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ os) (refl , refl) =
-  {!!}
-push-let' Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ cover refl = -- don't push into lambdas!
-  Let (pair decl (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ) cover)
-push-let' Γ₁ Γ₂ decl (Let x) θ cover p = {!!}
-push-let' Γ₁ Γ₂ decl (Val v) θ cover p = {!!}
-push-let' Γ₁ Γ₂ decl (Plus x) θ cover p = {!!}
+  map⇑ App (push-let' _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R push-let' _ _ decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+
+push-let' Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ refl = -- don't push into lambdas!
+  -- If we had the cover, we could just do this:
+  -- Let (pair decl (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ) cover) ↑ oi
+  map⇑ Let (decl ,R (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ))
+
+push-let' Γ₁ Γ₂ decl (Let x) θ p = {!!}
+push-let' Γ₁ Γ₂ decl (Val v) θ p = {!!}
+push-let' Γ₁ Γ₂ decl (Plus x) θ p = {!!}
 
 -- TODO: The might be a better specification for this?
 --       Ideally we would also require some kind of Cover-condition on the inputs,
@@ -198,7 +209,7 @@ push-let i decl (Plus u e₁ e₂) U =
 -- (in case it was dead)
 push-let-top : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 push-let-top (pair (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) =
-  push-let' [] _ (decl ↑ ϕ) e θ c refl ↑ oi
+  push-let' [] _ (decl ↑ ϕ) e θ refl
 push-let-top (pair decl ((oz o' \\ e) ↑ θ) c) =
   e ↑ θ   -- binding is unused, why bother?
 -- push-let-top (pair decl ((ψ \\ e) ↑ θ) cover) =
