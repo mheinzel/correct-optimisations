@@ -18,6 +18,8 @@ open import Core
 open import CoDeBruijn.Lang
 open import OPE
 
+-- TODO: with all the thinning and contexts in scope, I should make the naming scheme more consistent.
+-- (θ/ϕ/ψ₁₂ˡʳ'')
 
 lemma-[x]≡ : ∀ Γ₁ Γ₂ (p : τ ∷ [] ≡ Γ₁ ++ (σ ∷ Γ₂)) → (σ ≡ τ) × (Γ₁ ≡ []) × (Γ₂ ≡ [])
 lemma-[x]≡ [] .[] refl = refl , refl , refl
@@ -155,7 +157,23 @@ push-let' Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ refl = -- don't push into 
   -- Let (pair decl (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ) cover) ↑ oi
   map⇑ Let (decl ,R (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ))
 
-push-let' Γ₁ Γ₂ decl (Let x) θ p = {!!}
+push-let' Γ₁ Γ₂ decl (Let (pair (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) ψ refl
+  with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
+  -- Let not used at all (should be impossible, but tricky to show!)
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let used in right subexpression
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
+  let e₂' ↑ ϕ' = push-let' (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe {Γ''} ++⊑ oi) decl) e₂ {! oi {Γ''} ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) !} (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))  -- TODO: just some associativity issue
+  in
+  map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R ((ψ' \\ {!e₂'!}) ↑ {!ϕ'!}))  -- TODO: tease apart ϕ' somehow?
+                                                                     -- or tweak the recursive call?
+  -- Let used in left subexpression
+...  | ⊣r {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  map⇑ Let (push-let' Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let used in both subexpressions
+...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ os) (refl , refl) =
+  {!!}
 push-let' Γ₁ Γ₂ decl (Val v) θ p = {!!}
 push-let' Γ₁ Γ₂ decl (Plus x) θ p = {!!}
 
