@@ -7,7 +7,7 @@ module CoDeBruijn.LetInward where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
-open import Data.List.Properties using (++-assoc ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ ; ++-conicalˡ)
+open import Data.List.Properties using (++-assoc ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ ; ++-conicalˡ ; ++-conicalʳ)
 open import Data.Unit
 open import Data.Product
 open import Data.Sum
@@ -20,12 +20,6 @@ open import OPE
 
 -- TODO: with all the thinning and contexts in scope, I should make the naming scheme more consistent.
 -- (θ/ϕ/ψ₁₂ˡʳ'')
-
-lemma-[x]≡ : ∀ Γ₁ Γ₂ (p : τ ∷ [] ≡ Γ₁ ++ (σ ∷ Γ₂)) → (σ ≡ τ) × (Γ₁ ≡ []) × (Γ₂ ≡ [])
-lemma-[x]≡ [] .[] refl = refl , refl , refl
-lemma-[x]≡ (x ∷ Γ₁) Γ₂ p with ∷-injective p
-lemma-[x]≡ (x ∷ []) Γ₂ p | _ , ()
-lemma-[x]≡ (x ∷ y ∷ Γ₁) Γ₂ p | _ , ()
 
 lemma-[]≡++ :
   (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) →
@@ -64,10 +58,10 @@ cover++⊑4 {Γ₁} θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c =
   in
   c₁ ++ᶜ c₃ ++ᶜ c₂ ++ᶜ c₄
   
-
 coerce : {S : Scoped} {Γ' Γ : Ctx} → Γ ≡ Γ' → S Γ → S Γ'
 coerce refl e = e
 
+-- To factor out the repeated calling of ⊣, packaging up the results in a convenient way.
 record ⊣R4 (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)) : Set where
   constructor ⊣r4
   field
@@ -126,15 +120,18 @@ reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) 
 
 -- Here we know up front how the body's Ctx is split, and also ensure that the binding is used.
 -- We return a thinned value, but we could probably make it return an Expr τ Γ directly,
--- if we show a few things about covers.
-push-let' :
-  ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx) (decl : Expr σ ⇑ Γ) (body : Expr τ Γ') (θ : (Γ₁ ++ Γ₂) ⊑ Γ)
-  {- c : Cover (_⇑_.thinning decl) θ) -} (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
+-- if we show a few things about covers and require a Cover (_⇑_.thinning decl) θ.
+push-let :
+  ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx)
+  (decl : Expr σ ⇑ Γ) (body : Expr τ Γ') (θ : (Γ₁ ++ Γ₂) ⊑ Γ) (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
   Expr τ ⇑ Γ
 
-push-let' Γ₁ Γ₂ decl Var θ p = {!!}  -- fiddly, but doable
+push-let Γ₁ Γ₂ decl Var θ p with Γ₁
+... | (_ ∷ Γ₁) with () ← ++-conicalʳ Γ₁ _ (sym (∷-injectiveʳ p))
+... | [] with refl ← ∷-injectiveˡ p =
+  decl  -- The declaration must be live, so we know the variable references it.
 
-push-let' Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
@@ -144,92 +141,65 @@ push-let' Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
                                         -- Here, we should also be able to work in a smaller context, then thin⇑.
                                         -- Parts of Γ might neither be free in decl nor e₂.
                                         -- This is necessary if we want to pass down a cover.
-  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R push-let' Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R push-let Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
   -- Let used in left subexpression
 ...  | ⊣r {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ App (push-let' Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ App (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions
 ...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ os) (refl , refl) =
-  map⇑ App (push-let' _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R push-let' _ _ decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  map⇑ App (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R push-let _ _ decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
 
-push-let' Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ refl = -- don't push into lambdas!
+push-let Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ refl = -- don't push into lambdas!
   -- If we had the cover, we could just do this:
   -- Let (pair decl (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ) cover) ↑ oi
   map⇑ Let (decl ,R (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ))
 
-push-let' Γ₁ Γ₂ decl (Let (pair (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl (Let (pair (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) ψ refl
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in right subexpression
-...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
-  let e₂' ↑ ϕ' = push-let' (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe {Γ''} ++⊑ oi) decl) e₂ {! oi {Γ''} ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) !} (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))  -- TODO: just some associativity issue
-  in
-  map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R ((ψ' \\ {!e₂'!}) ↑ {!ϕ'!}))  -- TODO: tease apart ϕ' somehow?
-                                                                     -- or tweak the recursive call?
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
+    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe {Γ''} ++⊑ oi) decl) e₂
+                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi {Γ''} ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+                      (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
+    with ⊣r ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
+    map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
   -- Let used in left subexpression
 ...  | ⊣r {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Let (push-let' Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ Let (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let used in both subexpressions
+...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
+    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe {Γ''} ++⊑ oi) decl) e₂
+                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi {Γ''} ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+                      (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
+    with ⊣r ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
+    map⇑ Let (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
+
+push-let Γ₁ Γ₂ decl (Val v) θ p =
+  (Val v) ↑ oe
+
+push-let Γ₁ Γ₂ decl (Plus (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
+  with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
+  -- Let not used at all (should be impossible, but tricky to show!)
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let used in right subexpression
+...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
+  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R push-let Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  -- Let used in left subexpression
+...  | ⊣r {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
+  map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions
 ...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ os) (refl , refl) =
-  {!!}
-push-let' Γ₁ Γ₂ decl (Val v) θ p = {!!}
-push-let' Γ₁ Γ₂ decl (Plus x) θ p = {!!}
-
--- TODO: The might be a better specification for this?
---       Ideally we would also require some kind of Cover-condition on the inputs,
---       so we don't need to return a thinning/_⇑_
-push-let :
-  (Γ₁ Γ₂ : Ctx) (decl : Expr σ ⇑ (Γ₁ ++ Γ₂)) (body : Expr τ ⇑ (Γ₁ ++ (σ ∷ Γ₂))) →
-  Expr τ ⇑ (Γ₁ ++ Γ₂)
-push-let Γ₁ Γ₂ decl (Var ↑ θ)
-  with Γ₁ ⊣ θ
-...  | ⊣r ϕ₁ (ϕ₂ o') (p₁ , p₂) = Var ↑ coerce {_⊑ (Γ₁ ++ Γ₂)} (sym p₁) (ϕ₁ ++⊑ ϕ₂)
-...  | ⊣r ϕ₁ (ϕ₂ os) (p₁ , p₂) with refl , _ , _ ← lemma-[x]≡ _ _ p₁ = decl
-push-let Γ₁ Γ₂ decl (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c) ↑ ψ)
-  with Γ₁ ⊣ (θ ₒ ψ)                      | Γ₁ ⊣ (ϕ ₒ ψ)  -- might have to do some Γ' ⊣ θ, so first Γ ⊣ ψ only? :/
-... | ⊣r {Γ₁'} {Γ₂'} θ₁ (θ₂ o') (refl , p) | ⊣r {Γ₁''} {Γ₂''} ϕ₁ (ϕ₂ o') (refl , p') =
-  App (pair (e₁ ↑ (θ₁ ++⊑ θ₂)) (e₂ ↑ (ϕ₁ ++⊑ ϕ₂)) {!c!}) ↑ oi
-... | ⊣r {Γ₁'} {Γ₂'} θ₁ (θ₂ o') (refl , p) | ⊣r {Γ₁''} {.(_ ∷ _)} ϕ₁ (ϕ₂ os) (refl , p') = {!!}
-... | ⊣r {Γ₁'} {.(_ ∷ _)} θ₁ (θ₂ os) (refl , p) | ⊣r {Γ₁''} {Γ₂''} ϕ₁ (ϕ₂ o') (refl , p') = {!!}
-... | ⊣r {Γ₁'} {.(_ ∷ _)} θ₁ (θ₂ os) (refl , p) | ⊣r {Γ₁''} {.(_ ∷ _)} ϕ₁ (ϕ₂ os) (refl , p') = {!!}
-  {-
-  let e₁' = push-let {!!} {!!} decl {!e₁!}
-  in
-  -}
-
-push-let Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e) ↑ θ)
-  with Γ₁ ⊣ θ
-...  | ⊣r {Γ₁'} ϕ₁ ϕ₂ (refl , refl)
-    with (_ ∷ []) ⊣ ϕ₂
-... | ⊣r {Γ₁''} {Γ₂'} ψ' ϕ₂ (refl , refl) =
-    -- We could avoid calling reorder-Ctx if Γ₁'' is [], but that just introduces more cases.
-    map⇑ Let (decl ,R ((ψ' \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁' Γ₁'' Γ₂' e refl))) ↑ (ϕ₁ ++⊑ ϕ₂)))
-
-push-let Γ₁ Γ₂ decl (Let x ↑ θ) = {!!}
-push-let Γ₁ Γ₂ decl (Val v ↑ θ) = {!!}
-push-let Γ₁ Γ₂ decl (Plus x ↑ θ) = {!!}
-{-
-push-let : {Γ₁ Γ₂ Γ : Ctx} (i : Ref σ Γ) → Expr σ Γ₁ → Expr τ Γ₂ → Cover Γ₁ (pop-at Γ₂ i) Γ → Expr τ Γ
-push-let Top decl Var U = ?
-push-let i decl (App u e₁ e₂) U = {!!}
-push-let i decl (Lam e) U =
-  ? -- Let live U decl (rename-top [] i (Lam e))
-push-let i decl (Let b u e₁ e₂) U = {!!}
-push-let i decl (Plus u e₁ e₂) U =
-  {!!}
--}
-
--- TODO: continue
+  map⇑ Plus (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,R push-let _ _ decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
 
 -- This is the same signature as for `Let live` itself, just with a thinning so we can drop the Let.
 -- (in case it was dead)
 push-let-top : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 push-let-top (pair (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) =
-  push-let' [] _ (decl ↑ ϕ) e θ refl
+  push-let [] _ (decl ↑ ϕ) e θ refl
 push-let-top (pair decl ((oz o' \\ e) ↑ θ) c) =
   e ↑ θ   -- binding is unused, why bother?
--- push-let-top (pair decl ((ψ \\ e) ↑ θ) cover) =
---   push-let [] _ decl (e ↑ (ψ ++⊑ θ))
 
