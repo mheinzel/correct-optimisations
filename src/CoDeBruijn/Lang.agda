@@ -50,6 +50,17 @@ cover-split-++⊑ {Γ = τ ∷ Γ} (θ₁ o') (θ₂ os) ϕ₁ ϕ₂ (c c's) = l
 cover-split-++⊑ {Γ = τ ∷ Γ} (θ₁ os) (θ₂ o') ϕ₁ ϕ₂ (c cs') = let c' , c'' = cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c in (c' cs') , c''
 cover-split-++⊑ {Γ = τ ∷ Γ} (θ₁ os) (θ₂ os) ϕ₁ ϕ₂ (c css) = let c' , c'' = cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c in (c' css) , c''
 
+law-cover-split-++⊑ :
+  {Γ₁ Γ₂ Γ Γ₁' Γ₂' Γ' : Ctx} →
+  (θ₁ : Γ₁ ⊑ Γ) (θ₂ : Γ₂ ⊑ Γ) (ϕ₁ : Γ₁' ⊑ Γ') (ϕ₂ : Γ₂' ⊑ Γ') →
+  (c : Cover (θ₁ ++⊑ ϕ₁) (θ₂ ++⊑ ϕ₂)) →
+  let c' , c'' = cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c
+  in c' ++ᶜ c'' ≡ c
+law-cover-split-++⊑ {Γ = []} oz oz ϕ₁ ϕ₂ c = refl
+law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ o') (θ₂ os) ϕ₁ ϕ₂ (c c's) = cong _c's (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
+law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ os) (θ₂ o') ϕ₁ ϕ₂ (c cs') = cong _cs' (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
+law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ os) (θ₂ os) ϕ₁ ϕ₂ (c css) = cong _css (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
+
 cover-oi : Cover {Γ} oi oi
 cover-oi {[]} = czz
 cover-oi {x ∷ Γ} = cover-oi css
