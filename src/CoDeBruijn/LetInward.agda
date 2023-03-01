@@ -13,8 +13,7 @@ open import Data.Product
 open import Data.Sum
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
-
-
+open import Function using (_$_)
 
 open import Core
 open import CoDeBruijn.Lang
@@ -104,51 +103,44 @@ record ⊣R4 (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂ ++ Γ�
 Reorder : Scoped → Set
 Reorder T = ∀ {Γ} (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) → T Γ → (Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) → T (Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
 
-data ScopedThing : Scoped → Set where
-  Scoped-×R  : ScopedThing (Expr σ ×R ScopedThing T)
-  Scoped-⊢   : ScopedThing (Γ ⊢ Expr τ)
-  ScopedExpr : ScopedThing (Expr τ)
-
-reorder-Ctx' : {T : Scoped} → ScopedThing T → Reorder T
-reorder-Ctx' Scoped-×R Γ₁ Γ₂ Γ₃ Γ₄ x p = {!!}
-reorder-Ctx' Scoped-⊢ Γ₁ Γ₂ Γ₃ Γ₄ x p = {!!}
-reorder-Ctx' ScopedExpr Γ₁ Γ₂ Γ₃ Γ₄ x p = {!!}
-
 mutual
-  -- reorder-Ctx-×R : (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) → (Expr σ ×R Expr τ) Γ → (Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) → (Expr σ ×R Expr τ) (Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
-  reorder-Ctx-×R : {T : Scoped} → Reorder T → Reorder (Expr σ ×R T)
-  reorder-Ctx-×R reorder₂ Γ₁ Γ₂ Γ₃ Γ₄ (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c) refl
+  reorder-Ctx-×R : Reorder (Expr σ ×R Expr τ)
+  reorder-Ctx-×R Γ₁ Γ₂ Γ₃ Γ₄ (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c) refl
     with ⊣r4 {Γ₁'}  {Γ₂'}  {Γ₃'}  {Γ₄'}  θ₁ θ₂ θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ θ
     with ⊣r4 {Γ₁''} {Γ₂''} {Γ₃''} {Γ₄''} ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ ϕ =
     pair
       (reorder-Ctx Γ₁'  Γ₂'  Γ₃'  Γ₄'  e₁ refl ↑ (θ₁ ++⊑ θ₃ ++⊑ θ₂ ++⊑ θ₄))
-      (reorder₂ Γ₁'' Γ₂'' Γ₃'' Γ₄'' e₂ refl ↑ (ϕ₁ ++⊑ ϕ₃ ++⊑ ϕ₂ ++⊑ ϕ₄))
+      (reorder-Ctx Γ₁'' Γ₂'' Γ₃'' Γ₄'' e₂ refl ↑ (ϕ₁ ++⊑ ϕ₃ ++⊑ ϕ₂ ++⊑ ϕ₄))
       (cover++⊑4 θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c)
 
-  -- reorder-Ctx-⊢ : ∀ {Γ'} (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) → (Γ' ⊢ Expr τ) Γ → (Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) → (Γ' ⊢ Expr τ) (Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
   reorder-Ctx-⊢ : ∀ {Γ'} → Reorder (Γ' ⊢ Expr τ)
   reorder-Ctx-⊢ Γ₁ Γ₂ Γ₃ Γ₄ (_\\_ {Γ''} ψ e) p =
     ψ \\ coerce {Expr _}
            (++-assoc Γ'' Γ₁ _)
            (reorder-Ctx (Γ'' ++ Γ₁) Γ₂ Γ₃ Γ₄ e (trans (cong (Γ'' ++_) p) (sym (++-assoc Γ'' Γ₁ _))))
   
-  -- reorder-Ctx : (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) → Expr τ Γ → (Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) → Expr τ (Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
+  -- It would be nice to compose the Let case from our helpers above, but it's complicated.
   reorder-Ctx : Reorder (Expr τ)
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ Var p =
     coerce {Expr _} (lemma-[τ]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p) Var
-  reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (App p) q = App (reorder-Ctx-×R reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ p q)
+  reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (App p) q = App (reorder-Ctx-×R Γ₁ Γ₂ Γ₃ Γ₄ p q)
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Lam l) p = Lam (reorder-Ctx-⊢ Γ₁ Γ₂ Γ₃ Γ₄ l p)
-  reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Let p) q = Let (reorder-Ctx-×R reorder-Ctx-⊢ Γ₁ Γ₂ Γ₃ Γ₄ p q)
+  reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Let (pair (e₁ ↑ θ) (l ↑ ϕ) c)) refl
+    with ⊣r4 {Γ₁'}  {Γ₂'}  {Γ₃'}  {Γ₄'}  θ₁ θ₂ θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ θ
+    with ⊣r4 {Γ₁''} {Γ₂''} {Γ₃''} {Γ₄''} ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ ϕ =
+    Let (pair
+           (reorder-Ctx Γ₁' Γ₂' Γ₃' Γ₄' e₁ refl ↑ (θ₁ ++⊑ θ₃ ++⊑ θ₂ ++⊑ θ₄))
+           (reorder-Ctx-⊢ Γ₁'' Γ₂'' Γ₃'' Γ₄'' l refl ↑ (ϕ₁ ++⊑ ϕ₃ ++⊑ ϕ₂ ++⊑ ϕ₄))
+           (cover++⊑4 θ₁ θ₂ θ₃ θ₄ ϕ₁ ϕ₂ ϕ₃ ϕ₄ c))
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Val v) p
     with refl , refl , refl , refl ← lemma-[]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p =
     Val v
-  reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus p) q = Plus (reorder-Ctx-×R reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ p q)
+  reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus p) q = Plus (reorder-Ctx-×R Γ₁ Γ₂ Γ₃ Γ₄ p q)
 
 cong₃ : ∀ {A B C D : Set} (f : A → B → C → D) {x y u v s t} → x ≡ y → u ≡ v → s ≡ t → f x u s ≡ f y v t
 cong₃ f refl refl refl = refl
 
-{-
--- TODO: instead use law-reorder-Ctx?
+-- TODO: follows from law-reorder-Ctx?
 law-reorder-Ctx-Γ₂≡[] : 
   (Γ₁ Γ₃ Γ₄ : Ctx) (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ Γ₃ ++ Γ₄) →
   reorder-Ctx Γ₁ [] Γ₃ Γ₄ e p ≡ coerce {Expr τ} p e  -- TODO: this is gonna be annoying, isn't it?
@@ -156,14 +148,11 @@ law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ Var p = {!!}
 law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl
   with ⊣r4 {Γ₁'}  {[]}  {Γ₃'}  {Γ₄'} θ₁ oz θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ [] Γ₃ Γ₄ θ
   with ⊣r4 {Γ₁''} {[]} {Γ₃''} {Γ₄''} ϕ₁ oz ϕ₃ ϕ₄ (refl , refl) ← ⊣4 Γ₁ [] Γ₃ Γ₄ ϕ =
-  ?
-  {-
   cong App
     (cong₃ (λ x y z → pair (x ↑ _) (y ↑ _) z)
       (law-reorder-Ctx-Γ₂≡[] Γ₁'  Γ₃'  Γ₄'  e₁ refl)
       (law-reorder-Ctx-Γ₂≡[] Γ₁'' Γ₃'' Γ₄'' e₂ refl)
       (law-cover++⊑4-Γ₂≡[] θ₁ θ₃ θ₄ ϕ₁ ϕ₃ ϕ₄ c))
-  -}
 law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ (Lam x) p = {!!}
 law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ (Let x) p = {!!}
 law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ (Val v) p = {!!}
@@ -256,19 +245,44 @@ push-let-top (pair decl ((oz o' \\ e) ↑ θ) c) =
 eval⇑ : Expr τ ⇑ Γ → Env Γ → ⟦ τ ⟧
 eval⇑ x env = let (e ↑ θ) = x in eval e θ env
 
-law-eval-reorder-Ctx :
-  (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)
-  (env₁ : Env Γ₁) (env₂ : Env Γ₂) (env₃ : Env Γ₃) (env₄ : Env Γ₄) →
-    eval (reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ e p) oi (env₁ ++ᴱ env₃ ++ᴱ env₂ ++ᴱ env₄)
-  ≡ eval (coerce {Expr _} p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
-law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ e p env₁ env₂ env₃ env₄ = {!!}
+mutual
+  law-eval-reorder-Ctx-×R :
+    ∀ {τ₁ τ₂} (binop : ⟦ τ₁ ⟧ → ⟦ τ₂ ⟧ → ⟦ τ ⟧)
+    (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (e : (Expr τ₁ ×R Expr τ₂) Γ) (p : Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)
+    (env₁ : Env Γ₁) (env₂ : Env Γ₂) (env₃ : Env Γ₃) (env₄ : Env Γ₄) →
+      eval-binop binop (reorder-Ctx-×R Γ₁ Γ₂ Γ₃ Γ₄ e p) oi (env₁ ++ᴱ env₃ ++ᴱ env₂ ++ᴱ env₄)
+    ≡ eval-binop binop (coerce {Expr τ₁ ×R Expr τ₂} p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
+  law-eval-reorder-Ctx-×R binop Γ₁ Γ₂ Γ₃ Γ₄ (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c) refl env₁ env₂ env₃ env₄
+    with ⊣r4 {Γ₁'}  {Γ₂'}  {Γ₃'}  {Γ₄'}  θ₁ θ₂ θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ θ
+    with ⊣r4 {Γ₁''} {Γ₂''} {Γ₃''} {Γ₄''} ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ ϕ =
+    let h₁ = law-eval-reorder-Ctx Γ₁' Γ₂' Γ₃' Γ₄' e₁ refl
+    in
+    {!h₁!}
+    
+  -- TODO: need to generalise?
+  -- - Env Γ₁ with Γ₁' ⊑ Γ
+  -- - or use law about projectEnv (θ ++⊑ ϕ) (env₁ ++ᴱ env₂)
+  law-eval-reorder-Ctx :
+    (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)
+    (env₁ : Env Γ₁) (env₂ : Env Γ₂) (env₃ : Env Γ₃) (env₄ : Env Γ₄) →
+      eval (reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ e p) oi (env₁ ++ᴱ env₃ ++ᴱ env₂ ++ᴱ env₄)
+    ≡ eval (coerce {Expr _} p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
+  law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ Var p env₁ env₂ env₃ env₄ =
+    {!!}  -- trivial, but painful
+  law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (App x) refl env₁ env₂ env₃ env₄ =
+    law-eval-reorder-Ctx-×R _$_ Γ₁ Γ₂ Γ₃ Γ₄ x refl env₁ env₂ env₃ env₄
+  law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Lam x) p env₁ env₂ env₃ env₄ = {!!}
+  law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Let x) p env₁ env₂ env₃ env₄ = {!!}
+  law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Val v) p env₁ env₂ env₃ env₄ = {!!}
+  law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Plus x) refl env₁ env₂ env₃ env₄ =
+    law-eval-reorder-Ctx-×R _+_ Γ₁ Γ₂ Γ₃ Γ₄ x refl env₁ env₂ env₃ env₄
 
 law-eval-reorder-Ctx-[] :
   ∀ {σ τ} Γ₁ Γ₂ (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ σ ∷ Γ₂) (v : ⟦ σ ⟧) (env₁ : Env Γ₁) (env₂ : Env Γ₂) →
     eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) oi (Cons v (env₁ ++ᴱ env₂))
   ≡ eval (coerce {Expr _} p e) oi (env₁ ++ᴱ Cons v env₂)
-law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂ with lemma-[τ]≡++ [] Γ₁ (_ ∷ []) Γ₂ p
-law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂    | p' = {!!}
+law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂ with lemma-[]≡++ [] Γ₁ (_ ∷ []) Γ₂ {!!}
+... | p' = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (App x) p v env₁ env₂ = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (Lam x) p v env₁ env₂ = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (Let x) p v env₁ env₂ = {!!}
@@ -330,4 +344,3 @@ push-let-top-correct (pair decl ((oz o' \\ e) ↑ θ) c) env =
   ≡⟨ sym (lemma-eval e (Cons _ env) θ (oi o')) ⟩
     eval e (θ o' ₒ oi) (Cons _ env)
   ∎
--}
