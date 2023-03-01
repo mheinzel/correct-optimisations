@@ -6,7 +6,8 @@ open import Data.Product
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
 open import Function using (_$_; _∘_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Size using (∞)
 
 open import Generic.Syntax
@@ -14,8 +15,18 @@ open import Generic.Semantics
 open import Data.Environment
 open import Data.Var
 
-open import Core
+open import Core hiding (lookup)
 import DeBruijn.Lang as DeBruijn
+
+-- This is needed because our notion of semantical equivalence is "same evaluation result",
+-- and values include Agda functions.
+-- We might want something different?
+postulate
+  -- extensionality : {A B : Set} → (f g : A → B) (H : (x : A) → f x ≡ g x) → f ≡ g
+  extensionality :
+    {S : Set} {T : S -> Set} (f g : (x : S) -> T x) ->
+    ((x : S) -> f x ≡ g x) ->
+    f ≡ g
 
 data `Lang : Set where
   `App  : U → U → `Lang
@@ -71,8 +82,8 @@ Semantics.alg Eval = λ where
   (Val v)      → v
   (Plus v₁ v₂) → v₁ + v₂
 
-eval : ∀ {Γ Γ' σ s} → (Γ ─Env) Value Γ' → Tm Lang s σ Γ → Value σ Γ'
-eval env t = Semantics.semantics Eval env t
+eval : ∀ {Γ Γ' σ s} → Tm Lang s σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
+eval t env = Semantics.semantics Eval env t
 
 DeBruijnExpr : U ─Scoped
 DeBruijnExpr τ Γ = DeBruijn.Expr Γ τ  -- grrr
@@ -94,3 +105,50 @@ Semantics.alg From = λ where
 
 from : ∀ {Γ Γ' σ s} → (Γ ─Env) Var Γ' → Tm Lang s σ Γ → DeBruijn.Expr Γ' σ
 from env t = Semantics.semantics From env t
+
+env-into : ∀ {Γ' Γ} → Env Γ → (Γ ─Env) Value Γ'
+env-into Nil = pack (λ ())
+env-into (Cons v env) = env-into env ∙ v
+
+env-from : ∀ {Γ' Γ} → (Γ ─Env) Value Γ' → Env Γ
+env-from {Γ'} {[]} env = Nil
+env-from {Γ'} {τ ∷ Γ} env = Cons (lookup env z) (env-from {Γ'} (pack (λ k → lookup env (s k))))
+
+law-∙>> :
+  (v : Value τ Γ) (env : (Γ ─Env) Value Γ) (k : Var σ (τ ∷ Γ)) →
+  lookup ((ε ∙ v) >> env) k ≡ lookup (env ∙ v) k
+law-∙>> {τ} {Γ} v env k with split (τ ∷ []) k
+... | inj₁ k₁ = sym {!injectˡ->> (ε ∙ v) env k₁!}
+... | inj₂ k₂ = refl
+
+
+-- th^Env th^Value env identity ≡ env
+
+-- env-into-correct :
+--   env-into env ≡
+
+into-correct :
+  (e : DeBruijn.Expr Γ τ) (env : Env Γ) →
+  eval {Γ' = Γ} (into e) (env-into env) ≡ DeBruijn.eval e env
+into-correct (DeBruijn.Var x) env = {!!}
+into-correct (DeBruijn.App e₁ e₂) env =
+  cong₂ _$_ (into-correct e₁ env) (into-correct e₂ env)
+into-correct (DeBruijn.Lam e) env =
+  extensionality _ _ λ v →
+      eval (into e) ((ε ∙ v) >> th^Env th^Value (env-into env) identity)
+    ≡⟨ {!!} ⟩
+      eval (into e) (env-into (Cons v env))
+    ≡⟨ into-correct e (Cons v env) ⟩
+      DeBruijn.eval e (Cons v env)
+    ∎
+into-correct (DeBruijn.Let e₁ e₂) env = {!!}
+into-correct (DeBruijn.Val v) env = {!!}
+into-correct (DeBruijn.Plus e₁ e₂) env = {!!}
+
+-- TODO: How do I even match on the constructors now?
+-- Kind of want to do induction on the description, not the term.
+-- Need some helper, maybe Simulation?
+from-correct :
+  (e : Expr τ Γ) (env : (Γ ─Env) Value Γ) →
+  DeBruijn.eval (from identity e) (env-from env) ≡ eval e env
+from-correct e env = ?
