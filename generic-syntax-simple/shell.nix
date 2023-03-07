@@ -5,21 +5,6 @@ let
 
   agda = pkgs.agda.withPackages (p: [
     p.standard-library
-    (p.mkDerivation {
-      pname = "generic-syntax-simple";
-      version = "0.1.0";
-
-      src = ./generic-syntax-simple;
-
-      includePaths = [ "src" ];
-      buildInputs = [ p.standard-library ];
-      everythingFile = "src/Everything.agda";
-
-      meta = {
-        homepage = "https://github.com/mheinzel/correct-optimisations";
-        description = "Adapted version of A Scope-and-Type Safe Universe of Syntaxes with Binding, Their Semantics and Proofs";
-      };
-    })
   ]);
 
   emacsConfig = pkgs.writeText "default.el" ''
@@ -39,9 +24,5 @@ pkgs.stdenv.mkDerivation {
   buildInputs = [
     emacs
     agda
-    pkgs.texlive.combined.scheme-full
-    pkgs.haskellPackages.lhs2tex
-    pkgs.pandoc
-    pkgs.open-sans
   ];
 }
