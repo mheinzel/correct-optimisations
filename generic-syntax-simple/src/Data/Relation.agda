@@ -1,8 +1,5 @@
-{-# OPTIONS --sized-types #-}
-
 module Data.Relation where
 
-open import Size
 open import Data.Sum
 open import Data.List.Base hiding (lookup ; [_])
 
@@ -97,5 +94,5 @@ module _ {A B : I ─Scoped} where
 
 module _ {d : Desc I} where
 
- VarTmᴿ : Rel Var (Tm d ∞)
+ VarTmᴿ : Rel Var (Tm d)
  rel VarTmᴿ i v t = `var v ≡ t

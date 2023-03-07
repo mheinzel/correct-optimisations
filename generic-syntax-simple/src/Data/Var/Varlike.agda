@@ -1,5 +1,3 @@
-{-# OPTIONS --sized-types #-}
-
 module Data.Var.Varlike where
 
 open import Data.List.Base hiding (lookup ; [_])

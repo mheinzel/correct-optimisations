@@ -1,5 +1,3 @@
-{-# OPTIONS --sized-types #-}
-
 module Data.Pred where
 
 open import Data.Var hiding (_<$>_)

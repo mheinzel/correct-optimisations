@@ -1,8 +1,5 @@
-{-# OPTIONS --sized-types #-}
-
 module Generic.Syntax where
 
-open import Size
 open import Data.Bool
 open import Data.List.Base as L hiding ([_])
 open import Data.List.Relation.Unary.All hiding (mapA; sequenceA)
@@ -32,7 +29,6 @@ private
     I : Set
     i σ : I
     Γ₁ Γ₂ : List I
-    s : Size
     X Y : List I → I ─Scoped
 
 ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
@@ -48,24 +44,24 @@ Scope T Δ i = (Δ ++_) ⊢ T i
 
 module _ {I : Set} where
 
- data Tm (d : Desc I) : Size → I ─Scoped where
-   `var  : ∀[ Var i                     ⇒ Tm d (↑ s) i ]
-   `con  : ∀[ ⟦ d ⟧ (Scope (Tm d s)) i  ⇒ Tm d (↑ s) i ]
+ data Tm (d : Desc I) : I ─Scoped where
+   `var  : ∀[ Var i                     ⇒ Tm d i ]
+   `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i  ⇒ Tm d i ]
 
 
 module _ {I i Γ} {d : Desc I} where
 
-  `var-inj : ∀ {t u} → (Tm d ∞ i Γ ∋ `var t) ≡ `var u → t ≡ u
+  `var-inj : ∀ {t u} → (Tm d i Γ ∋ `var t) ≡ `var u → t ≡ u
   `var-inj refl = refl
 
-  `con-inj : ∀ {t u} → (Tm d ∞ i Γ ∋ `con t) ≡ `con u → t ≡ u
+  `con-inj : ∀ {t u} → (Tm d i Γ ∋ `con t) ≡ `con u → t ≡ u
   `con-inj refl = refl
 
 -- Closed terms
 module _ {I : Set} where
 
   TM : Desc I → I → Set
-  TM d i = Tm d ∞ i []
+  TM d i = Tm d i []
 
 
 -- Descriptions are closed under sums
@@ -231,6 +227,7 @@ record DescMorphism {I : Set} (d e : Desc I) : Set₁ where
 
 module _ {I : Set} {d e : Desc I} where
 
-  map^Tm : DescMorphism d e → ∀ {i σ Γ} → Tm d i σ Γ → Tm e i σ Γ
+  {-# TERMINATING #-}
+  map^Tm : DescMorphism d e → ∀ {σ Γ} → Tm d σ Γ → Tm e σ Γ
   map^Tm f (`var v) = `var v
   map^Tm f (`con t) = `con (DescMorphism.apply f (fmap d (λ _ _ → map^Tm f) t))

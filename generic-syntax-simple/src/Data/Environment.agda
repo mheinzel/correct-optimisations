@@ -1,5 +1,3 @@
-{-# OPTIONS --sized-types #-}
-
 module Data.Environment where
 
 open import Data.Nat.Base as ℕ

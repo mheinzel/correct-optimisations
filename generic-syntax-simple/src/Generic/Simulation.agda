@@ -1,12 +1,8 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-{-# OPTIONS --sized-types #-}
-
 open import Data.Var hiding (_<$>_; z; s)
 open import Data.Relation
 
 module Generic.Simulation {I : Set} {𝓥ᴬ 𝓥ᴮ 𝓒ᴬ 𝓒ᴮ : I ─Scoped} where
 
-open import Size
 open import Data.List hiding ([_] ; lookup ; zip)
 open import Function
 open import Relation.Binary.PropositionalEquality hiding ([_])
@@ -17,7 +13,8 @@ open import Data.Var.Varlike
 open import Data.Environment
 open import Generic.Syntax
 
-open import Generic.Semantics
+open import Generic.Semantics hiding (body; semantics)
+import Generic.Semantics as 𝓢
 open import Generic.Relator as Relator using (⟦_⟧ᴿ; liftᴿ)
 
 private
@@ -26,7 +23,6 @@ private
     σ : I
     vᴬ : 𝓥ᴬ σ Γ
     vᴮ : 𝓥ᴮ σ Γ
-    s : Size
     ρᴬ : (Γ ─Env) 𝓥ᴬ Δ
     ρᴮ : (Γ ─Env) 𝓥ᴮ Δ
 
@@ -55,18 +51,25 @@ record Simulation (d : Desc I)
 
   field
 
-    algᴿ  : (b : ⟦ d ⟧ (Scope (Tm d s)) σ Γ) → All 𝓥ᴿ Γ ρᴬ ρᴮ →
-            let  vᴬ = fmap d (𝓢ᴬ.body ρᴬ) b
-                 vᴮ = fmap d (𝓢ᴮ.body ρᴮ) b
+    algᴿ  : (b : ⟦ d ⟧ (Scope (Tm d)) σ Γ) → All 𝓥ᴿ Γ ρᴬ ρᴮ →
+            let  vᴬ = fmap d (𝓢.body 𝓢ᴬ ρᴬ) b
+                 vᴮ = fmap d (𝓢.body 𝓢ᴮ ρᴮ) b
             in bodyᴿ vᴬ vᴮ → rel 𝓒ᴿ σ (𝓢ᴬ.alg vᴬ) (𝓢ᴮ.alg vᴮ)
 
-  sim   :  All 𝓥ᴿ Γ ρᴬ ρᴮ → (t : Tm d s σ Γ) →
-           rel 𝓒ᴿ σ (𝓢ᴬ.semantics ρᴬ t) (𝓢ᴮ.semantics ρᴮ t)
-  body  :  All 𝓥ᴿ Γ ρᴬ ρᴮ → ∀ Δ j → (t : Scope (Tm d s) Δ j Γ) →
-           Kripkeᴿ 𝓥ᴿ 𝓒ᴿ Δ j (𝓢ᴬ.body ρᴬ Δ j t) (𝓢ᴮ.body ρᴮ Δ j t)
+module _ {d : Desc I}
+  {𝓢ᴬ : Semantics d 𝓥ᴬ 𝓒ᴬ} {𝓢ᴮ : Semantics d 𝓥ᴮ 𝓒ᴮ}
+  {𝓥ᴿ  : Rel 𝓥ᴬ 𝓥ᴮ} {𝓒ᴿ  : Rel 𝓒ᴬ 𝓒ᴮ}
+  (sm : Simulation d 𝓢ᴬ 𝓢ᴮ 𝓥ᴿ 𝓒ᴿ) where
+  open Simulation sm
+
+  {-# TERMINATING #-}
+  sim   : All 𝓥ᴿ Γ ρᴬ ρᴮ → (t : Tm d σ Γ) →
+          rel 𝓒ᴿ σ (𝓢.semantics 𝓢ᴬ ρᴬ t) (𝓢.semantics 𝓢ᴮ ρᴮ t)
+  body  : All 𝓥ᴿ Γ ρᴬ ρᴮ → ∀ Δ j → (t : Scope (Tm d) Δ j Γ) →
+          Kripkeᴿ 𝓥ᴿ 𝓒ᴿ Δ j (𝓢.body 𝓢ᴬ ρᴬ Δ j t) (𝓢.body 𝓢ᴮ ρᴮ Δ j t)
 
   sim ρᴿ (`var k) = varᴿ (lookupᴿ ρᴿ k)
-  sim ρᴿ (`con t) = {! algᴿ t ρᴿ (liftᴿ d (body ρᴿ) t) !}
+  sim ρᴿ (`con t) = algᴿ t ρᴿ (liftᴿ d (body ρᴿ) t)
 
   body ρᴿ []       i t = sim ρᴿ t
   body ρᴿ (_ ∷ _)  i t = λ σ vsᴿ → sim (vsᴿ >>ᴿ (thᴿ σ <$>ᴿ ρᴿ)) t

@@ -1,9 +1,6 @@
-{-# OPTIONS --sized-types #-}
-
 module Generic.Relator where
 
 open import Axiom.UniquenessOfIdentityProofs.WithK
-open import Size
 open import Data.Unit
 open import Data.List hiding ([_] ; zip)
 open import Data.Product hiding (zip)

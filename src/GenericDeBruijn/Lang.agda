@@ -1,5 +1,3 @@
-{-# OPTIONS --sized-types #-}
-
 module GenericDeBruijn.Lang where
 
 open import Data.Product
@@ -8,11 +6,12 @@ open import Data.List using (List ; _∷_ ; [])
 open import Function using (_$_; _∘_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
-open import Size using (∞)
 
 open import Generic.Syntax
-open import Generic.Semantics
-open import Generic.Simulation
+open import Generic.Semantics using (Semantics)
+import Generic.Semantics as Sem
+open import Generic.Simulation using (Simulation)
+import Generic.Simulation as Sim
 open import Data.Environment
 open import Data.Var
 open import Data.Relation
@@ -55,7 +54,7 @@ pattern Val  v      = `Val _   , v  , refl
 pattern Plus e₁ e₂  = `Plus    , e₁ , e₂ , refl
 
 Expr : U ─Scoped
-Expr = Tm Lang ∞
+Expr = Tm Lang
 
 into-Var : ∀ {Γ τ} → Ref τ Γ → Var τ Γ
 into-Var Top = z
@@ -87,8 +86,8 @@ Semantics.alg Eval = λ where
   (Val v)      → v
   (Plus v₁ v₂) → v₁ + v₂
 
-eval : ∀ {Γ Γ' σ s} → Tm Lang s σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
-eval t env = Semantics.semantics Eval env t
+eval : ∀ {Γ Γ' σ} → Tm Lang σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
+eval t env = Sem.semantics Eval env t
 
 DeBruijnExpr : U ─Scoped
 DeBruijnExpr τ Γ = DeBruijn.Expr Γ τ  -- grrr
@@ -108,8 +107,8 @@ Semantics.alg From = λ where
   (Val v)      → DeBruijn.Val v
   (Plus e₁ e₂) → DeBruijn.Plus e₁ e₂
 
-from : ∀ {Γ Γ' σ s} → (Γ ─Env) Var Γ' → Tm Lang s σ Γ → DeBruijn.Expr Γ' σ
-from env t = Semantics.semantics From env t
+from : ∀ {Γ Γ' σ} → (Γ ─Env) Var Γ' → Tm Lang σ Γ → DeBruijn.Expr Γ' σ
+from env t = Sem.semantics From env t
 
 env-into : ∀ {Γ' Γ} → Env Γ → (Γ ─Env) Value Γ'
 env-into Nil = pack (λ ())
@@ -165,8 +164,6 @@ from-correct' :
   DeBruijn.eval (from identity e) (env-from env) ≡ eval e env
 from-correct' e env = {!!}
 
--- All 𝓥ᴿ Γ ρᴬ ρᴮ → (t : Tm d s σ Γ) → rel 𝓒ᴿ σ (𝓢ᴬ.semantics ρᴬ t) (𝓢ᴮ.semantics ρᴮ t)
-
 rel-trivial : {S T : U ─Scoped} → Rel S T
 rel-trivial = mkRel (λ σ x y → ⊤)
 
@@ -179,23 +176,23 @@ rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : Env Γ) → Core.lookup (Ref-Va
 From-correct : Simulation Lang From Eval rel-lookup≡ rel-eval≡
 Simulation.thᴿ From-correct {Γ} {Δ} {τ} {x} {v} ρ r env = {!!}
 Simulation.varᴿ From-correct {τ} {Γ} {x} {v} r env = r env
-Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (App e₁ e₂) rⱽ (refl , h₁ , h₂ , tt) env =
+Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (App e₁ e₂) rⱽ (refl , h₁ , h₂ , tt) env =
     DeBruijn.eval (from ρ e₁) env (DeBruijn.eval (from ρ e₂) env)
   ≡⟨ cong₂ _$_ (h₁ env) (h₂ env) ⟩
     eval e₁ env₁ (eval e₂ env₁)
   ∎
-Simulation.algᴿ From-correct {_} {σ ⇒ τ} {Γ} {Δ} {ρ} {env₁} (Lam e) rⱽ (refl , h , tt) env =
+Simulation.algᴿ From-correct {σ ⇒ τ} {Γ} {Δ} {ρ} {env₁} (Lam e) rⱽ (refl , h , tt) env =
   extensionality _ _ λ v →
       DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v env)
     ≡⟨ {!!} ⟩  -- (? ∙ᴿ ?) (Cons v env)
       DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) env
-    ≡⟨ {! h identity ? env!} ⟩  -- TODO: size error :(
+    ≡⟨ h identity (εᴿ ∙ᴿ {!!}) env ⟩
       eval e ((ε ∙ v) >> th^Env th^Value env₁ identity)
       -- eval e (? >> th^Env th^Value env₁ (pack s))
     ∎
-Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (Let e₁ e₂) = {!!}
-Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (Val v) = {!!}
-Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (Plus e₁ e₂) = {!!}
+Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Let e₁ e₂) = {!!}
+Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Val v) = {!!}
+Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Plus e₁ e₂) = {!!}
 
 from-correct : (e : Expr τ Γ) (env : Env Γ) → DeBruijn.eval (from identity e) env ≡ eval {Γ' = Γ} e (env-into env)
-from-correct e env = Simulation.sim From-correct (packᴿ (λ _ → {!!})) e env
+from-correct e env = Sim.sim From-correct (packᴿ (λ _ → {!!})) e env
