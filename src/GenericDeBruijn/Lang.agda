@@ -1,6 +1,6 @@
 {-# OPTIONS --sized-types #-}
 
-module Generic.Lang where
+module GenericDeBruijn.Lang where
 
 open import Data.Product
 open import Data.Nat using (_+_)
