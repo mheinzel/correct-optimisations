@@ -12,8 +12,13 @@ open import Size using (∞)
 
 open import Generic.Syntax
 open import Generic.Semantics
+open import Generic.Simulation
 open import Data.Environment
 open import Data.Var
+open import Data.Relation
+open import Data.Relation
+open import Data.Unit using (⊤; tt)
+open import Stdlib using (∀[_])
 
 open import Core hiding (lookup)
 import DeBruijn.Lang as DeBruijn
@@ -114,6 +119,13 @@ env-from : ∀ {Γ' Γ} → (Γ ─Env) Value Γ' → Env Γ
 env-from {Γ'} {[]} env = Nil
 env-from {Γ'} {τ ∷ Γ} env = Cons (lookup env z) (env-from {Γ'} (pack (λ k → lookup env (s k))))
 
+pr^Env : ∀ {Γ Δ} → Thinning Γ Δ → Env Δ → Env Γ
+pr^Env {[]} ρ env = Nil
+pr^Env {τ ∷ Γ} ρ env = Cons (lookup {Δ = Γ} (env-into env) (lookup ρ z) ) (pr^Env (pack (λ x → lookup ρ (s x))) env)
+
+th^Env→ : {T : List U → Set} → Thinnable T → Thinnable (Env Stdlib.⇒ T)
+th^Env→ t {Γ} f {Δ} ρ env = t (f (pr^Env ρ env)) ρ
+
 law-∙>> :
   (v : Value τ Γ) (env : (Γ ─Env) Value Γ) (k : Var σ (τ ∷ Γ)) →
   lookup ((ε ∙ v) >> env) k ≡ lookup (env ∙ v) k
@@ -148,7 +160,48 @@ into-correct (DeBruijn.Plus e₁ e₂) env = {!!}
 -- TODO: How do I even match on the constructors now?
 -- Kind of want to do induction on the description, not the term.
 -- Need some helper, maybe Simulation?
-from-correct :
+from-correct' :
   (e : Expr τ Γ) (env : (Γ ─Env) Value Γ) →
   DeBruijn.eval (from identity e) (env-from env) ≡ eval e env
-from-correct e env = ?
+from-correct' e env = {!!}
+
+-- All 𝓥ᴿ Γ ρᴬ ρᴮ → (t : Tm d s σ Γ) → rel 𝓒ᴿ σ (𝓢ᴬ.semantics ρᴬ t) (𝓢ᴮ.semantics ρᴮ t)
+
+rel-trivial : {S T : U ─Scoped} → Rel S T
+rel-trivial = mkRel (λ σ x y → ⊤)
+
+rel-eval≡ : Rel DeBruijnExpr Value
+rel-eval≡ = mkRel (λ σ {Γ} e v → (env : Env Γ) → DeBruijn.eval e env ≡ v)
+
+rel-lookup≡ : Rel Var Value
+rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : Env Γ) → Core.lookup (Ref-Var x) env ≡ v)
+
+From-correct : Simulation Lang From Eval rel-lookup≡ rel-eval≡
+From-correct =
+  record
+    { thᴿ = λ {Γ} {Δ} {τ} {x} {v} ρ r env → {!!}
+    ; varᴿ = λ {τ} {Γ} {x} {v} r env → r env
+    ; algᴿ = λ {_} {τ} {Γ} {Δ} {ρ} {env₁} → λ where
+        (App e₁ e₂) → λ rⱽ → λ where
+          (refl , h₁ , h₂ , tt) → λ env →
+              DeBruijn.eval (from ρ e₁) env (DeBruijn.eval (from ρ e₂) env)
+            ≡⟨ cong₂ _$_ (h₁ env) (h₂ env) ⟩
+              eval e₁ env₁ (eval e₂ env₁)
+            ∎
+        (`Lam σ τ , e  , refl) → λ rⱽ → λ where
+          (refl , h , tt) → λ env →
+            extensionality _ _ λ v →
+                DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v env)
+              ≡⟨ {!!} ⟩  -- (? ∙ᴿ ?) (Cons v env)
+                DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) env
+              ≡⟨ {! h identity ? env!} ⟩  -- TODO: size error :(
+                eval e ((ε ∙ v) >> th^Env th^Value env₁ identity)
+                -- eval e (? >> th^Env th^Value env₁ (pack s))
+              ∎
+        (Let e₁ e₂)  → {!!}
+        (Val v)      → {!!}
+        (Plus e₁ e₂) → {!!}
+    }
+
+from-correct : (e : Expr τ Γ) (env : Env Γ) → DeBruijn.eval (from identity e) env ≡ eval {Γ' = Γ} e (env-into env)
+from-correct e env = Simulation.sim From-correct (packᴿ (λ _ → {!!})) e env
