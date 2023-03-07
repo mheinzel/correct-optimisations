@@ -177,31 +177,25 @@ rel-lookup≡ : Rel Var Value
 rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : Env Γ) → Core.lookup (Ref-Var x) env ≡ v)
 
 From-correct : Simulation Lang From Eval rel-lookup≡ rel-eval≡
-From-correct =
-  record
-    { thᴿ = λ {Γ} {Δ} {τ} {x} {v} ρ r env → {!!}
-    ; varᴿ = λ {τ} {Γ} {x} {v} r env → r env
-    ; algᴿ = λ {_} {τ} {Γ} {Δ} {ρ} {env₁} → λ where
-        (App e₁ e₂) → λ rⱽ → λ where
-          (refl , h₁ , h₂ , tt) → λ env →
-              DeBruijn.eval (from ρ e₁) env (DeBruijn.eval (from ρ e₂) env)
-            ≡⟨ cong₂ _$_ (h₁ env) (h₂ env) ⟩
-              eval e₁ env₁ (eval e₂ env₁)
-            ∎
-        (`Lam σ τ , e  , refl) → λ rⱽ → λ where
-          (refl , h , tt) → λ env →
-            extensionality _ _ λ v →
-                DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v env)
-              ≡⟨ {!!} ⟩  -- (? ∙ᴿ ?) (Cons v env)
-                DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) env
-              ≡⟨ {! h identity ? env!} ⟩  -- TODO: size error :(
-                eval e ((ε ∙ v) >> th^Env th^Value env₁ identity)
-                -- eval e (? >> th^Env th^Value env₁ (pack s))
-              ∎
-        (Let e₁ e₂)  → {!!}
-        (Val v)      → {!!}
-        (Plus e₁ e₂) → {!!}
-    }
+Simulation.thᴿ From-correct {Γ} {Δ} {τ} {x} {v} ρ r env = {!!}
+Simulation.varᴿ From-correct {τ} {Γ} {x} {v} r env = r env
+Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (App e₁ e₂) rⱽ (refl , h₁ , h₂ , tt) env =
+    DeBruijn.eval (from ρ e₁) env (DeBruijn.eval (from ρ e₂) env)
+  ≡⟨ cong₂ _$_ (h₁ env) (h₂ env) ⟩
+    eval e₁ env₁ (eval e₂ env₁)
+  ∎
+Simulation.algᴿ From-correct {_} {σ ⇒ τ} {Γ} {Δ} {ρ} {env₁} (Lam e) rⱽ (refl , h , tt) env =
+  extensionality _ _ λ v →
+      DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v env)
+    ≡⟨ {!!} ⟩  -- (? ∙ᴿ ?) (Cons v env)
+      DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) env
+    ≡⟨ {! h identity ? env!} ⟩  -- TODO: size error :(
+      eval e ((ε ∙ v) >> th^Env th^Value env₁ identity)
+      -- eval e (? >> th^Env th^Value env₁ (pack s))
+    ∎
+Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (Let e₁ e₂) = {!!}
+Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (Val v) = {!!}
+Simulation.algᴿ From-correct {_} {τ} {Γ} {Δ} {ρ} {env₁} (Plus e₁ e₂) = {!!}
 
 from-correct : (e : Expr τ Γ) (env : Env Γ) → DeBruijn.eval (from identity e) env ≡ eval {Γ' = Γ} e (env-into env)
 from-correct e env = Simulation.sim From-correct (packᴿ (λ _ → {!!})) e env
