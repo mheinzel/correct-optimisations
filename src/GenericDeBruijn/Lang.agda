@@ -8,14 +8,13 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Generic.Syntax
-open import Generic.Semantics using (Semantics)
-import Generic.Semantics as Sem
-open import Generic.Simulation using (Simulation)
-import Generic.Simulation as Sim
+open import Generic.Semantics as Sem using (Semantics)
+open import Generic.Simulation as Sim using (Simulation)
+open import Generic.Fundamental as Fun using (Fundamental)
 open import Data.Environment
 open import Data.Var
 open import Data.Relation
-open import Data.Relation
+open import Data.Pred
 open import Data.Unit using (⊤; tt)
 open import Stdlib using (∀[_])
 
@@ -96,7 +95,6 @@ Ref-Var : ∀ {σ Γ} → Var σ Γ → Ref σ Γ
 Ref-Var z = Top
 Ref-Var (s x) = Pop (Ref-Var x)
 
--- Could also use Ref instead of Var, but then we'd need th^Ref
 From : Semantics Lang Var DeBruijnExpr
 Semantics.th^𝓥 From = th^Var
 Semantics.var From = DeBruijn.Var ∘ Ref-Var
@@ -114,9 +112,9 @@ into-Env : ∀ {Γ' Γ} → Env Γ → (Γ ─Env) Value Γ'
 into-Env Nil = pack (λ ())
 into-Env (Cons v env) = into-Env env ∙ v
 
-env-from : ∀ {Γ' Γ} → (Γ ─Env) Value Γ' → Env Γ
-env-from {Γ'} {[]} env = Nil
-env-from {Γ'} {τ ∷ Γ} env = Cons (lookup env z) (env-from {Γ'} (pack (λ k → lookup env (s k))))
+from-Env : ∀ {Γ' Γ} → (Γ ─Env) Value Γ' → Env Γ
+from-Env {Γ'} {[]} env = Nil
+from-Env {Γ'} {τ ∷ Γ} env = Cons (lookup env z) (from-Env {Γ'} (pack (λ k → lookup env (s k))))
 
 pr^Env : ∀ {Γ Δ} → Thinning Γ Δ → Env Δ → Env Γ
 pr^Env {[]} ρ env = Nil
@@ -199,29 +197,33 @@ into-correct (DeBruijn.Val v) env env' p =
 into-correct (DeBruijn.Plus e₁ e₂) env env' p =
   cong₂ _+_ (into-correct e₁ env env' p) (into-correct e₂ env env' p)
 
-rel-trivial : {S T : U ─Scoped} → Rel S T
-rel-trivial = mkRel (λ σ x y → ⊤)
-
+-- TODO: I'm doing something wrong, I just don't get it.
 rel-eval≡ : Rel DeBruijnExpr Value
-rel-eval≡ = mkRel (λ σ {Γ} e v → (env : Env Γ) → DeBruijn.eval e env ≡ v)
+rel-eval≡ = mkRel (λ σ {Γ} e v → (env : (Γ ─Env) Value []) → DeBruijn.eval e (from-Env env) ≡ v)
 
 rel-lookup≡ : Rel Var Value
-rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : Env Γ) → Core.lookup (Ref-Var x) env ≡ v)
+rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : (Γ ─Env) Value []) → Core.lookup (Ref-Var x) (from-Env env) ≡ v)
 
 From-correct : Simulation Lang From Eval rel-lookup≡ rel-eval≡
-Simulation.thᴿ From-correct {Γ} {Δ} {τ} {x} {v} ρ r env = {!!}
+Simulation.thᴿ From-correct {Γ} {Δ} {τ} {k} {v} ρ r env =
+    Core.lookup (Ref-Var (lookup ρ k)) (from-Env env)
+  ≡⟨ {!!} ⟩
+    Core.lookup (Ref-Var k) (from-Env {[]} (select ρ env))
+  ≡⟨ r (select ρ env) ⟩
+    v
+  ∎
 Simulation.varᴿ From-correct {τ} {Γ} {x} {v} r env = r env
 Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (App e₁ e₂) rⱽ (refl , h₁ , h₂ , tt) env =
-    DeBruijn.eval (from ρ e₁) env (DeBruijn.eval (from ρ e₂) env)
+    DeBruijn.eval (from ρ e₁) (from-Env env) (DeBruijn.eval (from ρ e₂) (from-Env env))
   ≡⟨ cong₂ _$_ (h₁ env) (h₂ env) ⟩
     eval e₁ env₁ (eval e₂ env₁)
   ∎
 Simulation.algᴿ From-correct {σ ⇒ τ} {Γ} {Δ} {ρ} {env₁} (Lam e) rⱽ (refl , h , tt) env =
   extensionality _ _ λ v →
-      DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v env)
+      DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v (from-Env env))
     ≡⟨ {!!} ⟩  -- (? ∙ᴿ ?) (Cons v env)
-      DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) env
-    ≡⟨ h identity (εᴿ ∙ᴿ {!!}) env ⟩
+      DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) (from-Env env)
+    ≡⟨ h identity (εᴿ ∙ᴿ {!lookupᴿ rⱽ!}) env ⟩
       eval e ((ε ∙ v) >> th^Env th^Value env₁ identity)
       -- eval e (? >> th^Env th^Value env₁ (pack s))
     ∎
@@ -229,5 +231,6 @@ Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Let e₁ e₂) = {!
 Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Val v) = {!!}
 Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Plus e₁ e₂) = {!!}
 
-from-correct : (e : Expr τ Γ) (env : Env Γ) → DeBruijn.eval (from identity e) env ≡ eval {Γ' = Γ} e (into-Env env)
-from-correct e env = Sim.sim From-correct (packᴿ (λ _ → {!!})) e env
+from-correct : (e : Expr τ Γ) (env : (Γ ─Env) Value []) → DeBruijn.eval (from identity e) (from-Env env) ≡ eval e env
+from-correct {τ} {Γ} e env =
+  Sim.sim From-correct {Γ} {Γ} {{!ε!}} {!!} {! e !} env  
