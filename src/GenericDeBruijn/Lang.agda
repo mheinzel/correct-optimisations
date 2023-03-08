@@ -2,9 +2,9 @@ module GenericDeBruijn.Lang where
 
 open import Data.Product
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [])
-open import Function using (_$_; _∘_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym)
+open import Data.List using (List ; _∷_ ; []; _++_)
+open import Function using (_$_; _∘_; const)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; sym; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Generic.Syntax
@@ -74,7 +74,7 @@ Value : U ─Scoped
 Value τ Γ = Core.⟦ τ ⟧
 
 th^Value : ∀ {τ} → Thinnable (Value τ)
-th^Value v = λ _ → v
+th^Value v = const v
 
 Eval : Semantics Lang Value Value
 Semantics.th^𝓥 Eval = th^Value
@@ -110,9 +110,9 @@ Semantics.alg From = λ where
 from : ∀ {Γ Γ' σ} → (Γ ─Env) Var Γ' → Tm Lang σ Γ → DeBruijn.Expr Γ' σ
 from env t = Sem.semantics From env t
 
-env-into : ∀ {Γ' Γ} → Env Γ → (Γ ─Env) Value Γ'
-env-into Nil = pack (λ ())
-env-into (Cons v env) = env-into env ∙ v
+into-Env : ∀ {Γ' Γ} → Env Γ → (Γ ─Env) Value Γ'
+into-Env Nil = pack (λ ())
+into-Env (Cons v env) = into-Env env ∙ v
 
 env-from : ∀ {Γ' Γ} → (Γ ─Env) Value Γ' → Env Γ
 env-from {Γ'} {[]} env = Nil
@@ -120,49 +120,84 @@ env-from {Γ'} {τ ∷ Γ} env = Cons (lookup env z) (env-from {Γ'} (pack (λ k
 
 pr^Env : ∀ {Γ Δ} → Thinning Γ Δ → Env Δ → Env Γ
 pr^Env {[]} ρ env = Nil
-pr^Env {τ ∷ Γ} ρ env = Cons (lookup {Δ = Γ} (env-into env) (lookup ρ z) ) (pr^Env (pack (λ x → lookup ρ (s x))) env)
+pr^Env {τ ∷ Γ} ρ env = Cons (lookup {Δ = Γ} (into-Env env) (lookup ρ z) ) (pr^Env (pack (λ x → lookup ρ (s x))) env)
 
 th^Env→ : {T : List U → Set} → Thinnable T → Thinnable (Env Stdlib.⇒ T)
 th^Env→ t {Γ} f {Δ} ρ env = t (f (pr^Env ρ env)) ρ
 
+-- This should be in the libary.
 law-∙>> :
-  (v : Value τ Γ) (env : (Γ ─Env) Value Γ) (k : Var σ (τ ∷ Γ)) →
-  lookup ((ε ∙ v) >> env) k ≡ lookup (env ∙ v) k
-law-∙>> {τ} {Γ} v env k with split (τ ∷ []) k
-... | inj₁ k₁ = sym {!injectˡ->> (ε ∙ v) env k₁!}
-... | inj₂ k₂ = refl
+  {I : Set} {Δ Γ₁ Γ₂ : List I} {𝓥 : I ─Scoped} {σ τ : I}
+  (ρ₁ : (Γ₁ ─Env) 𝓥 Δ)
+  (ρ₂ : (Γ₂ ─Env) 𝓥 Δ)
+  (v : 𝓥 σ Δ) →
+  (k : Var τ (σ ∷ Γ₁ ++ Γ₂)) →
+  lookup ((ρ₁ ∙ v) >> ρ₂) k ≡ lookup ((ρ₁ >> ρ₂) ∙ v) k
+law-∙>> ρ₁ ρ₂ v z = refl
+law-∙>> {Γ₁ = Γ₁} ρ₁ ρ₂ v (s k) with split Γ₁ k
+... | inj₁ i = refl
+... | inj₂ i = refl
 
+law-into-Env-++ᴱ :
+  ∀ {Δ Γ₁ Γ₂ τ}
+  (env₁ : Env Γ₁) →
+  (env₂ : Env Γ₂) →
+  (k : Var τ (Γ₁ ++ Γ₂)) →
+  lookup (into-Env {Δ} (env₁ ++ᴱ env₂)) k ≡ lookup {Δ = Δ} (into-Env env₁ >> into-Env env₂) k
+law-into-Env-++ᴱ Nil env₂ k = refl
+law-into-Env-++ᴱ (Cons _ env₁) env₂ z = refl
+law-into-Env-++ᴱ (Cons v env₁) env₂ (s k) =
+  trans
+    (law-into-Env-++ᴱ env₁ env₂ k)
+    (sym (law-∙>> (into-Env env₁) (into-Env env₂) v (s k)))
 
--- th^Env th^Value env identity ≡ env
+helper :
+  ∀ {Δ Γ₁ Γ₂}
+  (env₁ : Env Γ₁) (env₁' : (Γ₁ ─Env) Value Δ) →
+  (env₂ : Env Γ₂) (env₂' : (Γ₂ ─Env) Value Δ) →
+  ({σ : U} (x : Var σ Γ₁) → lookup {Δ = Δ} (into-Env env₁) x ≡ lookup env₁' x) →
+  ({σ : U} (x : Var σ Γ₂) → lookup {Δ = Δ} (into-Env env₂) x ≡ lookup env₂' x) →
+  ({σ : U} (x : Var σ (Γ₁ ++ Γ₂)) → lookup {Δ = Δ} (into-Env (env₁ ++ᴱ env₂)) x ≡ lookup (env₁' >> env₂') x)
+helper {_} {Γ₁} {Γ₂} env₁ env₁' env₂ env₂' p₁ p₂ x with split Γ₁ x
+... | inj₁ k = trans (law-into-Env-++ᴱ env₁ env₂ (injectˡ Γ₂ k))
+                     (trans (injectˡ->> (into-Env env₁) (into-Env env₂) k) (p₁ k))
+... | inj₂ k = trans (law-into-Env-++ᴱ env₁ env₂ (injectʳ Γ₁ k))
+                     (trans (injectʳ->> (into-Env env₁) (into-Env env₂) k) (p₂ k))
 
--- env-into-correct :
---   env-into env ≡
+into-Var-correct :
+  ∀ {Δ Γ τ} (x : Ref τ Γ) (env : Env Γ) →
+  lookup {Δ = Δ} (into-Env env) (into-Var x) ≡ Core.lookup x env
+into-Var-correct Top     (Cons v env) = refl
+into-Var-correct (Pop x) (Cons v env) = into-Var-correct x env
 
 into-correct :
-  (e : DeBruijn.Expr Γ τ) (env : Env Γ) →
-  eval {Γ' = Γ} (into e) (env-into env) ≡ DeBruijn.eval e env
-into-correct (DeBruijn.Var x) env = {!!}
-into-correct (DeBruijn.App e₁ e₂) env =
-  cong₂ _$_ (into-correct e₁ env) (into-correct e₂ env)
-into-correct (DeBruijn.Lam e) env =
+  ∀ {Δ Γ τ} (e : DeBruijn.Expr Γ τ) (env : Env Γ) (env' : (Γ ─Env) Value Δ) →
+  (p : {σ : U} (x : Var σ Γ) → lookup {Δ = Δ} (into-Env env) x ≡ lookup env' x) →
+  eval (into e) env' ≡ DeBruijn.eval e env
+into-correct (DeBruijn.Var x) env env' p =
+  trans (sym (p (into-Var x))) (into-Var-correct x env)
+into-correct (DeBruijn.App e₁ e₂) env env' p =
+  cong₂ _$_ (into-correct e₁ env env' p) (into-correct e₂ env env' p)
+into-correct {Δ} (DeBruijn.Lam e) env env' p =
   extensionality _ _ λ v →
-      eval (into e) ((ε ∙ v) >> th^Env th^Value (env-into env) identity)
-    ≡⟨ {!!} ⟩
-      eval (into e) (env-into (Cons v env))
-    ≡⟨ into-correct e (Cons v env) ⟩
+      eval (into e) ((ε ∙ v) >> th^Env th^Value env' identity)
+    ≡⟨ into-correct {Δ} e (Cons v env) ((ε ∙ v) >> th^Env th^Value env' identity)
+         (helper (Cons v Nil) (ε ∙ v) env env' (λ { z → refl }) p) ⟩
       DeBruijn.eval e (Cons v env)
     ∎
-into-correct (DeBruijn.Let e₁ e₂) env = {!!}
-into-correct (DeBruijn.Val v) env = {!!}
-into-correct (DeBruijn.Plus e₁ e₂) env = {!!}
-
--- TODO: How do I even match on the constructors now?
--- Kind of want to do induction on the description, not the term.
--- Need some helper, maybe Simulation?
-from-correct' :
-  (e : Expr τ Γ) (env : (Γ ─Env) Value Γ) →
-  DeBruijn.eval (from identity e) (env-from env) ≡ eval e env
-from-correct' e env = {!!}
+into-correct (DeBruijn.Let e₁ e₂) env env' p =
+    eval (into e₂) ((ε ∙ eval (into e₁) env') >> th^Env th^Value env' identity)
+  ≡⟨ into-correct e₂
+       (Cons (DeBruijn.eval e₁ env) env)
+       ((ε ∙ eval (into e₁) env') >> th^Env th^Value env' identity)
+       (helper (Cons (DeBruijn.eval e₁ env) Nil) (ε ∙ eval (into e₁) env') env env'
+         (λ { z → sym (into-correct e₁ env env' p) }) p) ⟩
+    DeBruijn.eval e₂ (Cons (DeBruijn.eval e₁ env) env)
+  ∎
+into-correct (DeBruijn.Val v) env env' p =
+  refl
+into-correct (DeBruijn.Plus e₁ e₂) env env' p =
+  cong₂ _+_ (into-correct e₁ env env' p) (into-correct e₂ env env' p)
 
 rel-trivial : {S T : U ─Scoped} → Rel S T
 rel-trivial = mkRel (λ σ x y → ⊤)
@@ -194,5 +229,5 @@ Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Let e₁ e₂) = {!
 Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Val v) = {!!}
 Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Plus e₁ e₂) = {!!}
 
-from-correct : (e : Expr τ Γ) (env : Env Γ) → DeBruijn.eval (from identity e) env ≡ eval {Γ' = Γ} e (env-into env)
+from-correct : (e : Expr τ Γ) (env : Env Γ) → DeBruijn.eval (from identity e) env ≡ eval {Γ' = Γ} e (into-Env env)
 from-correct e env = Sim.sim From-correct (packᴿ (λ _ → {!!})) e env
