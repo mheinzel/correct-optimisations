@@ -10,8 +10,16 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
 open import DeBruijn.Lang
 open import DeBruijn.SubCtx
+
+private
+  variable
+    σ τ : U
+    Γ : Ctx
+    Δ Δ' Δ₁ Δ₂ : SubCtx Γ
 
 -- Free variables from declaration of a binding are only live, if the body uses the binding.
 combine : SubCtx Γ → SubCtx (σ ∷ Γ) → SubCtx Γ

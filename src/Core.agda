@@ -17,24 +17,33 @@ data U : Set where
 
 Ctx = List U
 
-variable
-  Γ : Ctx
-  σ τ : U
+module Env {I : Set} {⟦_⟧ : I → Set} where
+  private
+    variable
+      Γ Γ₁ Γ₂ : List I
+      σ τ : I
 
-data Env : Ctx → Set where
-  Nil   : Env []
-  Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
+  data Env : List I → Set where
+    Nil   : Env []
+    Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
 
-infixr 19 _++ᴱ_
+  infixr 19 _++ᴱ_
 
-_++ᴱ_ : ∀ {Γ₁ Γ₂} → Env Γ₁ → Env Γ₂ → Env (Γ₁ ++ Γ₂)
-Nil ++ᴱ env₂ = env₂
-Cons v env₁ ++ᴱ env₂ = Cons v (env₁ ++ᴱ env₂)
+  _++ᴱ_ : Env Γ₁ → Env Γ₂ → Env (Γ₁ ++ Γ₂)
+  Nil ++ᴱ env₂ = env₂
+  Cons v env₁ ++ᴱ env₂ = Cons v (env₁ ++ᴱ env₂)
 
-data Ref (σ : U) : Ctx → Set where
-  Top  : Ref σ (σ ∷ Γ)
-  Pop  : Ref σ Γ → Ref σ (τ ∷ Γ)
+module Ref {I : Set} {⟦_⟧ : I → Set} where
+  open Env {I} {⟦_⟧}
+  private
+    variable
+      Γ Γ₁ Γ₂ : List I
+      σ τ : I
 
-lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
-lookup Top      (Cons v env)   = v
-lookup (Pop i)  (Cons v env)   = lookup i env
+  data Ref (σ : I) : List I → Set where
+    Top  : Ref σ (σ ∷ Γ)
+    Pop  : Ref σ Γ → Ref σ (τ ∷ Γ)
+
+  lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
+  lookup Top      (Cons v env)   = v
+  lookup (Pop i)  (Cons v env)   = lookup i env

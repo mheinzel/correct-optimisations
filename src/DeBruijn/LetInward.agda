@@ -10,9 +10,16 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
-open import OPE
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
+open import OPE {U}
 open import DeBruijn.Lang
 open import DeBruijn.Live
+
+private
+  variable
+    σ τ : U
+    Γ : Ctx
 
 -- Push the let-binding inwards as far as possible without
 -- - duplicating it

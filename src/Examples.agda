@@ -6,9 +6,15 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
 open import Core
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
 open import DeBruijn.Lang
 open import DeBruijn.SubCtx
 open import DeBruijn.DeadBinding
+
+private
+  variable
+    Γ : Ctx
 
 -- Examples
 

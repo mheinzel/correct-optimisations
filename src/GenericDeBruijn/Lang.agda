@@ -21,7 +21,9 @@ open import Data.Pred
 open import Data.Unit using (⊤; tt)
 open import Stdlib using (∀[_])
 
-open import Core hiding (lookup)
+open import Core hiding (⟦_⟧)
+open Core.Env {U} {Core.⟦_⟧}
+open Core.Ref {U} {Core.⟦_⟧} hiding (lookup)
 import DeBruijn.Lang as DeBruijn
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
@@ -33,6 +35,11 @@ postulate
     {S : Set} {T : S -> Set} (f g : (x : S) -> T x) ->
     ((x : S) -> f x ≡ g x) ->
     f ≡ g
+
+private
+  variable
+    σ τ : U
+    Γ Γ' : Ctx
 
 data `Lang : Set where
   `App  : U → U → `Lang
@@ -167,7 +174,7 @@ helper {_} {Γ₁} {Γ₂} env₁ env₁' env₂ env₂' p₁ p₂ x with split 
 
 into-Var-correct :
   ∀ {Δ Γ τ} (x : Ref τ Γ) (env : Env Γ) →
-  lookup {Δ = Δ} (into-Env env) (into-Var x) ≡ Core.lookup x env
+  lookup {Δ = Δ} (into-Env env) (into-Var x) ≡ Core.Ref.lookup x env
 into-Var-correct Top     (Cons v env) = refl
 into-Var-correct (Pop x) (Cons v env) = into-Var-correct x env
 
@@ -205,13 +212,13 @@ rel-eval≡ : Rel DeBruijnExpr Value
 rel-eval≡ = mkRel (λ σ {Γ} e v → (env : (Γ ─Env) Value []) → DeBruijn.eval e (from-Env env) ≡ v)
 
 rel-lookup≡ : Rel Var Value
-rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : (Γ ─Env) Value []) → Core.lookup (Ref-Var x) (from-Env env) ≡ v)
+rel-lookup≡ = mkRel (λ σ {Γ} x v → (env : (Γ ─Env) Value []) → Core.Ref.lookup (Ref-Var x) (from-Env env) ≡ v)
 
 From-correct : Simulation Lang From Eval rel-lookup≡ rel-eval≡
 Simulation.thᴿ From-correct {Γ} {Δ} {τ} {k} {v} ρ r env =
-    Core.lookup (Ref-Var (lookup ρ k)) (from-Env env)
+    Core.Ref.lookup (Ref-Var (lookup ρ k)) (from-Env env)
   ≡⟨ {!!} ⟩
-    Core.lookup (Ref-Var k) (from-Env {[]} (select ρ env))
+    Core.Ref.lookup (Ref-Var k) (from-Env {[]} (select ρ env))
   ≡⟨ r (select ρ env) ⟩
     v
   ∎

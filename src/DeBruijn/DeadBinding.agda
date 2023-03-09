@@ -9,10 +9,18 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
 open import Recursion
 open import DeBruijn.Lang
 open import DeBruijn.SubCtx
 open import DeBruijn.Live
+
+private
+  variable
+    σ τ : U
+    Γ : Ctx
+    Δ Δ' : SubCtx Γ
 
 sing-ref : (Δ : SubCtx Γ) (x : Ref σ ⌊ Δ ⌋) → Ref σ ⌊ sing Δ x ⌋
 sing-ref {[]} Empty ()

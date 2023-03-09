@@ -7,6 +7,14 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
 open import Core
 
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
+
+private
+  variable
+    σ τ : U
+    Γ : Ctx
+
 data Expr (Γ : Ctx) : (σ : U) → Set where
   Var   : Ref σ Γ → Expr Γ σ
   App   : Expr Γ (σ ⇒ τ) → Expr Γ σ → Expr Γ τ

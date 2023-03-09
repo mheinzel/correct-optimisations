@@ -8,8 +8,16 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
 open import DeBruijn.Lang
 open import DeBruijn.SubCtx
+
+private
+  variable
+    σ τ : U
+    Γ : Ctx
+    Δ Δ' Δ₁ Δ₂ : SubCtx Γ
 
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
 -- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?

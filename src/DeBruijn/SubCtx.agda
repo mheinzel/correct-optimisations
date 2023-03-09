@@ -9,6 +9,8 @@ open import Data.Empty
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
 
 open import Core
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
 open import DeBruijn.Lang
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
@@ -21,6 +23,11 @@ postulate
     ((x : S) -> f x ≡ g x) ->
     f ≡ g
 
+private
+  variable
+    σ τ : U
+    Γ : Ctx
+
 
 -- SubCtxs of our context and operations on them 
 data SubCtx : Ctx → Set where
@@ -28,8 +35,9 @@ data SubCtx : Ctx → Set where
   Drop   : SubCtx Γ → SubCtx (τ ∷ Γ)
   Keep   : SubCtx Γ → SubCtx (τ ∷ Γ)
 
-variable
-  Δ Δ' Δ₁ Δ₂ : SubCtx Γ
+private
+  variable
+    Δ Δ' Δ₁ Δ₂ : SubCtx Γ
 
 ⌊_⌋ : SubCtx Γ → Ctx
 ⌊ Empty ⌋              = []

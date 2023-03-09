@@ -10,29 +10,37 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_∘_ ; _$_ ; flip)
 
 open import Core
+open Core.Env {U}
+open Core.Ref {U}
+open import CoDeBruijn.Core {U}
 open import CoDeBruijn.Lang
-open import OPE
+open import OPE {U}
 
-let-? : ∀ {σ τ Γ} → (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
-let-? (pair (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) = e₂ ↑ θ₂  -- remove binding
-let-? (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) = Let (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) ↑ oi
+private
+  variable
+    σ τ : U
+    Γ : List U
+
+let-? : ∀ {σ τ Γ} → (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+let-? (pairᴿ (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) = e₂ ↑ θ₂  -- remove binding
+let-? (pairᴿ (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) = Let (pairᴿ (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) ↑ oi
 
 lemma-let-? :
-  (p : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
+  (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
   let e' ↑ θ' = let-? p
   in eval (Let p) oi env ≡ eval e' θ' env
-lemma-let-? (pair (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) env =
+lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) env =
   trans
     (lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ oi) env) env) θ₂ (oi o'))
     (cong (eval e₂ θ₂) (law-project-Env-oi env))
-lemma-let-? (pair (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) env = refl
+lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) env = refl
 
 lemma-let-?' :
-  {Γₑ : Ctx} (p : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let e' ↑ θ' = let-? p
   in eval (Let p) θ env ≡ eval e' (θ' ₒ θ) env
 lemma-let-?' p env θ =
-  let pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c = p
+  let pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c = p
       e' ↑ θ' = let-? p
   in
     eval (Let p) θ env
@@ -60,20 +68,20 @@ mutual
   dbe : Expr τ Γ → Expr τ ⇑ Γ
   dbe Var =
     Var ↑ oz os
-  dbe (App (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
-    map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
+  dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
+    map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
   dbe (Lam (_\\_ {bound = Γ'} ψ e)) =
     map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
   dbe (Let p) =
     mult⇑ (map⇑ let-? (dbe-Let p))
   dbe (Val v) =
     Val v ↑ oz
-  dbe (Plus (pair (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
-    map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
+  dbe (Plus (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
+    map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
 
-  dbe-Let : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) ⇑ Γ
-  dbe-Let (pair (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e₂) ↑ ϕ₂) c) =
-    thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
+  dbe-Let : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) ⇑ Γ
+  dbe-Let (pairᴿ (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e₂) ↑ ϕ₂) c) =
+    thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
@@ -117,18 +125,18 @@ dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
 dbe-correct-×R :
   {Γₑ : Ctx}
   {τ₁ τ₂ τ : U} (eval-step : ⟦ τ₁ ⟧ → ⟦ τ₂ ⟧ → ⟦ τ ⟧) →
-  (p : (Expr τ₁ ×R Expr τ₂) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
-  let pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c = p
+  (p : (Expr τ₁ ×ᴿ Expr τ₂) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c = p
       e₁' ↑ θ₁' = dbe e₁
       e₂' ↑ θ₂' = dbe e₂
-      p' ↑ θ' = _,R_ {Expr _} {Expr _} (e₁' ↑ (θ₁' ₒ θ₁)) (e₂' ↑ (θ₂' ₒ θ₂))
+      p' ↑ θ' = (e₁' ↑ (θ₁' ₒ θ₁)) ,ᴿ (e₂' ↑ (θ₂' ₒ θ₂))
   in
   (h₁ : eval e₁' (θ₁' ₒ θ₁ ₒ θ) env ≡ eval e₁ (θ₁ ₒ θ) env) →
   (h₂ : eval e₂' (θ₂' ₒ θ₂ ₒ θ) env ≡ eval e₂ (θ₂ ₒ θ) env) →
   eval-binop eval-step p' (θ' ₒ θ) env ≡ eval-binop eval-step p θ env
   --   eval-step (eval e₁'' (θ₁'' ₒ θ' ₒ θ) env) (eval e₂'' (θ₂'' ₒ θ' ₒ θ) env)
   -- ≡ eval-step (eval e₁ (θ₁ ₒ θ) env) (eval e₂ (θ₂ ₒ θ) env)
-dbe-correct-×R eval-step (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
+dbe-correct-×R eval-step (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
   with dbe e₁    | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with cop (θ₁' ₒ θ₁) (θ₂' ₒ θ₂) 
@@ -153,8 +161,8 @@ dbe-correct-×R eval-step (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁
 -- Would have been nicer to reuse the two proofs above (Let is basically App (Lam _)),
 -- but it turned out to be more cumbersome than expected.
 dbe-correct-Let : 
-  {Γₑ : Ctx} (p : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
-  let pair (e₁ ↑ θ₁) (l ↑ θ₂) c = p
+  {Γₑ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  let pairᴿ (e₁ ↑ θ₁) (l ↑ θ₂) c = p
       _\\_ {bound = Γ'} ψ e₂ = l
       e₁' ↑ θ₁' = dbe e₁
       e₂' ↑ θ₂' = dbe e₂
@@ -163,7 +171,7 @@ dbe-correct-Let :
   (h₁ : eval e₁' (θ₁' ₒ θ₁ ₒ θ) env ≡ eval e₁ (θ₁ ₒ θ) env) →
   (h₂ : (v : ⟦ σ ⟧) → eval e₂' (θ₂' ₒ (ψ ++⊑ (θ₂ ₒ θ))) (Cons v env) ≡ eval e₂ (ψ ++⊑ (θ₂ ₒ θ)) (Cons v env)) →
   eval (Let p') (θ' ₒ θ) env ≡ eval (Let p) θ env
-dbe-correct-Let (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c) env θ h₁ h₂
+dbe-correct-Let (pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c) env θ h₁ h₂
   with dbe e₁    | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with Γ' ⊣ θ₂'
@@ -189,14 +197,14 @@ dbe-correct :
   in eval e' (θ' ₒ θ) env ≡ eval e θ env
 dbe-correct Var env θ =
   cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
-dbe-correct (App (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
-  dbe-correct-×R _$_ (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+dbe-correct (App (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
+  dbe-correct-×R _$_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (dbe-correct e₁ env (θ₁ ₒ θ))
     (dbe-correct e₂ env (θ₂ ₒ θ))
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
   dbe-correct-Lam (ψ \\ e₁) env θ  λ v → dbe-correct e₁ (Cons v env) (ψ ++⊑ θ)
-dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) env θ =
-  let p = pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c
+dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) env θ =
+  let p = pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c
       p' ↑ θ' = dbe-Let p
       e' ↑ θ'' = let-? p'
   in
@@ -205,14 +213,14 @@ dbe-correct (Let {σ} (pair (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ�
     eval e' (θ'' ₒ θ' ₒ θ) env
   ≡⟨ sym (lemma-let-?' p' env (θ' ₒ θ)) ⟩
     eval (Let p') (θ' ₒ θ) env
-  ≡⟨ dbe-correct-Let (pair (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c) env θ
+  ≡⟨ dbe-correct-Let (pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c) env θ
       (dbe-correct e₁ env (θ₁ ₒ θ))
       (λ v → dbe-correct e₂ (Cons v env) (ψ ++⊑ (θ₂ ₒ θ))) ⟩
     eval (Let p) θ env
   ∎
 dbe-correct (Val v) env θ =
   refl
-dbe-correct (Plus (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
-  dbe-correct-×R _+_ (pair (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+dbe-correct (Plus (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
+  dbe-correct-×R _+_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (dbe-correct e₁ env (θ₁ ₒ θ))
     (dbe-correct e₂ env (θ₂ ₒ θ))
