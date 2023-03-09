@@ -31,6 +31,9 @@ import Data.Environment
 -- Semantics as Well Scoped-and-Sorted Algebras on Syntaxes with Binding
 import Generic.Semantics
 
+-- Trivial Semantics
+import Generic.Semantics.Unit
+
 -- Renaming and Substitution as Semantics
 -- import Generic.Semantics.Syntactic
 
@@ -45,7 +48,7 @@ import Generic.Relator
 
 -- Fundamental Lemma of Logical Predicates
 import Data.Pred as P
--- import Generic.Fundamental
+import Generic.Fundamental
 
 -- Generic Notion of Simulation Between Two Semantics
 import Data.Relation as R
