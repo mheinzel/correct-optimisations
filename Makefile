@@ -1,14 +1,20 @@
-.PHONY: default compile clean
+AGDA_FILES:=$(shell find src -name "*.agda" -type f | sed 's|\./||g' | sort)
+AGDA_OUTPUT:=$(patsubst %.agda,%.agdai,$(AGDA_FILES))
 
-default: compile
+.PHONY: default check clean
 
-check: src/Examples.agdai
+default: check
 
-src/%.agdai: src/%.agda src/*.agda
+# TODO: this keeps looping?
+check: $(AGDA_OUTPUT)
+
+src/%.agdai: src/%.agda $(AGDA_FILES)
 	agda $<
 
 clean:
 	rm -f $(shell find -name "*.agdai")
-	$(MAKE) -C thesis          clean
-	$(MAKE) -C thesis-proposal clean
-	$(MAKE) -C tyde22          clean
+	rm -f $(shell find -name "*~")
+	$(MAKE) -C generic-syntax-simple clean
+	$(MAKE) -C thesis                clean
+	$(MAKE) -C thesis-proposal       clean
+	$(MAKE) -C tyde22                clean
