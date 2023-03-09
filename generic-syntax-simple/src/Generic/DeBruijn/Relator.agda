@@ -1,4 +1,4 @@
-module Generic.Relator where
+module Generic.DeBruijn.Relator where
 
 open import Axiom.UniquenessOfIdentityProofs.WithK
 open import Data.Unit
@@ -12,7 +12,8 @@ open import Data.Var
 open import Data.Var.Varlike
 open import Data.Environment
 open import Generic.Syntax
-open import Generic.Semantics
+open import Generic.DeBruijn.Syntax
+open import Generic.DeBruijn.Semantics
 
 private
   variable

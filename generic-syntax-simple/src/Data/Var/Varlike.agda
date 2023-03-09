@@ -10,6 +10,7 @@ open import Data.Pred as Pred hiding (All)
 open import Data.Relation
 open import Data.Environment
 open import Generic.Syntax
+open import Generic.DeBruijn.Syntax using (Scope)
 
 private
   variable

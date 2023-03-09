@@ -1,9 +1,9 @@
-module Generic.Semantics.Unit where
+module Generic.DeBruijn.Semantics.Unit where
 
 open import Data.Unit
 open import Data.Var
 open import Generic.Syntax
-open import Generic.Semantics
+open import Generic.DeBruijn.Semantics
 
 private
   variable

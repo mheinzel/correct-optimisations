@@ -17,6 +17,7 @@ open import Function.Base
 open import Agda.Builtin.Equality
 
 
+-- TODO: extract this to somewhere else?
 _─Scoped : Set → Set₁
 I ─Scoped = I → List I → Set
 

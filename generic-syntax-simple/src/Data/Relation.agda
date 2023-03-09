@@ -94,5 +94,7 @@ module _ {A B : I ─Scoped} where
 
 module _ {d : Desc I} where
 
- VarTmᴿ : Rel Var (Tm d)
- rel VarTmᴿ i v t = `var v ≡ t
+  open import Generic.DeBruijn.Syntax
+
+  VarTmᴿ : Rel Var (Tm d)
+  rel VarTmᴿ i v t = `var v ≡ t

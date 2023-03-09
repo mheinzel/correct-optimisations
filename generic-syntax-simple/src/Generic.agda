@@ -7,7 +7,7 @@ module Generic where
 -- Notations for indexed types
 import Stdlib
 
--- SYNTAX
+-- SYNTAX (de Bruijn)
 --------------------------------------------------------------------------------
 
 -- Variables as well scoped-and-sorted de Bruijn indices
@@ -15,61 +15,43 @@ import Data.Var as V
 import Data.Var.Varlike
 
 -- Universe of Well Scoped-and-Sorted Syntaxes with Binding
-import Generic.Syntax
+import Generic.DeBruijn.Syntax
 
--- Alternative interpretation of descriptions empower us to write:
-
--- A converter to PHOAS syntax
-open import Generic.Syntax.PHOAS
-
--- SEMANTICS
+-- SEMANTICS (de Bruijn)
 --------------------------------------------------------------------------------
 
 -- Environments as Well Scoped-and-Sorted Functions from Variables to Values
 import Data.Environment
 
 -- Semantics as Well Scoped-and-Sorted Algebras on Syntaxes with Binding
-import Generic.Semantics
+import Generic.DeBruijn.Semantics
 
 -- Trivial Semantics
-import Generic.Semantics.Unit
+import Generic.DeBruijn.Semantics.Unit
 
 -- Renaming and Substitution as Semantics
--- import Generic.Semantics.Syntactic
+-- import Generic.DeBruijn.Semantics.Syntactic
 
 -- Contraction as a Semantics
--- import Generic.Semantics.Contract
+-- import Generic.DeBruijn.Semantics.Contract
 
--- PROPERTIES
+-- PHOAS syntax, including a converter from de Bruijn syntax
+open import Generic.DeBruijn.Syntax.PHOAS
+
+-- PROPERTIES (de Bruijn)
 --------------------------------------------------------------------------------
 
 -- Relator: Head Constructors with Related Subterms
-import Generic.Relator
+import Generic.DeBruijn.Relator
 
 -- Fundamental Lemma of Logical Predicates
 import Data.Pred as P
-import Generic.Fundamental
+import Generic.DeBruijn.Fundamental
 
 -- Generic Notion of Simulation Between Two Semantics
 import Data.Relation as R
-import Generic.Simulation
--- import Generic.Simulation.Syntactic
+import Generic.DeBruijn.Simulation
+-- import Generic.DeBruijn.Simulation.Syntactic
 
 -- Applying the Identity Substitution is the Identity
--- import Generic.Identity
-
--- FUSION
-
--- Generic Notion of Fusible Semantics
--- import Generic.Fusion
-
--- Renaming and Substitution interact well with each other and let-elaboration
--- import Generic.Fusion.Syntactic
--- import Generic.Fusion.Elaboration.LetBinder
-
--- Based on Kaiser, Schäfer, and Stark's remark, we can concoct an axiom-free
--- specialised version of fusion for renaming-semantics interactions (it makes
--- some of the previous proofs shorter).
--- We can also use it to replicate their result assuming functional extensionality
--- import Generic.Fusion.Specialised.Propositional
--- import Generic.Fusion.Specialised.Replication
+-- import Generic.DeBruijn.Identity

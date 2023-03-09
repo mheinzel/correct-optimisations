@@ -1,4 +1,4 @@
-module Generic.Fundamental where
+module Generic.DeBruijn.Fundamental where
 
 open import Agda.Builtin.List
 open import Data.Unit
@@ -13,10 +13,11 @@ open import Data.Relation as R using (Rel; rel; lookupᴿ)
 open import Data.Var.Varlike
 open import Data.Environment
 open import Generic.Syntax
-open import Generic.Semantics as Sem
-open import Generic.Semantics.Unit
-open import Generic.Relator
-open import Generic.Simulation as Sim hiding (sim)
+open import Generic.DeBruijn.Syntax
+open import Generic.DeBruijn.Semantics as Sem
+open import Generic.DeBruijn.Semantics.Unit
+open import Generic.DeBruijn.Relator
+open import Generic.DeBruijn.Simulation as Sim hiding (sim)
 
 private
   variable

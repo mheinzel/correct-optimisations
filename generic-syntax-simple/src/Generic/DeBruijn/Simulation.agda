@@ -1,7 +1,7 @@
 open import Data.Var hiding (_<$>_; z; s)
 open import Data.Relation
 
-module Generic.Simulation {I : Set} {𝓥ᴬ 𝓥ᴮ 𝓒ᴬ 𝓒ᴮ : I ─Scoped} where
+module Generic.DeBruijn.Simulation {I : Set} {𝓥ᴬ 𝓥ᴮ 𝓒ᴬ 𝓒ᴮ : I ─Scoped} where
 
 open import Data.List hiding ([_] ; lookup ; zip)
 open import Function
@@ -12,10 +12,10 @@ open import Relation.Unary
 open import Data.Var.Varlike
 open import Data.Environment
 open import Generic.Syntax
+open import Generic.DeBruijn.Syntax
 
-open import Generic.Semantics hiding (body; semantics)
-import Generic.Semantics as 𝓢
-open import Generic.Relator as Relator using (⟦_⟧ᴿ; liftᴿ)
+open import Generic.DeBruijn.Semantics as Sem hiding (body; semantics)
+open import Generic.DeBruijn.Relator as Relator using (⟦_⟧ᴿ; liftᴿ)
 
 private
   variable
@@ -52,8 +52,8 @@ record Simulation (d : Desc I)
   field
 
     algᴿ  : (b : ⟦ d ⟧ (Scope (Tm d)) σ Γ) → All 𝓥ᴿ Γ ρᴬ ρᴮ →
-            let  vᴬ = fmap d (𝓢.body 𝓢ᴬ ρᴬ) b
-                 vᴮ = fmap d (𝓢.body 𝓢ᴮ ρᴮ) b
+            let  vᴬ = fmap d (Sem.body 𝓢ᴬ ρᴬ) b
+                 vᴮ = fmap d (Sem.body 𝓢ᴮ ρᴮ) b
             in bodyᴿ vᴬ vᴮ → rel 𝓒ᴿ σ (𝓢ᴬ.alg vᴬ) (𝓢ᴮ.alg vᴮ)
 
 module _ {d : Desc I}
@@ -64,9 +64,9 @@ module _ {d : Desc I}
 
   {-# TERMINATING #-}
   sim   : All 𝓥ᴿ Γ ρᴬ ρᴮ → (t : Tm d σ Γ) →
-          rel 𝓒ᴿ σ (𝓢.semantics 𝓢ᴬ ρᴬ t) (𝓢.semantics 𝓢ᴮ ρᴮ t)
+          rel 𝓒ᴿ σ (Sem.semantics 𝓢ᴬ ρᴬ t) (Sem.semantics 𝓢ᴮ ρᴮ t)
   body  : All 𝓥ᴿ Γ ρᴬ ρᴮ → ∀ Δ j → (t : Scope (Tm d) Δ j Γ) →
-          Kripkeᴿ 𝓥ᴿ 𝓒ᴿ Δ j (𝓢.body 𝓢ᴬ ρᴬ Δ j t) (𝓢.body 𝓢ᴮ ρᴮ Δ j t)
+          Kripkeᴿ 𝓥ᴿ 𝓒ᴿ Δ j (Sem.body 𝓢ᴬ ρᴬ Δ j t) (Sem.body 𝓢ᴮ ρᴮ Δ j t)
 
   sim ρᴿ (`var k) = varᴿ (lookupᴿ ρᴿ k)
   sim ρᴿ (`con t) = algᴿ t ρᴿ (liftᴿ d (body ρᴿ) t)

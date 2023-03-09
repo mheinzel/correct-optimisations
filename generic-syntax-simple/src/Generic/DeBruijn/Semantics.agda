@@ -1,4 +1,4 @@
-module Generic.Semantics where
+module Generic.DeBruijn.Semantics where
 
 open import Data.List.Base as L hiding (lookup ; [_])
 
@@ -9,6 +9,7 @@ open import Relation.Unary
 open import Data.Environment
 open import Function using (flip)
 open import Generic.Syntax
+open import Generic.DeBruijn.Syntax
 
 private
   variable

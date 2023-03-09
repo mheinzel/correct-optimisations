@@ -1,13 +1,14 @@
 open import Generic.Syntax
 
-module Generic.Syntax.PHOAS {I : Set} (d : Desc I) (V : I → Set) where
+module Generic.DeBruijn.Syntax.PHOAS {I : Set} (d : Desc I) (V : I → Set) where
 
 open import Data.List.Base as L hiding ([_])
 open import Function
 
 open import Data.Var hiding (_<$>_)
 open import Data.Environment
-open import Generic.Semantics
+open import Generic.DeBruijn.Syntax
+open import Generic.DeBruijn.Semantics
 
 private
   variable
