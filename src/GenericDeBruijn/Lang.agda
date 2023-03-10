@@ -105,6 +105,7 @@ Ref-Var : ∀ {σ Γ} → Var σ Γ → Ref σ Γ
 Ref-Var z = Top
 Ref-Var (s x) = Pop (Ref-Var x)
 
+-- TODO: maybe try without Semantics, just pattern matching?
 From : Semantics Lang Var DeBruijnExpr
 Semantics.th^𝓥 From = th^Var
 Semantics.var From = DeBruijn.Var ∘ Ref-Var
