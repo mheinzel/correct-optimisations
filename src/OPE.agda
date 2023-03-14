@@ -1,6 +1,9 @@
+{-# OPTIONS --allow-unsolved-metas #-} -- TODO
+
 -- Trying shorter notation, as in Conor's paper
 module OPE {I : Set} where
 
+open import Data.Empty using (⊥)
 open import Data.Product
 open import Data.List using (List; _∷_ ; [] ; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
@@ -8,7 +11,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 private
   variable
     σ τ : I
-    Γ : List I
+    Γ Γ' Γ₁ Γ₂ : List I
 
 infix 21 _o'
 infix 21 _os
@@ -18,14 +21,29 @@ data _⊑_ : List I → List I → Set where
   _os : {Γ₁ Γ₂ : List I} → Γ₁ ⊑ Γ₂ → (τ ∷ Γ₁) ⊑ (τ ∷ Γ₂)
   oz  : [] ⊑ []
 
+lemma-reflex : (θ : Γ₁ ⊑ Γ₂) (ϕ : (τ ∷ Γ₂) ⊑ Γ₁) → ⊥
+lemma-reflex {τ₁ ∷ Γ₁} {τ₂  ∷ Γ₂} {τ}   (θ o') (ϕ o') = {! lemma-reflex ϕ ((θ o') o') !} -- TODO 
+lemma-reflex {τ₁ ∷ Γ₁} {τ₂  ∷ Γ₂} {.τ₁} (θ o') (ϕ os) = lemma-reflex θ (ϕ o')
+lemma-reflex {τ₁ ∷ Γ₁} {.τ₁ ∷ Γ₂} {τ}   (θ os) (ϕ o') = lemma-reflex (θ o') ϕ 
+lemma-reflex {τ₁ ∷ Γ₁} {.τ₁ ∷ Γ₂} {.τ₁} (θ os) (ϕ os) = lemma-reflex θ ϕ
+
 oi : Γ ⊑ Γ
 oi {[]} = oz
 oi {x ∷ Γ} = oi os
+
+oi-unique : (θ : Γ ⊑ Γ) → θ ≡ oi
+oi-unique (θ o') with () ← lemma-reflex oi θ
+oi-unique (θ os) = cong _os (oi-unique θ)
+oi-unique oz = refl
 
 -- [] is an initial object.
 oe : {Γ : List I} → [] ⊑ Γ
 oe {[]} = oz
 oe {τ ∷ Γ} = oe o'
+
+oe-unique : (θ : [] ⊑ Γ) → θ ≡ oe
+oe-unique oz = refl
+oe-unique (θ o') = cong _o' (oe-unique θ)
 
 infixr 19 _ₒ_
 

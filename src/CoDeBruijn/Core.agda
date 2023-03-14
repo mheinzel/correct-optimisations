@@ -56,9 +56,17 @@ law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ o') (θ₂ os) ϕ₁ ϕ₂ (c c's) 
 law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ os) (θ₂ o') ϕ₁ ϕ₂ (c cs') = cong _cs' (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
 law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ os) (θ₂ os) ϕ₁ ϕ₂ (c css) = cong _css (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
 
-cover-oi : Cover {Γ} oi oi
-cover-oi {[]} = czz
-cover-oi {x ∷ Γ} = cover-oi css
+cover-oi-oi : Cover {Γ} oi oi
+cover-oi-oi {[]} = czz
+cover-oi-oi {x ∷ Γ} = cover-oi-oi css
+
+cover-oi-oe : Cover {Γ} oi oe
+cover-oi-oe {[]} = czz
+cover-oi-oe {x ∷ Γ} = cover-oi-oe cs'
+
+cover-oi-oe⁻¹ : {θ : Γ₁ ⊑ Γ} {ϕ : [] ⊑ Γ} → Cover θ ϕ → Γ₁ ≡ Γ
+cover-oi-oe⁻¹ (c cs') = cong (_ ∷_) (cover-oi-oe⁻¹ c)
+cover-oi-oe⁻¹ czz = refl
 
 cover-flip : {Γ₁ Γ₂ Γ : List I} {θ : Γ₁ ⊑ Γ} {ϕ : Γ₂ ⊑ Γ} → Cover θ ϕ → Cover ϕ θ
 cover-flip (c c's) = cover-flip c cs'
@@ -74,6 +82,7 @@ record _×ᴿ_ (S T : I ─Scoped) (Γ : List I) : Set where
     outr  : T ⇑ Γ
     cover : Cover (_⇑_.thinning outl) (_⇑_.thinning outr)
 
+--  _⊢'_ : {I : Set} → List (Kind I) → (List I → Kind I) → List I → Kind I
 record _⊢_ (Γ' : List I) (T : I ─Scoped) (Γ : List I) : Set where
   constructor _\\_
   field
