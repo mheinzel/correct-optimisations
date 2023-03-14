@@ -137,5 +137,5 @@ module Iteration where
   import DeBruijn.DeadBinding as DBE
 
   -- TODO: how feasible is this?
-  optimise-converges : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → DBE.optimise Δ e ≡ optimise Δ e
-  optimise-converges Δ e = {!!}
+  -- optimise-converges : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → DBE.optimise Δ e ≡ optimise Δ e
+  -- optimise-converges Δ e = {!!}

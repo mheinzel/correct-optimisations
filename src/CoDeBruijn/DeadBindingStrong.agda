@@ -72,8 +72,8 @@ mutual
     map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (dbe e₂))
 
   dbe-Let : (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) Γ → (Expr σ ×R ((σ ∷ []) ⊢ Expr τ)) ⇑ Γ
-  dbe-Let (pair (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e) ↑ ϕ₂) c) =
-    thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e))
+  dbe-Let (pair (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e₂) ↑ ϕ₂) c) =
+    thin⇑ ϕ₁ (dbe e₁) ,R thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 

@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module GenericDeBruijn.Lang where
 
 open import Data.Product
@@ -8,9 +10,10 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Generic.Syntax
-open import Generic.Semantics as Sem using (Semantics)
-open import Generic.Simulation as Sim using (Simulation)
-open import Generic.Fundamental as Fun using (Fundamental)
+open import Generic.DeBruijn.Syntax
+open import Generic.DeBruijn.Semantics as Sem using (Semantics)
+open import Generic.DeBruijn.Simulation as Sim using (Simulation)
+open import Generic.DeBruijn.Fundamental as Fun using (Fundamental)
 open import Data.Environment
 open import Data.Var
 open import Data.Relation
@@ -223,7 +226,7 @@ Simulation.algᴿ From-correct {σ ⇒ τ} {Γ} {Δ} {ρ} {env₁} (Lam e) rⱽ 
       DeBruijn.eval (from ((ε ∙ z) >> th^Env th^Var ρ (pack s)) e) (Cons v (from-Env env))
     ≡⟨ {!!} ⟩  -- (? ∙ᴿ ?) (Cons v env)
       DeBruijn.eval (from ({!!} >> th^Env th^Var ρ identity) e) (from-Env env)
-    ≡⟨ h identity (εᴿ ∙ᴿ {!lookupᴿ rⱽ!}) env ⟩
+    ≡⟨ h identity {! εᴿ ∙ᴿ {!lookupᴿ rⱽ!} !} env ⟩
       eval e ((ε ∙ v) >> th^Env th^Value env₁ identity)
       -- eval e (? >> th^Env th^Value env₁ (pack s))
     ∎
@@ -233,4 +236,4 @@ Simulation.algᴿ From-correct {τ} {Γ} {Δ} {ρ} {env₁} (Plus e₁ e₂) = {
 
 from-correct : (e : Expr τ Γ) (env : (Γ ─Env) Value []) → DeBruijn.eval (from identity e) (from-Env env) ≡ eval e env
 from-correct {τ} {Γ} e env =
-  Sim.sim From-correct {Γ} {Γ} {{!ε!}} {!!} {! e !} env  
+  {! Sim.sim From-correct {Γ} {Γ} {{!ε!}} {!!} {! e !} env !}

@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 -- Let Floating (inwards) using co-de-Bruijn representation
 --
 -- Push the let-binding inwards as far as possible without
@@ -281,8 +283,8 @@ law-eval-reorder-Ctx-[] :
   ∀ {σ τ} Γ₁ Γ₂ (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ σ ∷ Γ₂) (v : ⟦ σ ⟧) (env₁ : Env Γ₁) (env₂ : Env Γ₂) →
     eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) oi (Cons v (env₁ ++ᴱ env₂))
   ≡ eval (coerce {Expr _} p e) oi (env₁ ++ᴱ Cons v env₂)
-law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂ with lemma-[]≡++ [] Γ₁ (_ ∷ []) Γ₂ {!!}
-... | p' = {!!}
+law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂ = {!!}
+-- with lemma-[]≡++ [] Γ₁ (_ ∷ []) Γ₂ {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (App x) p v env₁ env₂ = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (Lam x) p v env₁ env₂ = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (Let x) p v env₁ env₂ = {!!}
@@ -316,7 +318,8 @@ push-let-correct Γ₁ Γ₂ decl (App {σ} (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)
 ...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
     eval⇑ (map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,R push-let Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)) env
   ≡⟨ {!!} ⟩
-    eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) {!!}) (ψ os ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
+    -- eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ (App (pair (e₁ ↑ θ) (e₂ ↑ ϕ) c)) {!!}) (ψ os ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
+    {!!}
   ∎
 ...  | ⊣r {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | ⊣r ϕ₁ (ϕ₂ o') (refl , refl) =
   {!!}
