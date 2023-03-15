@@ -32,7 +32,6 @@ private
 
 -- Syntaxes: Free Relative Monad of a Description's Interpretation
 
--- TODO: extract this to somewhere else?
 Scope : I ─Scoped → List I → I ─Scoped
 Scope T Δ i = (Δ ++_) ⊢ T i
 

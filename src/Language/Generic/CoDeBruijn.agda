@@ -11,36 +11,7 @@ open import Data.Var using (_─Scoped)
 open import Data.OPE using (oz; oi; oe; _ₒ_; _↑_)
 open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 open import Generic.Syntax
-
--- TODO: extract to Generic.Syntax.CoDeBruijn
-module _ {I : Set} where
-  private
-    variable
-      i σ : I
-      Γ Γ₁ Γ₂ : List I
-
-  -- Not sure if worth it. Avoids unnecessary wrappers (some kind of ⊢-trivial),
-  -- but might introduce more cases in generic stuff?
-  Scope : I ─Scoped → List I → I ─Scoped
-  Scope T []        i = T i
-  Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
-
-  ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
-  ⟦ `σ A d    ⟧ X i Γ = Σ[ a ∈ A ] (⟦ d a ⟧ X i Γ)
-  ⟦ `X Δ j d  ⟧ X i = X Δ j ×ᴿ ⟦ d ⟧ X i
-  ⟦ `∎ j      ⟧ X i Γ = i ≡ j × Γ ≡ []
-
-  data Tm (d : Desc I) : I ─Scoped where
-    `var  : Tm d i (i ∷ [])
-    `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i ⇒ Tm d i ]
-
-  ×ᴿ-trivial : {τ : I} {T : List I → Set} → T Γ → (T ×ᴿ λ Γ' → τ ≡ τ × Γ' ≡ []) Γ
-  ×ᴿ-trivial t = pairᴿ (t ↑ oi) ((refl , refl) ↑ oe) Relevant.cover-oi-oe
-
-  ×ᴿ-trivial⁻¹ : {τ τ' : I} {T : List I → Set} → (T ×ᴿ λ Γ' → τ ≡ τ' × Γ' ≡ []) Γ → T Γ × τ ≡ τ'
-  ×ᴿ-trivial⁻¹ (pairᴿ (t ↑ θ₁) ((refl , refl) ↑ θ₂) cover)
-    with refl ← Relevant.cover-oi-oe⁻¹ cover =
-      t , refl
+open import Generic.CoDeBruijn.Syntax
 
 open import Language.Core hiding (⟦_⟧)
 open import Language.Generic

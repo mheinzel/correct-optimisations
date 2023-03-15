@@ -26,12 +26,6 @@ import Generic.DeBruijn.Syntax
 -- Environments as Well Scoped-and-Sorted Functions from Variables to Values
 import Data.Environment
 
--- Order-Preserving Embeddings
-import Data.OPE
-
--- Relevant Pairs and Scopes
-import Data.Relevant
-
 -- Semantics as Well Scoped-and-Sorted Algebras on Syntaxes with Binding
 import Generic.DeBruijn.Semantics
 
@@ -64,3 +58,15 @@ import Generic.DeBruijn.Simulation
 
 -- Applying the Identity Substitution is the Identity
 -- import Generic.DeBruijn.Identity
+
+-- SYNTAX (co de Bruijn)
+--------------------------------------------------------------------------------
+
+-- Order-Preserving Embeddings
+import Data.OPE
+
+-- Relevant Pairs and Scopes
+import Data.Relevant
+
+-- Universe of Well Scoped-and-Sorted Syntaxes with Binding
+import Generic.CoDeBruijn.Syntax
