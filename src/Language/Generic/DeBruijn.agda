@@ -1,6 +1,6 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: track down all unsolved metas and explain them?
 
-module GenericDeBruijn.Lang where
+module Language.Generic.DeBruijn where
 
 open import Data.Product
 open import Data.Nat using (_+_)
@@ -21,11 +21,13 @@ open import Data.Pred
 open import Data.Unit using (⊤; tt)
 open import Stdlib using (∀[_])
 
-open import Core hiding (⟦_⟧)
+open import Language.Core as Core hiding (⟦_⟧)
 open Core.Env {U} {Core.⟦_⟧}
 open Core.Ref {U} {Core.⟦_⟧} hiding (lookup)
-import DeBruijn.Lang as DeBruijn
+open import Language.Generic
+import Language.DeBruijn as DeBruijn
 
+-- TODO: Define this in one central location!
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
 -- and values include Agda functions.
 -- We might want something different?
@@ -40,21 +42,6 @@ private
   variable
     σ τ : U
     Γ Γ' : Ctx
-
-data `Lang : Set where
-  `App  : U → U → `Lang
-  `Lam  : U → U → `Lang
-  `Let  : U → U → `Lang
-  `Val  : U → `Lang
-  `Plus : `Lang
-
-Lang : Desc U
-Lang = `σ `Lang $ λ where
-  (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
-  (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
-  (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
-  (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
-  `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
 
 pattern App  e₁ e₂  = `App _ _ , e₁ , e₂ , refl
 pattern Lam  e      = `Lam _ _ , e  , refl
@@ -78,12 +65,6 @@ into (DeBruijn.Let e₁ e₂)  = `con (Let (into e₁) (into e₂))
 into (DeBruijn.Val v)      = `con (Val v)
 into (DeBruijn.Plus e₁ e₂) = `con (Plus (into e₁) (into e₂))
 
-
-Value : U ─Scoped
-Value τ Γ = Core.⟦ τ ⟧
-
-th^Value : ∀ {τ} → Thinnable (Value τ)
-th^Value v = const v
 
 Eval : Semantics Lang Value Value
 Semantics.th^𝓥 Eval = th^Value

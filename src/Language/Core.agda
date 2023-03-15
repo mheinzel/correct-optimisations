@@ -1,4 +1,4 @@
-module Core where
+module Language.Core where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
@@ -17,6 +17,7 @@ data U : Set where
 
 Ctx = List U
 
+-- TODO: move to Data.Env, as an alternative to their Environment?
 module Env {I : Set} {⟦_⟧ : I → Set} where
   private
     variable
@@ -33,6 +34,7 @@ module Env {I : Set} {⟦_⟧ : I → Set} where
   Nil ++ᴱ env₂ = env₂
   Cons v env₁ ++ᴱ env₂ = Cons v (env₁ ++ᴱ env₂)
 
+-- TODO: replace with Data.Var?
 module Ref {I : Set} {⟦_⟧ : I → Set} where
   open Env {I} {⟦_⟧}
   private

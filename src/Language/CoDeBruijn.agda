@@ -1,5 +1,5 @@
 -- using co-de-Bruijn representation
-module CoDeBruijn.Lang where
+module Language.CoDeBruijn where
 
 open import Data.Unit
 open import Data.Nat using (_+_)
@@ -11,11 +11,11 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Data.OPE
 
-open import Core
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
-import DeBruijn.Lang as DeBruijn
-open import CoDeBruijn.Core {U}
+open import Language.Core
+open Language.Core.Env {U} {⟦_⟧}
+open Language.Core.Ref {U} {⟦_⟧}
+import Language.DeBruijn as DeBruijn
+open import Language.CoDeBruijn.Core {U}
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
 -- and values include Agda functions.

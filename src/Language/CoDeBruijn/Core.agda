@@ -1,9 +1,10 @@
 {-# OPTIONS --safe #-}
 
+-- TODO: extract to Generic.Syntax
 -- Based on:
 -- Everybody's Got To Be Somewhere
 -- (https://arxiv.org/abs/1807.04085)
-module CoDeBruijn.Core {I : Set} where
+module Language.CoDeBruijn.Core {I : Set} where
 
 open import Data.Unit
 open import Data.Nat using (_+_)

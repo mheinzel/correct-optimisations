@@ -1,7 +1,7 @@
 -- Dead Binding Elimination using strongly live variable analysis
 --
 -- Based on DBE.agda.
-module DeBruijn.DeadBindingStrong where
+module Transformations.DeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -10,12 +10,12 @@ open import Data.Sum
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Core
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
-open import DeBruijn.Lang
-open import DeBruijn.SubCtx
-open import DeBruijn.StronglyLive
+open import Language.Core
+open Language.Core.Env {U} {⟦_⟧}
+open Language.Core.Ref {U} {⟦_⟧}
+open import Language.DeBruijn
+open import Transformations.DeBruijn.SubCtx
+open import Transformations.DeBruijn.StronglyLive
 
 private
   variable
@@ -142,7 +142,7 @@ optimise-correct {Γ} Δ e env =
 
 
 module Iteration where
-  import DeBruijn.DeadBinding as DBE
+  import Transformations.DeBruijn.DeadBinding as DBE
 
   -- TODO: how feasible is this?
   -- optimise-converges : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → DBE.optimise Δ e ≡ optimise Δ e

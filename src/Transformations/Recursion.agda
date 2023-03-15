@@ -1,6 +1,6 @@
 -- Based on:
 -- http://blog.ezyang.com/2010/06/well-founded-recursion-in-agda/
-module Recursion where
+module Transformations.Recursion where
 
 open import Data.Nat using (ℕ ; zero ; suc)
 open import Data.Sum

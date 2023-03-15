@@ -2,4 +2,3 @@ name: correct-optimizations
 include: src
 depend:
   standard-library
-  generic-syntax-simple

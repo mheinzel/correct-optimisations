@@ -1,6 +1,6 @@
 -- Dead binding elimination,
 -- Using co-de-Bruijn representation.
-module CoDeBruijn.DeadBinding where
+module Transformations.CoDeBruijn.DeadBinding where
 
 -- TODO: make compile
 open import Data.Nat using (_+_)
@@ -12,9 +12,9 @@ open import Function using (_∘_)
 
 open import Data.OPE
 
-open import Core
-open import CoDeBruijn.Core {U}
-open import CoDeBruijn.Lang
+open import Language.Core
+open import Language.CoDeBruijn.Core {U}
+open import Language.CoDeBruijn
 
 private
   variable

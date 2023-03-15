@@ -1,14 +1,13 @@
-module DeBruijn.Lang where
+module Language.DeBruijn where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
 open import Data.List using (List ; _∷_ ; [])
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
-open import Core
-
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
+open import Language.Core
+open Language.Core.Env {U} {⟦_⟧}
+open Language.Core.Ref {U} {⟦_⟧}
 
 private
   variable

@@ -5,7 +5,7 @@
 -- Push the let-binding inwards as far as possible without
 -- - duplicating it
 -- - pushing it into a lambda
-module CoDeBruijn.LetInward where
+module Transformations.CoDeBruijn.LetInward where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
@@ -19,11 +19,11 @@ open import Function using (_$_)
 
 open import Data.OPE
 
-open import Core
-open Core.Env {U}
-open Core.Ref {U}
-open import CoDeBruijn.Core {U}
-open import CoDeBruijn.Lang
+open import Language.Core
+open Language.Core.Env {U}
+open Language.Core.Ref {U}
+open import Language.CoDeBruijn.Core {U}
+open import Language.CoDeBruijn
 
 private
   variable

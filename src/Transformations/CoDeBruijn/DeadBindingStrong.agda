@@ -1,6 +1,6 @@
 -- Dead binding elimination, but in a single pass (equivalent to strongly live variable analysis)
 -- Using co-de-Bruijn representation.
-module CoDeBruijn.DeadBindingStrong where
+module Transformations.CoDeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
@@ -11,11 +11,11 @@ open import Function using (_∘_ ; _$_ ; flip)
 
 open import Data.OPE
 
-open import Core
-open Core.Env {U}
-open Core.Ref {U}
-open import CoDeBruijn.Core {U}
-open import CoDeBruijn.Lang
+open import Language.Core
+open Language.Core.Env {U}
+open Language.Core.Ref {U}
+open import Language.CoDeBruijn.Core {U}
+open import Language.CoDeBruijn
 
 private
   variable

@@ -1,47 +1,33 @@
 { pkgs ? import <nixpkgs> {} }:
 let
-  emacs = (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs:
-    (with epkgs.melpaPackages; [ mkConfig epkgs.evil epkgs.agda2-mode]));
-
-  agda = pkgs.agda.withPackages (p: [
-    p.standard-library
-    (p.mkDerivation {
-      pname = "generic-syntax-simple";
-      version = "0.1.0";
-
-      src = ./generic-syntax-simple;
-
-      includePaths = [ "src" ];
-      buildInputs = [ p.standard-library ];
-      everythingFile = "src/Everything.agda";
-
-      meta = {
-        homepage = "https://github.com/mheinzel/correct-optimisations";
-        description = "Adapted version of A Scope-and-Type Safe Universe of Syntaxes with Binding, Their Semantics and Proofs";
-      };
-    })
-  ]);
-
   emacsConfig = pkgs.writeText "default.el" ''
 (require 'evil)
   (evil-mode 1)
 (require 'agda2-mode)
 '';
 
-  mkConfig = pkgs.runCommand "default.el" {} ''
+  mkEmacsConfig = pkgs.runCommand "default.el" {} ''
 mkdir -p $out/share/emacs/site-lisp
 cp ${emacsConfig} $out/share/emacs/site-lisp/default.el
 '';
+
+  emacs = (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs:
+    (with epkgs.melpaPackages; [ epkgs.evil epkgs.agda2-mode mkEmacsConfig ]));
+
+
+  agda = pkgs.agda.withPackages (p: [
+    p.standard-library
+  ]);
 in
 
 pkgs.stdenv.mkDerivation {
   name = "agda-env";
   buildInputs = [
-    emacs
     agda
     pkgs.texlive.combined.scheme-full
     pkgs.haskellPackages.lhs2tex
     pkgs.pandoc
     pkgs.open-sans
+    emacs
   ];
 }

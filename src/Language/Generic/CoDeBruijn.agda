@@ -1,4 +1,4 @@
-module GenericCoDeBruijn.Lang where
+module Language.Generic.CoDeBruijn where
 
 open import Data.List using (List ; _∷_ ; []; _++_)
 open import Data.Product as Prod using (_×_; Σ-syntax; _,_)
@@ -11,31 +11,9 @@ open import Data.OPE using (oz; oi; oe; _ₒ_; _↑_)
 open import Generic.Syntax
 open import Stdlib using (∀[_]; _⇒_)
 
-open import CoDeBruijn.Core as CoDeBruijn using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
+open import Language.CoDeBruijn.Core as CoDeBruijn using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 
-module _ where
-  record Kind (I : Set) : Set where
-    inductive
-    constructor _⇒ᴷ_
-    field
-      scope : List (Kind I)
-      sort : I
-
-  data Desc' (I : Set) : Set₁ where
-    Recᴰ : Kind I → Desc' I
-    Σᴰ   : (A : Set) → (A → Desc' I) → Desc' I
-    Oneᴰ : Desc' I
-    _×ᴰ_ : Desc' I → Desc' I → Desc' I
- 
-  -- TODO: We're using _⊑_ here (as part of ×ᴿ), but the de Bruijn interpretation uses Thinning
-  -- Unify?
-  ⟦_⟧' : {I : Set} → Desc' I → (I → List (Kind I) → Set) → List (Kind I) → Set
-  ⟦ Recᴰ k ⟧' R = Kind.scope k ⊢ R (Kind.sort k) 
-  ⟦ Σᴰ S T ⟧' R Γ = Σ[ s ∈ S ] ⟦ T s ⟧' R Γ
-  ⟦ Oneᴰ   ⟧' R Γ = Γ ≡ []
-  ⟦ S ×ᴰ T ⟧' R = ⟦ S ⟧' R ×ᴿ ⟦ T ⟧' R
-  
-
+-- TODO: extract to Generic.Syntax.CoDeBruijn
 module _ {I : Set} where
   private
     variable
@@ -65,34 +43,9 @@ module _ {I : Set} where
     with refl ← CoDeBruijn.cover-oi-oe⁻¹ cover =
       t , refl
 
-open import Core hiding (⟦_⟧)
-import CoDeBruijn.Lang as CoDeBruijn
-
-data `Lang : Set where
-  `App  : U → U → `Lang
-  `Lam  : U → U → `Lang
-  `Let  : U → U → `Lang
-  `Val  : U → `Lang
-  `Plus : `Lang
-
-Lang' : Desc' U
-Lang' = Σᴰ `Lang λ where
-  (`App σ τ) → Recᴰ ([] ⇒ᴷ (σ Core.⇒ τ)) ×ᴰ Recᴰ ([] ⇒ᴷ σ)
-  (`Lam σ τ) → Recᴰ ((([] ⇒ᴷ σ) ∷ []) ⇒ᴷ τ)
-  (`Let σ τ) → Recᴰ ([] ⇒ᴷ σ) ×ᴰ Recᴰ ((([] ⇒ᴷ σ) ∷ []) ⇒ᴷ τ)
-  (`Val τ)   → Σᴰ Core.⟦ τ ⟧ λ x → Oneᴰ
-  `Plus      → Recᴰ ([] ⇒ᴷ NAT) ×ᴰ Recᴰ ([] ⇒ᴷ NAT)
-
-Lang : Desc U
-Lang = `σ `Lang $ λ where
-  (`App σ τ) → `X [] (σ Core.⇒ τ) (`X [] σ (`∎ τ))
-  (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ Core.⇒ τ))
-  (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
-  (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
-  `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
-
-pattern App e₁ θ₁ e₂ θ₂' θ₂ c' c  =
-  `App _ _ , pairᴿ ((oz \\ e₁) ↑ θ₁) (pairᴿ ((oz \\ e₂) ↑ θ₂') (refl ↑ _) c' ↑ θ₂) c
+open import Language.Core hiding (⟦_⟧)
+open import Language.Generic
+import Language.CoDeBruijn as CoDeBruijn
 
 Expr : U ─Scoped
 Expr = Tm Lang

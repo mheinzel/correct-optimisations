@@ -1,5 +1,5 @@
 -- Let Floating (inwards)
-module DeBruijn.LetInward where
+module Transformations.DeBruijn.LetInward where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
@@ -11,11 +11,11 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Data.OPE
 
-open import Core
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
-open import DeBruijn.Lang
-open import DeBruijn.Live
+open import Language.Core
+open Language.Core.Env {U} {⟦_⟧}
+open Language.Core.Ref {U} {⟦_⟧}
+open import Language.DeBruijn
+open import Transformations.DeBruijn.Live
 
 private
   variable

@@ -1,5 +1,5 @@
 -- Live variable analysis
-module DeBruijn.Live where
+module Transformations.DeBruijn.Live where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
@@ -7,11 +7,11 @@ open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Core
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
-open import DeBruijn.Lang
-open import DeBruijn.SubCtx
+open import Language.Core
+open Language.Core.Env {U} {⟦_⟧}
+open Language.Core.Ref {U} {⟦_⟧}
+open import Language.DeBruijn
+open import Transformations.DeBruijn.SubCtx
 
 private
   variable

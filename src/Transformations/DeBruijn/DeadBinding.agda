@@ -1,5 +1,5 @@
 -- Dead Binding Elimination (simple)
-module DeBruijn.DeadBinding where
+module Transformations.DeBruijn.DeadBinding where
 
 open import Data.Nat using (_+_; ℕ)
 open import Data.List using (List ; _∷_ ; [])
@@ -8,13 +8,13 @@ open import Data.Sum
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Core
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
-open import Recursion
-open import DeBruijn.Lang
-open import DeBruijn.SubCtx
-open import DeBruijn.Live
+open import Language.Core
+open Language.Core.Env {U} {⟦_⟧}
+open Language.Core.Ref {U} {⟦_⟧}
+open import Language.DeBruijn
+open import Transformations.Recursion
+open import Transformations.DeBruijn.SubCtx
+open import Transformations.DeBruijn.Live
 
 private
   variable
