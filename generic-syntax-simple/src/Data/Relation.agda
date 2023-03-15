@@ -1,3 +1,6 @@
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Data.Relation where
 
 open import Data.Sum
@@ -33,8 +36,8 @@ record All  (𝓥ᴿ : Rel 𝓥ᴬ 𝓥ᴮ) (Γ : List I)
 
 open All public
 
-module _ {T U : I ─Scoped} {𝓡 : Rel T U} where
 
+module _ {T U : I ─Scoped} {𝓡 : Rel T U} where
   private
     variable
       ρᵀ σᵀ : (Γ ─Env) T Δ
@@ -72,11 +75,9 @@ module _ {T U : I ─Scoped} {𝓡 : Rel T U} where
   lookupᴿ (F <$>ᴿ ρ) k = F (lookupᴿ ρ k)
 
 module _ {T : I ─Scoped} where
-
   private
     variable
       ρ : (Γ ─Env) T Δ
-
 
   Eqᴿ : Rel T T
   rel Eqᴿ i = _≡_
@@ -84,16 +85,13 @@ module _ {T : I ─Scoped} where
   reflᴿ : All Eqᴿ Γ ρ ρ
   lookupᴿ reflᴿ k = refl
 
-
 module _ {A B : I ─Scoped} where
-
   open import Relation.Binary.HeterogeneousEquality.Core
 
   HEqᴿ : Rel A B
   rel HEqᴿ i = λ a b → a ≅ b
 
 module _ {d : Desc I} where
-
   open import Generic.DeBruijn.Syntax
 
   VarTmᴿ : Rel Var (Tm d)

@@ -1,3 +1,8 @@
+{-# OPTIONS --safe #-}
+
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Data.Environment where
 
 open import Data.Nat.Base as ℕ

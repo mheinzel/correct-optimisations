@@ -1,9 +1,12 @@
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Generic.DeBruijn.Semantics.Unit where
 
-open import Data.Unit
-open import Data.Var
-open import Generic.Syntax
-open import Generic.DeBruijn.Semantics
+open import Data.Unit using (⊤)
+open import Data.Var using (_─Scoped)
+open import Generic.Syntax using (Desc)
+open import Generic.DeBruijn.Semantics using (Semantics)
 
 private
   variable

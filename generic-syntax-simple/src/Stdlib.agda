@@ -1,10 +1,14 @@
+{-# OPTIONS --safe #-}
+
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Stdlib where
 
 open import Data.Product
 open import Data.List.Base
 
 private
-
   variable
     A B : Set
 
@@ -23,23 +27,15 @@ _⇒_ : (P Q : A → Set) → (A → Set)
 _⊢_ : (A → B) → (B → Set) → (A → Set)
 (f ⊢ P) x = P (f x)
 
-
-
-
 data ⊥ : Set where
-
-
-
 
 data Dec (P : Set) : Set where
   yes  : P        → Dec P
   no   : (P → ⊥)  → Dec P
 
-
 variable
   a : A
   as : List A
-
 
 data All (P : A → Set) : List A → Set where
   []   : All P []

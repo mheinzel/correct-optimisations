@@ -1,3 +1,6 @@
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Data.Var.Varlike where
 
 open import Data.List.Base hiding (lookup ; [_])
@@ -19,11 +22,9 @@ private
     Γ Δ : List I
     𝓥 𝓥₁ 𝓥₂ 𝓒 𝓥ᴬ 𝓥ᴮ 𝓒ᴬ 𝓒ᴮ : I ─Scoped
 
-
 record VarLike (𝓥 : I ─Scoped) : Set where
   field  th^𝓥  : Thinnable (𝓥 σ)
          new   : ∀[ (σ ∷_) ⊢ 𝓥 σ ]
-
 
   base : (Γ ─Env) 𝓥 Γ
   base {Γ = []}    = ε
@@ -37,6 +38,7 @@ record VarLike (𝓥 : I ─Scoped) : Set where
 
   singleton : 𝓥 σ Γ → (σ ∷ Γ ─Env) 𝓥 Γ
   singleton v = base ∙ v
+
 open VarLike public
 
 vl^Var : VarLike {I} Var
@@ -46,7 +48,6 @@ th^𝓥  vl^Var = th^Var
 lookup-base^Var : (k : Var σ Γ) → lookup (base vl^Var) k ≡ k
 lookup-base^Var z     = refl
 lookup-base^Var (s k) = cong s (lookup-base^Var k)
-
 
 reify : VarLike 𝓥 → ∀ Δ i → Kripke 𝓥 𝓒 Δ i Γ → Scope 𝓒 Δ i Γ
 reify vl^𝓥 []         i b = b

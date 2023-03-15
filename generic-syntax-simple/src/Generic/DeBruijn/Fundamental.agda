@@ -1,3 +1,6 @@
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Generic.DeBruijn.Fundamental where
 
 open import Agda.Builtin.List

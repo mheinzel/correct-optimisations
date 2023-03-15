@@ -1,3 +1,8 @@
+{-# OPTIONS --safe #-}
+
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Data.Pred where
 
 open import Data.Var hiding (_<$>_)

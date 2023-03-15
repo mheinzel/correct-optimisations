@@ -1,3 +1,6 @@
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 open import Data.Var hiding (_<$>_; z; s)
 open import Data.Relation
 

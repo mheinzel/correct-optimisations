@@ -1,5 +1,9 @@
 {-# OPTIONS --safe #-}
 
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
+
 -- When scopes are represented by lists of kinds, a variable of
 -- a given kind is a position in such a list. This is a strongly
 -- typed version of de Bruijn indices hence the name we picked
@@ -11,9 +15,9 @@ module Data.Var where
 
 open import Data.Sum hiding (map)
 open import Data.List.Base hiding ([_]; _─_)
-open import Data.List.Relation.Unary.All using (All ; _∷_)
+open import Data.List.Relation.Unary.All using (All; _∷_)
 open import Relation.Unary
-open import Function.Base
+open import Function.Base using (const; _∋_)
 open import Agda.Builtin.Equality
 
 

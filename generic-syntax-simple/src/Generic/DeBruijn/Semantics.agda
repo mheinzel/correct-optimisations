@@ -1,3 +1,6 @@
+-- Based on:
+-- A Type and Scope Safe Universe of Syntaxes with Binding: Their Semantics and Proofs
+-- (https://github.com/gallais/generic-syntax)
 module Generic.DeBruijn.Semantics where
 
 open import Data.List.Base as L hiding (lookup ; [_])
@@ -23,13 +26,9 @@ module _ {d : Desc I} where
   (Γ ─Comp) 𝓒 Δ = ∀ {σ} → Tm d σ Γ → 𝓒 σ Δ
 
 record Semantics (d : Desc I) (𝓥 𝓒 : I ─Scoped) : Set where
-
  field
-
    th^𝓥 : Thinnable (𝓥 σ)
-
    var : ∀[ 𝓥 σ ⇒ 𝓒 σ ]
-
    alg : ∀[ ⟦ d ⟧ (Kripke 𝓥 𝓒) σ ⇒ 𝓒 σ ]
 
 module _ {𝓥 𝓒 : I ─Scoped} (sm : Semantics d 𝓥 𝓒) where
