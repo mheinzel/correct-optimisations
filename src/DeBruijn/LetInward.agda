@@ -9,10 +9,11 @@ open import Data.Sum
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
+open import Data.OPE
+
 open import Core
 open Core.Env {U} {⟦_⟧}
 open Core.Ref {U} {⟦_⟧}
-open import OPE
 open import DeBruijn.Lang
 open import DeBruijn.Live
 

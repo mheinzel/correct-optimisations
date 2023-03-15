@@ -26,6 +26,9 @@ import Generic.DeBruijn.Syntax
 -- Environments as Well Scoped-and-Sorted Functions from Variables to Values
 import Data.Environment
 
+-- Order-Preserving Embeddings
+import Data.OPE
+
 -- Semantics as Well Scoped-and-Sorted Algebras on Syntaxes with Binding
 import Generic.DeBruijn.Semantics
 

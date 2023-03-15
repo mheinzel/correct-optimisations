@@ -7,10 +7,10 @@ open import Function using (const; _$_; _∘_)
 open import Data.Unit using (⊤; tt)
 
 open import Data.Var using (_─Scoped)
+open import Data.OPE using (oz; oi; oe; _ₒ_; _↑_)
 open import Generic.Syntax
 open import Stdlib using (∀[_]; _⇒_)
 
-open import OPE using (oz; oi; oe; _ₒ_; _↑_)
 open import CoDeBruijn.Core as CoDeBruijn using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 
 module _ where

@@ -3,7 +3,7 @@
 -- Based on:
 -- Everybody's Got To Be Somewhere
 -- (https://arxiv.org/abs/1807.04085)
-module OPE where
+module Data.OPE where
 
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ; _,_)

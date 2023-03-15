@@ -1,7 +1,6 @@
 module Contents where
 
 import Core
-import OPE
 import Recursion
 
 import DeBruijn.Lang

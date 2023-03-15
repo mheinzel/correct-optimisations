@@ -9,11 +9,12 @@ open import Function using (_∘_ ; _$_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
+open import Data.OPE
+
 open import Core
 open Core.Env {U} {⟦_⟧}
 open Core.Ref {U} {⟦_⟧}
 import DeBruijn.Lang as DeBruijn
-open import OPE
 open import CoDeBruijn.Core {U}
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",

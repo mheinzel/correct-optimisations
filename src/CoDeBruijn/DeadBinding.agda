@@ -10,10 +10,11 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_∘_)
 
+open import Data.OPE
+
 open import Core
 open import CoDeBruijn.Core {U}
 open import CoDeBruijn.Lang
-open import OPE
 
 private
   variable

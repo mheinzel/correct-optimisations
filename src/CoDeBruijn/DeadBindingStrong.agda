@@ -9,12 +9,13 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_∘_ ; _$_ ; flip)
 
+open import Data.OPE
+
 open import Core
 open Core.Env {U}
 open Core.Ref {U}
 open import CoDeBruijn.Core {U}
 open import CoDeBruijn.Lang
-open import OPE
 
 private
   variable
