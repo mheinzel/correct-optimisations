@@ -1,10 +1,9 @@
 {-# OPTIONS --safe #-}
 
--- TODO: extract to Generic.Syntax
 -- Based on:
 -- Everybody's Got To Be Somewhere
 -- (https://arxiv.org/abs/1807.04085)
-module Language.CoDeBruijn.Core {I : Set} where
+module Data.Relevant where
 
 open import Data.Unit
 open import Data.Nat using (_+_)
@@ -18,15 +17,16 @@ open import Data.OPE
 
 private
   variable
+    I : Set
     Γ Γ₁ Γ₂ : List I
     τ σ : I
     S T : I ─Indexed
 
-data Cover : {Γ₁ Γ₂ Γ : List I} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
+data Cover : {I : Set} {Γ₁ Γ₂ Γ : List I} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
   _c's : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (θ₁ o') (θ₂ os)
   _cs' : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (θ₁ os) (θ₂ o')
   _css : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (θ₁ os) (θ₂ os)
-  czz  : Cover oz oz
+  czz  : Cover {I} oz oz
 
 infixr 19 _++ᶜ_
 
@@ -61,19 +61,19 @@ law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ o') (θ₂ os) ϕ₁ ϕ₂ (c c's) 
 law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ os) (θ₂ o') ϕ₁ ϕ₂ (c cs') = cong _cs' (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
 law-cover-split-++⊑ {Γ = x ∷ Γ} (θ₁ os) (θ₂ os) ϕ₁ ϕ₂ (c css) = cong _css (law-cover-split-++⊑ θ₁ θ₂ ϕ₁ ϕ₂ c)
 
-cover-oi-oi : Cover {Γ} oi oi
-cover-oi-oi {[]} = czz
-cover-oi-oi {x ∷ Γ} = cover-oi-oi css
+cover-oi-oi : Cover {Γ = Γ} oi oi
+cover-oi-oi {Γ = []} = czz
+cover-oi-oi {Γ = x ∷ Γ} = cover-oi-oi css
 
-cover-oi-oe : Cover {Γ} oi oe
-cover-oi-oe {[]} = czz
-cover-oi-oe {x ∷ Γ} = cover-oi-oe cs'
+cover-oi-oe : Cover {Γ = Γ} oi oe
+cover-oi-oe {Γ = []} = czz
+cover-oi-oe {Γ = x ∷ Γ} = cover-oi-oe cs'
 
 cover-oi-oe⁻¹ : {θ : Γ₁ ⊑ Γ} {ϕ : [] ⊑ Γ} → Cover θ ϕ → Γ₁ ≡ Γ
 cover-oi-oe⁻¹ (c cs') = cong (_ ∷_) (cover-oi-oe⁻¹ c)
 cover-oi-oe⁻¹ czz = refl
 
-cover-flip : {Γ₁ Γ₂ Γ : List I} {θ : Γ₁ ⊑ Γ} {ϕ : Γ₂ ⊑ Γ} → Cover θ ϕ → Cover ϕ θ
+cover-flip : {θ : Γ₁ ⊑ Γ} {ϕ : Γ₂ ⊑ Γ} → Cover θ ϕ → Cover ϕ θ
 cover-flip (c c's) = cover-flip c cs'
 cover-flip (c cs') = cover-flip c c's
 cover-flip (c css) = cover-flip c css
@@ -106,15 +106,14 @@ _\\R_ : {T : I ─Indexed} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) 
 -}
 
 -- TODO: better name? R → ᴿ
-\\R-helper : ∀ {T Γ Γ' Γ''} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Γ' ⊣R ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
+\\R-helper : {Γ Γ' Γ'' : List I} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Γ' ⊣R ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
 \\R-helper (⊣r ϕ₁ ϕ₂ (refl , refl)) t = (ϕ₁ \\ t) ↑ ϕ₂
 
-_\\R_ : ∀ {T Γ} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+_\\R_ : (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
 Γ' \\R (t ↑ ψ) = \\R-helper (Γ' ⊣ ψ) t
 
-
 -- Just to avoid a huge chain of Σ-types.
-record Coproduct (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where
+record Coproduct {I : Set} {Γ₁ Γ₂ Γ : List I} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where
   constructor coproduct
   field
     Γ' : List I

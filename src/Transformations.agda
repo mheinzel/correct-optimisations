@@ -2,7 +2,6 @@ module Transformations where
 
 import Language.Core
 import Language.DeBruijn
-import Language.CoDeBruijn.Core
 import Language.CoDeBruijn
 import Language.Generic
 import Language.Generic.DeBruijn

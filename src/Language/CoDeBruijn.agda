@@ -10,12 +10,12 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Data.OPE
+open import Data.Relevant
 
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 import Language.DeBruijn as DeBruijn
-open import Language.CoDeBruijn.Core {U}
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
 -- and values include Agda functions.

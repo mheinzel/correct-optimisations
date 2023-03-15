@@ -18,11 +18,11 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_$_)
 
 open import Data.OPE
+open import Data.Relevant
 
 open import Language.Core
 open Language.Core.Env {U}
 open Language.Core.Ref {U}
-open import Language.CoDeBruijn.Core {U}
 open import Language.CoDeBruijn
 
 private

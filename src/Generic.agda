@@ -29,6 +29,9 @@ import Data.Environment
 -- Order-Preserving Embeddings
 import Data.OPE
 
+-- Relevant Pairs and Scopes
+import Data.Relevant
+
 -- Semantics as Well Scoped-and-Sorted Algebras on Syntaxes with Binding
 import Generic.DeBruijn.Semantics
 

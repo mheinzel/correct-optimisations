@@ -11,9 +11,9 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_∘_)
 
 open import Data.OPE
+open import Data.Relevant
 
 open import Language.Core
-open import Language.CoDeBruijn.Core {U}
 open import Language.CoDeBruijn
 
 private

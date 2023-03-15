@@ -6,12 +6,11 @@ open import Relation.Binary.PropositionalEquality
 open import Function using (const; _$_; _∘_)
 open import Data.Unit using (⊤; tt)
 
+open import Stdlib using (∀[_]; _⇒_)
 open import Data.Var using (_─Scoped)
 open import Data.OPE using (oz; oi; oe; _ₒ_; _↑_)
+open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 open import Generic.Syntax
-open import Stdlib using (∀[_]; _⇒_)
-
-open import Language.CoDeBruijn.Core as CoDeBruijn using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 
 -- TODO: extract to Generic.Syntax.CoDeBruijn
 module _ {I : Set} where
@@ -36,11 +35,11 @@ module _ {I : Set} where
     `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i ⇒ Tm d i ]
 
   ×ᴿ-trivial : {τ : I} {T : List I → Set} → T Γ → (T ×ᴿ λ Γ' → τ ≡ τ × Γ' ≡ []) Γ
-  ×ᴿ-trivial t = pairᴿ (t ↑ oi) ((refl , refl) ↑ oe) CoDeBruijn.cover-oi-oe
+  ×ᴿ-trivial t = pairᴿ (t ↑ oi) ((refl , refl) ↑ oe) Relevant.cover-oi-oe
 
   ×ᴿ-trivial⁻¹ : {τ τ' : I} {T : List I → Set} → (T ×ᴿ λ Γ' → τ ≡ τ' × Γ' ≡ []) Γ → T Γ × τ ≡ τ'
   ×ᴿ-trivial⁻¹ (pairᴿ (t ↑ θ₁) ((refl , refl) ↑ θ₂) cover)
-    with refl ← CoDeBruijn.cover-oi-oe⁻¹ cover =
+    with refl ← Relevant.cover-oi-oe⁻¹ cover =
       t , refl
 
 open import Language.Core hiding (⟦_⟧)
@@ -70,16 +69,16 @@ from : ∀ {Γ τ} → Expr τ Γ → CoDeBruijn.Expr τ Γ
 from `var =
   CoDeBruijn.Var
 from (`con (`App σ τ , pairᴿ (e₁ ↑ θ₁) (pairᴿ (e₂ ↑ θ₂') ((refl , refl) ↑ θ₂'') c ↑ θ₂) cover))
-  with refl ← CoDeBruijn.cover-oi-oe⁻¹ c =
+  with refl ← Relevant.cover-oi-oe⁻¹ c =
     CoDeBruijn.App (pairᴿ (from e₁ ↑ θ₁) (from e₂ ↑ θ₂) cover)
 from (`con (`Lam σ τ , pairᴿ ((ψ \\ e) ↑ θ₁) ((refl , refl) ↑ θ₂) cover))
-  with refl ← CoDeBruijn.cover-oi-oe⁻¹ cover =
+  with refl ← Relevant.cover-oi-oe⁻¹ cover =
     CoDeBruijn.Lam (ψ \\ (from e))
 from (`con (`Let σ τ , pairᴿ (e₁ ↑ θ₁) (pairᴿ ((ψ \\ e₂) ↑ θ₂') ((refl , refl) ↑ θ₂'') c ↑ θ₂) cover))
-  with refl ← CoDeBruijn.cover-oi-oe⁻¹ c =
+  with refl ← Relevant.cover-oi-oe⁻¹ c =
     CoDeBruijn.Let (pairᴿ (from e₁ ↑ θ₁) ((ψ \\ from e₂) ↑ θ₂) cover)
 from (`con (`Val τ , v , refl , refl)) =
   CoDeBruijn.Val v
 from (`con (`Plus , pairᴿ (e₁ ↑ θ₁) (pairᴿ (e₂ ↑ θ₂') ((refl , refl) ↑ θ₂'') c ↑ θ₂) cover))
-  with refl ← CoDeBruijn.cover-oi-oe⁻¹ c =
+  with refl ← Relevant.cover-oi-oe⁻¹ c =
     CoDeBruijn.Plus (pairᴿ (from e₁ ↑ θ₁) (from e₂ ↑ θ₂) cover)
