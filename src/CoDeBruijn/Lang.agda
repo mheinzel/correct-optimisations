@@ -13,7 +13,7 @@ open import Core
 open Core.Env {U} {⟦_⟧}
 open Core.Ref {U} {⟦_⟧}
 import DeBruijn.Lang as DeBruijn
-open import OPE {U}
+open import OPE
 open import CoDeBruijn.Core {U}
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",

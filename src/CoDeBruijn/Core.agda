@@ -13,7 +13,7 @@ open import Function using (_∘_ ; _$_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import OPE {I}
+open import OPE
 
 private
   variable
@@ -22,10 +22,10 @@ private
     S T : I ─Indexed
 
 data Cover : {Γ₁ Γ₂ Γ : List I} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
-  _c's : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_o' {τ} θ₁) (θ₂ os)
-  _cs' : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ o')
-  _css : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_os {τ} θ₁) (θ₂ os)
-  czz  :                                             Cover oz           oz
+  _c's : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (θ₁ o') (θ₂ os)
+  _cs' : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (θ₁ os) (θ₂ o')
+  _css : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (θ₁ os) (θ₂ os)
+  czz  : Cover oz oz
 
 infixr 19 _++ᶜ_
 

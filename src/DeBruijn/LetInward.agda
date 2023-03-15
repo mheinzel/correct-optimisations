@@ -12,7 +12,7 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Core
 open Core.Env {U} {⟦_⟧}
 open Core.Ref {U} {⟦_⟧}
-open import OPE {U}
+open import OPE
 open import DeBruijn.Lang
 open import DeBruijn.Live
 

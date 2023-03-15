@@ -13,7 +13,7 @@ open import Function using (_∘_)
 open import Core
 open import CoDeBruijn.Core {U}
 open import CoDeBruijn.Lang
-open import OPE {U}
+open import OPE
 
 private
   variable

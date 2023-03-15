@@ -22,7 +22,7 @@ open Core.Env {U}
 open Core.Ref {U}
 open import CoDeBruijn.Core {U}
 open import CoDeBruijn.Lang
-open import OPE {U}
+open import OPE
 
 private
   variable
@@ -210,8 +210,8 @@ push-let Γ₁ Γ₂ decl (Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ 
   map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in right subexpression
 ...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
-    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe {Γ''} ++⊑ oi) decl) e₂
-                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi {Γ''} ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
+                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
     with ⊣r ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
@@ -220,8 +220,8 @@ push-let Γ₁ Γ₂ decl (Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ 
   map⇑ Let (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions
 ...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
-    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe {Γ''} ++⊑ oi) decl) e₂
-                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi {Γ''} ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
+                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
     with ⊣r ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))

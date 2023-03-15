@@ -14,7 +14,7 @@ open Core.Env {U}
 open Core.Ref {U}
 open import CoDeBruijn.Core {U}
 open import CoDeBruijn.Lang
-open import OPE {U}
+open import OPE
 
 private
   variable
@@ -86,7 +86,7 @@ mutual
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
 helper-assoc :
-  ∀ {Γ Γ₁ Γ₂ Γ' Γ''} →
+  {Γ Γ₁ Γ₂ Γ' Γ'' : Ctx} →
   {θ₁  : Γ  ⊑ Γ₁} {θ₁' : Γ₁ ⊑ Γ'} {θ₂  : Γ  ⊑ Γ₂} {θ₂' : Γ₂ ⊑ Γ'} {θ : Γ' ⊑ Γ''} →
   θ₁ ₒ θ₁' ≡ θ₂ ₒ θ₂' →
   θ₁ ₒ θ₁' ₒ θ ≡ θ₂ ₒ θ₂' ₒ θ
