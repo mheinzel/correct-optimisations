@@ -86,7 +86,7 @@ law-cover++⊑4-Γ₂≡[] {Γ₁} θ₁ θ₃ θ₄ ϕ₁ ϕ₃ ϕ₄ c =
     c
   ∎
   
-coerce : {S : Scoped} {Γ' Γ : Ctx} → Γ ≡ Γ' → S Γ → S Γ'
+coerce : {S : U ─Indexed} {Γ' Γ : Ctx} → Γ ≡ Γ' → S Γ → S Γ'
 coerce refl e = e
 
 -- To factor out the repeated calling of ⊣, packaging up the results in a convenient way.
@@ -110,7 +110,7 @@ record ⊣R4 (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂ ++ Γ�
   with ⊣r {Γ₃'} {Γ₄'}   ϕ₃ ϕ₄   (refl , refl) ← Γ₃ ⊣ ϕ₃₄
   = ⊣r4 ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl)
 
-Reorder : Scoped → Set
+Reorder : U ─Indexed → Set
 Reorder T = ∀ {Γ} (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) → T Γ → (Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) → T (Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
 
 mutual

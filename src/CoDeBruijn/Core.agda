@@ -1,4 +1,8 @@
--- fundamental constructions
+{-# OPTIONS --safe #-}
+
+-- Based on:
+-- Everybody's Got To Be Somewhere
+-- (https://arxiv.org/abs/1807.04085)
 module CoDeBruijn.Core {I : Set} where
 
 open import Data.Unit
@@ -15,7 +19,7 @@ private
   variable
     Γ Γ₁ Γ₂ : List I
     τ σ : I
-    S T : I ─Scoped
+    S T : I ─Indexed
 
 data Cover : {Γ₁ Γ₂ Γ : List I} → Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
   _c's : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover (_o' {τ} θ₁) (θ₂ os)
@@ -75,15 +79,16 @@ cover-flip (c css) = cover-flip c css
 cover-flip czz = czz
 
 -- Relevant pair
-record _×ᴿ_ (S T : I ─Scoped) (Γ : List I) : Set where
+record _×ᴿ_ (S T : I ─Indexed) (Γ : List I) : Set where
   constructor pairᴿ
   field
     outl  : S ⇑ Γ
     outr  : T ⇑ Γ
     cover : Cover (_⇑_.thinning outl) (_⇑_.thinning outr)
 
---  _⊢'_ : {I : Set} → List (Kind I) → (List I → Kind I) → List I → Kind I
-record _⊢_ (Γ' : List I) (T : I ─Scoped) (Γ : List I) : Set where
+-- TODO: better name? _⊢ᴿ_?
+-- mentions "relevance", distinguishes from Stdlib._⊢_ : (A → B) → (B → Set) → (A → Set)
+record _⊢_ (Γ' : List I) (T : I ─Indexed) (Γ : List I) : Set where
   constructor _\\_
   field
     {bound} : List I
@@ -94,11 +99,12 @@ map⊢ : Γ₁ ⊑ Γ₂ → (Γ₁ ⊢ T) Γ → (Γ₂ ⊢ T) Γ
 map⊢ ϕ (θ \\ t) = (θ ₒ ϕ) \\ t
 
 {- original definition
-_\\R_ : {T : I ─Scoped} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+_\\R_ : {T : I ─Indexed} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
 Γ' \\R (t ↑ ψ)       with Γ' ⊣ ψ
 Γ' \\R (t ↑ .(θ ++⊑ ϕ)) | ⊣r θ ϕ (refl , refl) = (θ \\ t) ↑ ϕ
 -}
 
+-- TODO: better name? R → ᴿ
 \\R-helper : ∀ {T Γ Γ' Γ''} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Γ' ⊣R ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
 \\R-helper (⊣r ϕ₁ ϕ₂ (refl , refl)) t = (ϕ₁ \\ t) ↑ ϕ₂
 

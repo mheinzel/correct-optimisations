@@ -1,12 +1,10 @@
--- Adapted from http://blog.ezyang.com/2010/06/well-founded-recursion-in-agda/
+-- Based on:
+-- http://blog.ezyang.com/2010/06/well-founded-recursion-in-agda/
 module Recursion where
 
 open import Data.Nat using (ℕ ; zero ; suc)
 open import Data.Sum
 open import Data.Product
-
-open import Core
--- open import SubCtx
 
 -- The definition from Relation.Binary makes us use levels, but we could switch?
 Rel : Set → Set₁
@@ -44,7 +42,6 @@ suc m <? suc n with m <? n
 <-ℕ-wf x = WF.acc (aux x)
   where
     aux : ∀ x y → y < x → WF.Acc _<_ y
-    --  : (x : _) → (∀ y → y < x → WF.Acc _<_ y)
     aux .(suc y) y <-base = <-ℕ-wf y
     aux .(suc x) y (<-step {x} y<x) = aux x y y<x
 

@@ -1,10 +1,12 @@
-{-# OPTIONS --allow-unsolved-metas #-} -- TODO
+{-# OPTIONS --safe #-}
 
--- Trying shorter notation, as in Conor's paper
+-- Based on:
+-- Everybody's Got To Be Somewhere
+-- (https://arxiv.org/abs/1807.04085)
 module OPE {I : Set} where
 
 open import Data.Empty using (⊥)
-open import Data.Product
+open import Data.Product using (Σ ; _,_)
 open import Data.List using (List; _∷_ ; [] ; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 
@@ -21,20 +23,9 @@ data _⊑_ : List I → List I → Set where
   _os : {Γ₁ Γ₂ : List I} → Γ₁ ⊑ Γ₂ → (τ ∷ Γ₁) ⊑ (τ ∷ Γ₂)
   oz  : [] ⊑ []
 
-lemma-reflex : (θ : Γ₁ ⊑ Γ₂) (ϕ : (τ ∷ Γ₂) ⊑ Γ₁) → ⊥
-lemma-reflex {τ₁ ∷ Γ₁} {τ₂  ∷ Γ₂} {τ}   (θ o') (ϕ o') = {! lemma-reflex ϕ ((θ o') o') !} -- TODO 
-lemma-reflex {τ₁ ∷ Γ₁} {τ₂  ∷ Γ₂} {.τ₁} (θ o') (ϕ os) = lemma-reflex θ (ϕ o')
-lemma-reflex {τ₁ ∷ Γ₁} {.τ₁ ∷ Γ₂} {τ}   (θ os) (ϕ o') = lemma-reflex (θ o') ϕ 
-lemma-reflex {τ₁ ∷ Γ₁} {.τ₁ ∷ Γ₂} {.τ₁} (θ os) (ϕ os) = lemma-reflex θ ϕ
-
 oi : Γ ⊑ Γ
 oi {[]} = oz
 oi {x ∷ Γ} = oi os
-
-oi-unique : (θ : Γ ⊑ Γ) → θ ≡ oi
-oi-unique (θ o') with () ← lemma-reflex oi θ
-oi-unique (θ os) = cong _os (oi-unique θ)
-oi-unique oz = refl
 
 -- [] is an initial object.
 oe : {Γ : List I} → [] ⊑ Γ
@@ -107,25 +98,21 @@ law-commute-ₒ++⊑ oz oz ϕ₁ ϕ₂ = refl
 
 -- THINGS WITH OPEs
 
-_─Scoped : (I : Set) → Set₁
-_─Scoped I = List I → Set
+_─Indexed : Set → Set₁
+I ─Indexed = List I → Set
 
-record _⇑_ (T : I ─Scoped) (scope : List I) : Set where
+record _⇑_ (T : I ─Indexed) (scope : List I) : Set where
   constructor _↑_
   field
     {support} : List I
     thing : T support
     thinning : support ⊑ scope
 
--- Arrow with a dot above in Conor's notation.
-_→F_ : I ─Scoped → I ─Scoped → Set
-S →F T = ∀ {i} → S i → T i
-
-map⇑ : {S T : I ─Scoped} → (S →F T) → ((S ⇑_) →F (T ⇑_))
+map⇑ : {S T : I ─Indexed} → (∀ {Γ'} → S Γ' → T Γ') → S ⇑ Γ → T ⇑ Γ
 map⇑ f (s ↑ θ) = f s ↑ θ
 
-mult⇑ : {T : I ─Scoped} → ((T ⇑_) ⇑_) Γ → T ⇑ Γ
+mult⇑ : {T : I ─Indexed} → ((T ⇑_) ⇑_) Γ → T ⇑ Γ
 mult⇑ ((t ↑ θ) ↑ ϕ) = t ↑ (θ ₒ ϕ)
 
-thin⇑ : {T : I ─Scoped} {Γ₁ Γ₂ : List I} → Γ₁ ⊑ Γ₂ → T ⇑ Γ₁ → T ⇑ Γ₂
+thin⇑ : {T : I ─Indexed} {Γ₁ Γ₂ : List I} → Γ₁ ⊑ Γ₂ → T ⇑ Γ₁ → T ⇑ Γ₂
 thin⇑ ϕ (t ↑ θ) = t ↑ (θ ₒ ϕ)

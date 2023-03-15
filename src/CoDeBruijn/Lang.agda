@@ -10,12 +10,11 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Core
+open Core.Env {U} {⟦_⟧}
+open Core.Ref {U} {⟦_⟧}
 import DeBruijn.Lang as DeBruijn
 open import OPE {U}
 open import CoDeBruijn.Core {U}
-
-open Core.Env {U} {⟦_⟧}
-open Core.Ref {U} {⟦_⟧}
 
 -- This is needed because our notion of semantical equivalence is "same evaluation result",
 -- and values include Agda functions.
@@ -57,9 +56,6 @@ module _ where
   law-project-Env-oi : (env : Env Γ) → project-Env oi env ≡ env
   law-project-Env-oi Nil = refl
   law-project-Env-oi (Cons x env) = cong (Cons x) (law-project-Env-oi env)
-
-Scoped : Set₁
-Scoped = U ─Scoped  -- aka Ctx → Set
 
 data Expr : (σ : U) (Γ : Ctx) → Set where
   Var :
