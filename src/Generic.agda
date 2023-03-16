@@ -70,3 +70,8 @@ import Data.Relevant
 
 -- Universe of Well Scoped-and-Sorted Syntaxes with Binding
 import Generic.CoDeBruijn.Syntax
+
+-- CONVERSION (de Bruijn <-> co de Bruijn)
+--------------------------------------------------------------------------------
+
+import Generic.Conversion
