@@ -7,6 +7,8 @@ module Stdlib where
 
 open import Data.Product
 open import Data.List.Base
+open import Data.List.Base
+open import Relation.Binary.PropositionalEquality
 
 private
   variable
@@ -40,3 +42,6 @@ variable
 data All (P : A → Set) : List A → Set where
   []   : All P []
   _∷_  : P a → All P as → All P (a ∷ as)
+
+coerce : {A : Set} {a a' : A} (T : A → Set) → a ≡ a' → T a → T a'
+coerce T refl t = t

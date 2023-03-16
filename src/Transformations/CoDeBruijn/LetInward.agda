@@ -17,6 +17,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_$_)
 
+open import Stdlib using (coerce)
 open import Data.OPE
 open import Data.Relevant
 
@@ -86,9 +87,6 @@ law-cover++⊑4-Γ₂≡[] {Γ₁} θ₁ θ₃ θ₄ ϕ₁ ϕ₃ ϕ₄ c =
   ≡⟨ law-cover-split-++⊑ θ₁ ϕ₁ _ _ c ⟩
     c
   ∎
-  
-coerce : {S : U ─Indexed} {Γ' Γ : Ctx} → Γ ≡ Γ' → S Γ → S Γ'
-coerce refl e = e
 
 -- To factor out the repeated calling of ⊣, packaging up the results in a convenient way.
 record ⊣R4 (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (ψ : Γ ⊑ (Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)) : Set where
@@ -126,14 +124,14 @@ mutual
 
   reorder-Ctx-⊢ : ∀ {Γ'} → Reorder (Γ' ⊢ Expr τ)
   reorder-Ctx-⊢ Γ₁ Γ₂ Γ₃ Γ₄ (_\\_ {Γ''} ψ e) p =
-    ψ \\ coerce {Expr _}
+    ψ \\ coerce (Expr _)
            (++-assoc Γ'' Γ₁ _)
            (reorder-Ctx (Γ'' ++ Γ₁) Γ₂ Γ₃ Γ₄ e (trans (cong (Γ'' ++_) p) (sym (++-assoc Γ'' Γ₁ _))))
   
   -- It would be nice to compose the Let case from our helpers above, but it's complicated.
   reorder-Ctx : Reorder (Expr τ)
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ Var p =
-    coerce {Expr _} (lemma-[τ]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p) Var
+    coerce (Expr _) (lemma-[τ]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p) Var
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (App p) q = App (reorder-Ctx-×ᴿ Γ₁ Γ₂ Γ₃ Γ₄ p q)
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Lam l) p = Lam (reorder-Ctx-⊢ Γ₁ Γ₂ Γ₃ Γ₄ l p)
   reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (Let (pairᴿ (e₁ ↑ θ) (l ↑ ϕ) c)) refl
@@ -154,7 +152,7 @@ cong₃ f refl refl refl = refl
 -- TODO: follows from law-reorder-Ctx?
 law-reorder-Ctx-Γ₂≡[] : 
   (Γ₁ Γ₃ Γ₄ : Ctx) (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ Γ₃ ++ Γ₄) →
-  reorder-Ctx Γ₁ [] Γ₃ Γ₄ e p ≡ coerce {Expr τ} p e  -- TODO: this is gonna be annoying, isn't it?
+  reorder-Ctx Γ₁ [] Γ₃ Γ₄ e p ≡ coerce (Expr τ) p e  -- TODO: this is gonna be annoying, isn't it?
 law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ Var p = {!!}
 law-reorder-Ctx-Γ₂≡[] Γ₁ Γ₃ Γ₄ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl
   with ⊣r4 {Γ₁'}  {[]}  {Γ₃'}  {Γ₄'} θ₁ oz θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ [] Γ₃ Γ₄ θ
@@ -212,7 +210,7 @@ push-let Γ₁ Γ₂ decl (Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ 
   -- Let used in right subexpression
 ...  | ⊣r θ₁ (θ₂ o') (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
     with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
-                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+                      (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
     with ⊣r ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
@@ -222,7 +220,7 @@ push-let Γ₁ Γ₂ decl (Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ 
   -- Let used in both subexpressions
 ...  | ⊣r θ₁ (θ₂ os) (refl , refl) | ⊣r {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
     with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
-                      (coerce {_⊑ (Γ'' ++ _)} (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+                      (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
     with ⊣r ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
@@ -262,7 +260,7 @@ mutual
     (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (e : (Expr τ₁ ×ᴿ Expr τ₂) Γ) (p : Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)
     (env₁ : Env Γ₁) (env₂ : Env Γ₂) (env₃ : Env Γ₃) (env₄ : Env Γ₄) →
       eval-binop binop (reorder-Ctx-×ᴿ Γ₁ Γ₂ Γ₃ Γ₄ e p) oi (env₁ ++ᴱ env₃ ++ᴱ env₂ ++ᴱ env₄)
-    ≡ eval-binop binop (coerce {Expr τ₁ ×ᴿ Expr τ₂} p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
+    ≡ eval-binop binop (coerce (Expr τ₁ ×ᴿ Expr τ₂) p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
   law-eval-reorder-Ctx-×ᴿ binop Γ₁ Γ₂ Γ₃ Γ₄ (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c) refl env₁ env₂ env₃ env₄
     with ⊣r4 {Γ₁'}  {Γ₂'}  {Γ₃'}  {Γ₄'}  θ₁ θ₂ θ₃ θ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ θ
     with ⊣r4 {Γ₁''} {Γ₂''} {Γ₃''} {Γ₄''} ϕ₁ ϕ₂ ϕ₃ ϕ₄ (refl , refl) ← ⊣4 Γ₁ Γ₂ Γ₃ Γ₄ ϕ =
@@ -277,7 +275,7 @@ mutual
     (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄)
     (env₁ : Env Γ₁) (env₂ : Env Γ₂) (env₃ : Env Γ₃) (env₄ : Env Γ₄) →
       eval (reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ e p) oi (env₁ ++ᴱ env₃ ++ᴱ env₂ ++ᴱ env₄)
-    ≡ eval (coerce {Expr _} p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
+    ≡ eval (coerce (Expr _) p e) oi (env₁ ++ᴱ env₂ ++ᴱ env₃ ++ᴱ env₄)
   law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ Var p env₁ env₂ env₃ env₄ =
     {!!}  -- trivial, but painful
   law-eval-reorder-Ctx Γ₁ Γ₂ Γ₃ Γ₄ (App x) refl env₁ env₂ env₃ env₄ =
@@ -291,7 +289,7 @@ mutual
 law-eval-reorder-Ctx-[] :
   ∀ {σ τ} Γ₁ Γ₂ (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ σ ∷ Γ₂) (v : ⟦ σ ⟧) (env₁ : Env Γ₁) (env₂ : Env Γ₂) →
     eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) oi (Cons v (env₁ ++ᴱ env₂))
-  ≡ eval (coerce {Expr _} p e) oi (env₁ ++ᴱ Cons v env₂)
+  ≡ eval (coerce (Expr _) p e) oi (env₁ ++ᴱ Cons v env₂)
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂ = {!!}
 -- with lemma-[]≡++ [] Γ₁ (_ ∷ []) Γ₂ {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (App x) p v env₁ env₂ = {!!}
