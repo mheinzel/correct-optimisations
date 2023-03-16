@@ -7,7 +7,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Data.Relevant as Relevant using (pairᴿ; _,ᴿ_; _\\_; _\\R_)
 open import Data.OPE
-open import Data.Var using (_─Scoped; Var; z; s)
+open import Data.Var using (_─Scoped; Var; z; s; injectˡ; injectʳ)
 open import Generic.Syntax
 open import Generic.DeBruijn.Syntax as DeBruijn
 open import Generic.CoDeBruijn.Syntax as CoDeBruijn
@@ -81,3 +81,32 @@ module Tighten where
   tighten-⟦∙⟧ (`σ A k) d' (a , t) = map⇑ (a ,_) (tighten-⟦∙⟧ (k a) d' t)
   tighten-⟦∙⟧ (`X Δ j d) d' (t₁ , t₂) = tighten-Scope Δ d' t₁ ,ᴿ tighten-⟦∙⟧ d d' t₂
   tighten-⟦∙⟧ (`∎ j) d' refl = (refl , refl) ↑ oe
+
+module TightenSem where
+  open import Data.Environment using (identity; th^Var; Kripke)
+  open import Generic.DeBruijn.Semantics as Sem using (Semantics)
+
+  alg-Kripke :
+    {d : Desc I} (Δ : List I) →
+    Kripke Var (λ σ → CoDeBruijn.Tm d σ ⇑_) Δ τ Γ →
+    CoDeBruijn.Scope (CoDeBruijn.Tm d) Δ τ ⇑ Γ
+  alg-Kripke [] t = t
+  alg-Kripke Δ@(_ ∷ _) k = Δ \\R k (Data.Environment.pack (injectʳ _)) (Data.Environment.pack (injectˡ _))
+
+  alg-⟦∙⟧ :
+    (d : Desc I) {d' : Desc I} →
+    DeBruijn.⟦ d ⟧ (Kripke Var (λ σ → CoDeBruijn.Tm d' σ ⇑_)) τ Γ →
+    CoDeBruijn.⟦ d ⟧ (CoDeBruijn.Scope (CoDeBruijn.Tm d')) τ ⇑ Γ
+  alg-⟦∙⟧ (`σ A k) (a , t) = map⇑ (a ,_) (alg-⟦∙⟧ (k a) t)
+  alg-⟦∙⟧ (`X Δ j d) (t₁ , t₂) = alg-Kripke Δ t₁ ,ᴿ alg-⟦∙⟧ d t₂
+  alg-⟦∙⟧ (`∎ j) refl = (refl , refl) ↑ oe
+
+  Tighten : (d : Desc I) → Semantics d Var (λ τ → CoDeBruijn.Tm d τ ⇑_)
+  Tighten d = record
+    { th^𝓥 = th^Var
+    ; var = λ k → `var ↑ ⊑-from-Var k
+    ; alg = λ t → map⇑ `con (alg-⟦∙⟧ d t)
+    }
+
+  tighten : (d : Desc I) → DeBruijn.Tm d τ Γ → CoDeBruijn.Tm d τ ⇑ Γ
+  tighten d = Sem.semantics (Tighten d) identity
