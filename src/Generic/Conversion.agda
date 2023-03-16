@@ -1,7 +1,7 @@
 module Generic.Conversion where
 
 open import Data.Product using (_,_)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Function using (_$_; _∘_)
 open import Relation.Binary.PropositionalEquality
 
@@ -55,6 +55,50 @@ module Relax where
     relax-Scope Δ d' (θ₁ ₒ θ) t₁ , relax-⟦∙⟧ d d' (θ₂ ₒ θ) t₂
   relax-⟦∙⟧ (`∎ j) d' θ (refl , refl) =
     refl
+
+module RelaxSem where
+  open import Data.Environment using (lookup; identity; th^Var; Kripke; _>>_; _<$>_)
+  open import Generic.CoDeBruijn.Semantics as Sem using (Semantics)
+
+  𝓒ᴿ : Desc I → I ─Scoped
+  𝓒ᴿ {I} d τ Γ' = (Γ : List I) → Γ' ⊑ Γ → DeBruijn.Tm d τ Γ
+
+  alg-Kripke :
+    {d : Desc I} (Δ : List I) → Γ' ⊑ Γ →
+    Kripke Var (𝓒ᴿ d) Δ τ Γ' →
+    DeBruijn.Scope (DeBruijn.Tm d) Δ τ Γ
+  alg-Kripke [] θ t = t _ θ
+  alg-Kripke {Γ' = Γ'} {Γ = Γ} Δ@(_ ∷ _) θ k =
+    Data.Environment.th^□ k
+      identity
+      (Data.Environment.pack (injectʳ Δ))
+      (Data.Environment.pack (injectˡ Γ'))
+      (Δ ++ Γ)
+      (oi ++⊑ θ)
+    {-
+    k {!? >> From⊑.toEnv θ!} -- (From⊑.toEnv (oe ++⊑ θ))
+      (From⊑.toEnv (coerce (_⊑ (Δ ++ Γ)) (Data.List.Properties.++-identityʳ Δ) (oi ++⊑ oe)))
+      (Δ ++ Γ)
+      oi
+    -}
+
+  alg-⟦∙⟧ :
+    (d : Desc I) {d' : Desc I} → Γ' ⊑ Γ →
+    CoDeBruijn.⟦ d ⟧ (Kripke Var (𝓒ᴿ d')) τ Γ' →
+    DeBruijn.⟦ d ⟧ (DeBruijn.Scope (DeBruijn.Tm d')) τ Γ
+  alg-⟦∙⟧ (`σ A k) θ (a , t) = a , alg-⟦∙⟧ (k a) θ t
+  alg-⟦∙⟧ (`X Δ j d) θ (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) = alg-Kripke Δ (θ₁ ₒ θ) t₁ , alg-⟦∙⟧ d (θ₂ ₒ θ) t₂
+  alg-⟦∙⟧ (`∎ j) θ (refl , refl) = refl
+
+  Relax : (d : Desc I) → Semantics d Var (𝓒ᴿ d)
+  Relax d = record
+    { th^𝓥 = th^Var
+    ; var = λ k _ θ → `var (lookup (From⊑.toEnv θ) k)
+    ; alg = λ t _ θ → `con (alg-⟦∙⟧ d θ t)
+    }
+
+  relax : (d : Desc I) → Γ' ⊑ Γ → CoDeBruijn.Tm d τ Γ' → DeBruijn.Tm d τ Γ
+  relax d θ t = Sem.semantics (Relax d) identity t _ θ
 
 module Tighten where
   tighten :

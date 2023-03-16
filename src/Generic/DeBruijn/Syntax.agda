@@ -21,14 +21,12 @@ private
     Γ₁ Γ₂ : List I
     X Y : List I → I ─Scoped
 
-
 -- Interpretation of Descriptions
 
 ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
 ⟦ `σ A d    ⟧ X i Γ = Σ[ a ∈ A ] (⟦ d a ⟧ X i Γ)
 ⟦ `X Δ j d  ⟧ X i Γ = X Δ j Γ × ⟦ d ⟧ X i Γ
 ⟦ `∎ j      ⟧ X i Γ = i ≡ j
-
 
 -- Syntaxes: Free Relative Monad of a Description's Interpretation
 
@@ -38,7 +36,7 @@ Scope T Δ i = (Δ ++_) ⊢ T i
 module _ {I : Set} where
 
  data Tm (d : Desc I) : I ─Scoped where
-   `var  : ∀[ Var i                     ⇒ Tm d i ]
+   `var  : ∀[ Var i                   ⇒ Tm d i ]
    `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i  ⇒ Tm d i ]
 
 

@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module Generic.CoDeBruijn.Syntax where
 
 open import Data.Bool using (true; false)
@@ -71,3 +73,11 @@ module _ {I : Set} {d e : Desc I} {X : List I → I ─Scoped}
  case l r (false  , t) = r t
 
 -- ...
+
+-- Descriptions give rise to traversable functors
+
+module _ {I : Set} {X Y : List I → I ─Scoped} {Γ Δ} {i} where
+
+
+ fmap :  (d : Desc I) → (∀ Θ i → X Θ i Γ → Y Θ i Δ) → ⟦ d ⟧ X i Γ → ⟦ d ⟧ Y i Δ
+ fmap = {!!} -- TODO

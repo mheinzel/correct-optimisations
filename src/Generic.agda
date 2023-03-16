@@ -71,6 +71,12 @@ import Data.Relevant
 -- Universe of Well Scoped-and-Sorted Syntaxes with Binding
 import Generic.CoDeBruijn.Syntax
 
+-- SEMANTICS (co de Bruijn)
+--------------------------------------------------------------------------------
+
+-- Semantics as Well Scoped-and-Sorted Algebras on Syntaxes with Binding
+import Generic.DeBruijn.Semantics
+
 -- CONVERSION (de Bruijn <-> co de Bruijn)
 --------------------------------------------------------------------------------
 

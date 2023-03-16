@@ -123,3 +123,12 @@ mult⇑ ((t ↑ θ) ↑ ϕ) = t ↑ (θ ₒ ϕ)
 
 thin⇑ : Γ₁ ⊑ Γ₂ → T ⇑ Γ₁ → T ⇑ Γ₂
 thin⇑ ϕ (t ↑ θ) = t ↑ (θ ₒ ϕ)
+
+module From⊑ where
+  open import Data.Var using (_─Scoped; Var; z; s)
+  open import Data.Environment
+
+  toEnv : Γ₁ ⊑ Γ₂ → (Γ₁ ─Env) Var Γ₂
+  toEnv (θ o') = s <$> toEnv θ
+  toEnv (θ os) = (s <$> toEnv θ) ∙ z
+  toEnv oz = ε
