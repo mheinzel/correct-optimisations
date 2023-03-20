@@ -71,15 +71,3 @@ module _ {I : Set} {d e : Desc I} {X : List I → I ─Scoped}
         (⟦ d `+ e  ⟧ X i Γ → A)
  case l r (true   , t) = l t
  case l r (false  , t) = r t
-
--- ...
-
--- Descriptions give rise to traversable functors
-
-module _ {I : Set} {X Y : List I → I ─Scoped} {Γ Δ} {i} where
-
- -- OOPS, probably can't do that. :(
- fmap :  (d : Desc I) → (∀ Θ i → X Θ i Γ → Y Θ i Δ) → ⟦ d ⟧ X i Γ → ⟦ d ⟧ Y i Δ
- fmap (`σ A k) f = Prod.map₂ (fmap (k _) f)
- fmap (`X Δ j d) f (pairᴿ (t₁ ↑ θ₁) t₂ c) = pairᴿ {!!} {!!} {!!}
- fmap (`∎ i) f (refl , p) = refl , {!!}
