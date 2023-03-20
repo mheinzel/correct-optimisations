@@ -1,4 +1,4 @@
-\documentclass[draft]{report}
+\documentclass{report}
 
 % workaround, see https://github.com/kosmikus/lhs2tex/issues/82
 \let\Bbbk\undefined
@@ -14,6 +14,176 @@
 \include{title}
 
 \tableofcontents
+
+
+\chapter{Overview of Current Results}
+
+\section{De Bruijn Representation}
+\subsection{Syntax Tree}
+Using standard intrinsically-typed syntax trees.
+\begin{code}
+  data Expr (Gamma : Ctx) : (tau : U) -> Set where
+    Val   : (interpret(sigma)) -> Expr Gamma sigma
+    Plus  : Expr Gamma NAT -> Expr Gamma NAT -> Expr Gamma NAT
+    Let   : Expr Gamma sigma -> Expr (sigma :: Gamma) tau -> Expr Gamma tau
+    Var   : Ref sigma Gamma -> Expr Gamma sigma
+\end{code}
+Here, the context of variables in scope is a list of types,
+references are de Bruijn indices into that list
+and the environment for evaluation is a list of values matching the context.
+\begin{code}
+  data Ref (sigma : U) : Ctx -> Set where
+    Top  : Ref sigma (sigma :: Gamma)
+    Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
+\end{code}
+\begin{code}
+  data Env : Ctx -> Set where
+    Nil   : Env []
+    Cons  : (interpret(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
+\end{code}
+\begin{code}
+  lookup : Ref sigma Gamma -> Env Gamma -> (interpret(sigma))
+  lookup Top      (Cons v env)   = v
+  lookup (Pop i)  (Cons v env)   = lookup i env
+\end{code}
+\begin{code}
+  eval : Expr Gamma sigma -> Env Gamma -> (interpret(sigma))
+  eval (Val v)       env  = v
+  eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
+  eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
+  eval (Var x)       env  = lookup x env
+\end{code}
+For more details, see section \ref{sec:background-intrinsically-typed}.
+
+\subsection{Dead Binding Elimination}
+\paragraph{Analysis}
+In a first pass, we perform \emph{live variable analysis}
+and create an annotated expression using \emph{sub-contexts}.
+\begin{code}
+  data SubCtx : Ctx -> Set where
+    Empty  : SubCtx []
+    Drop   : SubCtx Gamma -> SubCtx (tau :: Gamma)
+    Keep   : SubCtx Gamma -> SubCtx (tau :: Gamma)
+\end{code}
+\begin{code}
+  data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
+    Let : LiveExpr Delta Delta1 sigma ->
+          LiveExpr (Keep Delta) Delta2 tau ->
+          LiveExpr Delta (Delta2 \/ pop Delta2) tau
+    (dots)
+\end{code}
+\begin{code}
+  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
+\end{code}
+\paragraph{Transformation}
+In a second pass, dead let-bindings can then be identified and removed.
+\begin{code}
+  dbe : LiveExpr Delta Delta' tau -> Expr (floor(Delta')) tau
+\end{code}
+\paragraph{Correctness}
+We show that the transformation preserves semantics based on the (total) evaluation function.
+\paragraph{Iterating the transformation}
+Since this transformation can require multiple runs to eliminate all possible bindings
+(section \ref{sec:background-transformations}),
+we use well-founded recursion to iterate it until a fixpoint is reached.
+\paragraph{}
+For more details, see section \autoref{sec:results-dbe}.
+
+\subsection{Strong Dead Binding Elimination}
+To avoid the need for iterating the transformation,
+we employ the more precise \emph{strongly live variable analysis}.
+The main difference is that we only consider variable usages in a declaration
+if that declaration itself is live.
+\begin{code}
+  combine : SubCtx Gamma -> SubCtx (sigma :: Gamma) -> SubCtx Gamma
+  combine Delta1 (Drop Delta2) = Delta2
+  combine Delta1 (Keep Delta2) = Delta1 \/ Delta2
+\end{code}
+\begin{code}
+  data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
+    Let : LiveExpr Delta Delta1 sigma ->
+          LiveExpr (Keep Delta) Delta2 tau ->
+          LiveExpr Delta (Delta2 \/ pop Delta2) tau
+    (dots)
+\end{code}
+The remaining algorithm and most of the correctness proof are unaffected.
+
+\subsection{Pushing Bindings Inward}
+We want to push a let-binding as far inward as possible,
+without pushing into a lambda or duplicating the binding.
+This seemingly simple transformation shows some unexpected complications.
+% having to repeatedly query variable usage information
+% the notion of pop-at, because we need context re-ordering (which OPEs don't support)
+% having to rename variables
+\paragraph{Signature}
+While we initially deal with a binding for the topmost entry in the context
+(|Expr Gamma sigma -> Expr (sigma :: Gamma) tau -> Expr Gamma tau|),
+recursively applying this function under binders requires more flexibility.
+The solution chosen here allows to the position of that binding to be specified
+by a reference.
+\begin{code}
+pop-at : (Gamma : Ctx) -> Ref tau Gamma -> Ctx
+pop-at (sigma :: Gamma) Top = Gamma
+pop-at (sigma :: Gamma) (Pop i) = sigma :: pop-at Gamma i
+\end{code}
+\begin{code}
+push-let : (i : Ref sigma Gamma) -> Expr (pop-at Gamma i) sigma -> Expr Gamma tau -> Expr (pop-at Gamma i) tau
+\end{code}
+\paragraph{Variable usage}
+Instead of working with an annotated version of the syntax tree,
+we here query variable usage in subexpressions on demand.
+If the binding is not used in a subexpression,
+we need to obtain a strengthened version of it.
+\begin{code}
+strengthen-pop-at : (i : Ref sigma Gamma) -> Expr Gamma tau -> Top \+/ Expr (pop-at Gamma i) tau
+\end{code}
+\paragraph{Binary constructors}
+This information is then used to decide how to deal with a binary constructor:
+If one subexpression can be strengthened, we only need to recurse into the other.
+If both subexpressions use the declaration, we do not push further,
+but create a let-binding at the current location.
+Note that it is still necessary to rename the subexpressions
+since they make use of the newly created binding,
+but expect it at a different de Bruijn index.
+\begin{code}
+rename-top :
+  (Gamma' : Ctx) (i : Ref sigma Gamma) ->
+  Expr (Gamma' ++ Gamma) tau -> Expr (Gamma' ++ (sigma :: pop-at Gamma i)) tau
+\end{code}
+
+\subsection{Open Ends and Questions}
+\begin{itemize}
+  \item review dead binding elimination: after gaining additional experience,
+    are annotated expressions with sub-contexts still a good design?
+  \item dead binding elimination: since the stronger version is so similar,
+    do that immediately?
+  \item push let inward: repeated querying is not ideal,
+    but there were complications with |LiveExpr|.
+  \item push let inward: no correctness proof yet
+\end{itemize}
+
+\section{Co-de-Bruijn Representation}
+\subsection{Syntax Tree}
+\subsection{Conversion to de Bruijn Representation}
+\subsection{Dead Binding Elimination}
+\subsection{Strong Dead Binding Elimination}
+\subsection{Pushing Bindings Inward}
+\subsection{Open Ends}
+
+\section{Generic de Bruijn Representation}
+\subsection{Syntax Tree}
+\subsection{Conversion to de Bruijn Representation}
+\subsection{Open Ends}
+(Dead Binding Elimination)
+
+\section{Generic co-de-Bruijn Representation}
+\subsection{Generic co-de-Bruijn Terms}
+\subsection{Syntax Tree}
+\subsection{Conversion to co-de-Bruijn Representation}
+\subsection{Generic Conversion to de Bruijn Representation}
+\subsection{Open Ends}
+(Dead Binding Elimination)
+(Strong Dead Binding Elimination)
 
 
 \chapter{Introduction}
@@ -110,8 +280,8 @@ in the body.
 Consider for example the following expression:
 
 \begin{align*}
-  &\Let{x} 42 \In \\
-  &\ \ \Let{y} x + 6 \In \\
+  &\Let{x} 42 \In            \\
+  &\ \ \Let{y} x + 6 \In     \\
   &\ \ \ \ \Let{z} y + 7 \In \\
   &\ \ \ \ \ \ x
 \end{align*}
@@ -155,8 +325,8 @@ If we adapt the syntax for let-bindings to omit the unnecessary variable name,
 the example expression from dead binding elimination is represented as follows:
 
 \begin{align*}
-  &\LetB 42 \In \\
-  &\ \ \LetB \DeBruijn{0} + 6 \In \\
+  &\LetB 42 \In                       \\
+  &\ \ \LetB \DeBruijn{0} + 6 \In     \\
   &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
   &\ \ \ \ \ \ \DeBruijn{2}
 \end{align*}
@@ -168,7 +338,7 @@ requires us to add or subtract 1 from all free variables in the binding's body.
 We can see this in our example when removing the innermost (unused) let-binding:
 
 \begin{align*}
-  &\LetB 42 \In \\
+  &\LetB 42 \In                   \\
   &\ \ \LetB \DeBruijn{0} + 6 \In \\
   &\ \ \ \ \DeBruijn{1}
 \end{align*}
@@ -187,6 +357,7 @@ and also combinations of multiple techniques, e.g. the locally nameless represen
 
 
 \section{Intrinsically Typed Syntax}
+\label{sec:background-intrinsically-typed}
 
 %Just as the language as seen so far allows to build
 Whether we use explicit names or de Bruijn indices,
@@ -318,10 +489,10 @@ into the original context, and we capture this notion in a single data type.
 For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
 
 \begin{code}
-data SubCtx : Ctx -> Set where
-  Empty  : SubCtx []
-  Drop   : SubCtx Gamma → SubCtx (tau :: Gamma)
-  Keep   : SubCtx Gamma → SubCtx (tau :: Gamma)
+  data SubCtx : Ctx -> Set where
+    Empty  : SubCtx []
+    Drop   : SubCtx Gamma -> SubCtx (tau :: Gamma)
+    Keep   : SubCtx Gamma -> SubCtx (tau :: Gamma)
 \end{code}
 
 The context uniquely described by a sub-context is
@@ -348,11 +519,11 @@ While |Delta| is treated as |Gamma| was before, |Delta'| now only contains live 
 starting with a singleton sub-context at the variable usage sites.
 
 \begin{code}
-data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
-  Let : LiveExpr Delta Delta1 sigma ->
-        LiveExpr (Keep Delta) Delta2 tau ->
-        LiveExpr Delta (Delta2 \/ pop Delta2) tau
-  (dots)
+  data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
+    Let : LiveExpr Delta Delta1 sigma ->
+    LiveExpr (Keep Delta) Delta2 tau ->
+    LiveExpr Delta (Delta2 \/ pop Delta2) tau
+    (dots)
 \end{code}
 
 To create such annotated expressions, we need to perform
@@ -363,7 +534,7 @@ The only requirement we have for it is that we can forget the annotations again,
 with |forget . analyse == id|.
 
 \begin{code}
-  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta tau
+  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
   forget  : LiveExpr Delta Delta' tau -> Expr (floor(Delta)) tau
 \end{code}
 
