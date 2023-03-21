@@ -158,7 +158,45 @@
 
 \section{Co-de-Bruijn Representation}
 \subsection{Syntax Tree}
+  We follow McBride's work on co-de-Bruijn representation
+  \cite{McBride2018EveryBodysGotToBeSomewhere}
+  in defining the type of relevant pairs |><R|
+  where each variable in the context must be in the context of one of the two subexpressions,
+  as well as bound variables | ||- |.
+  \begin{code}
+    data Expr : (sigma : U) (Gamma : Ctx) -> Set where
+      Var : Expr sigma (sigma :: [])
+      App : (Expr (sigma ⇒ tau) ><R Expr sigma) Gamma -> Expr tau Gamma
+      Lam : ((sigma :: []) |- Expr tau) Gamma -> Expr (sigma ⇒ tau) Gamma
+      Let : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau Gamma
+      Val : (v : (interpret (sigma))) -> Expr sigma []
+      Plus : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
+  \end{code}
 \subsection{Conversion to de Bruijn Representation}
+  The main difference here is that
+  variables are not kept in the context until the latest,
+  but discarded at the earliest opportunity.
+  More concretely,
+  in de Bruijn representation, subexpressions keep the full context of available bindings,
+  while in co-de-Bruijn representation an OPE selects the subset that occurs.
+  A converted expression will therefore generally be required to have a larger context than before,
+  indicated by an OPE.
+  \begin{code}
+    from :  Gamma' C= Gamma -> Expr sigma Gamma' -> DeBruijn.Expr Gamma sigma
+  \end{code}
+  The implementation proceeds by induction over the syntax,
+  composes OPEs on the way
+  and finally at the variable makes use of the fact
+  that an OPE from a singleton list is isomorphic to a de Bruijn reference.
+  The proof of semantic equivalence mainly consists of congruences.
+\subsection{Conversion from de Bruijn Representation}
+  In the opposite direction,
+  the resulting co-de-Bruijn expression will generally have a smaller context
+  that is not known upfront.
+  This can be expressed nicely by TODO
+  \begin{code}
+    into : DeBruijn.Expr Gamma sigma -> Expr sigma ^^ Gamma
+  \end{code}
 \subsection{Dead Binding Elimination}
 \subsection{Strong Dead Binding Elimination}
 \subsection{Pushing Bindings Inward}
@@ -172,6 +210,7 @@
 
 \section{Generic co-de-Bruijn Representation}
 \subsection{Generic co-de-Bruijn Terms}
+\subsection{Generic Semantics}
 \subsection{Syntax Tree}
 \subsection{Conversion to co-de-Bruijn Representation}
 \subsection{Generic Conversion to de Bruijn Representation}

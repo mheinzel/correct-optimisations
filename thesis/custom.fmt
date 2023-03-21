@@ -25,5 +25,9 @@
 %format (floor (a)) = "\lfloor\ " a "\ \rfloor"
 %format (dots (a)) = "\ldots"
 %format (hide (a)) = " "
+%format C= = "\sqsubseteq"
+%format ^^ = "\Uparrow"
+%format ><R = "\times^R"
+%format |- = "\vdash"
 %endif
 % We're not extracting Agda code yet, so there is no 'else' required.
