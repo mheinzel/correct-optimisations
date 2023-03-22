@@ -65,6 +65,9 @@
       Keep   : SubCtx Gamma -> SubCtx (tau :: Gamma)
   \end{code}
   \begin{code}
+    floor_ : SubCtx Gamma -> Ctx
+  \end{code}
+  \begin{code}
     data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
       Let : LiveExpr Delta Delta1 sigma ->
             LiveExpr (Keep Delta) Delta2 tau ->
@@ -160,9 +163,9 @@
 \subsection{Syntax Tree}
   We follow McBride's work on co-de-Bruijn representation
   \cite{McBride2018EveryBodysGotToBeSomewhere}
-  in defining the type of relevant pairs |><R|
+  and use OPEs |_C=_| to define the type of relevant pairs |_><R_|
   where each variable in the context must be in the context of one of the two subexpressions,
-  as well as bound variables | ||- |.
+  as well as bound variables |_||-_|.
   \begin{code}
     data Expr : (sigma : U) (Gamma : Ctx) -> Set where
       Var : Expr sigma (sigma :: [])
@@ -193,14 +196,97 @@
   In the opposite direction,
   the resulting co-de-Bruijn expression will generally have a smaller context
   that is not known upfront.
-  This can be expressed nicely by TODO
+  This can be expressed conveniently by returning an expression together with an OPE
+  into the original context.
+  \begin{code}
+    record _^^_ (T : List I -> Set) (scope : List I) : Set where
+      constructor _^_
+      field
+        {support} : List I
+        thing : T support
+        thinning : support C= scope
+  \end{code}
   \begin{code}
     into : DeBruijn.Expr Gamma sigma -> Expr sigma ^^ Gamma
   \end{code}
 \subsection{Dead Binding Elimination}
+  Co-de-Bruijn expressions enforce that every variable in an expression's context
+  must occur somewhere.
+  However, there can still be dead bindings:
+  The declaration of type |tau| bound by |tau :: [] ||- e| does not need to appear in the context of |e|.
+  It can be immediately discarded, making the binding dead.
+  We need to identify such let-bindings and eliminate them.
+  Due to the variable usage information already maintained within co-de-Bruijn expressions,
+  no further analysis is necessary.
+  \begin{code}
+    dbe : Expr tau Gamma -> Expr tau ^^ Gamma
+    dbe (Let (pairR (e1 ^ phi1) ((oz o' \\ e2) ^ phi2) c)) =
+      thin^^ phi2 (dbe e2)
+    dbe (Let (pairR (e1 ^ phi1) ((oz os \\ e2) ^ phi2) c)) =
+      map^^ Let (thin^^ phi1 (dbe e1) ,R thin^^ phi2 ((_ :: []) \\R dbe e2))
+    (dots)
+  \end{code}
+  Since the body is generally in a smaller context than the whole let-binding was,
+  we again need to return an expression with a thinning.
+  This has several consequences:
+  Firstly, these new thinnings need to be composed with the existing ones
+  on the way up (e.g. using |thin^^|).
+  Secondly, we need to rediscover the variable usage information,
+  i.e. calculate new contexts and covers at each node using |_\\R_| and |_,R_|.
+  And finally, this also means that (as in the de Bruijn setting)
+  previously live bindings might now have become dead,
+  requiring another iteration.
 \subsection{Strong Dead Binding Elimination}
+  To avoid this,
+  instead of identifying unused bound variables in the input expression,
+  we can do the recursive call \emph{first} and check whether the variable is used
+  \emph{afterwards}.
+  \Fixme{unexplained operations, hard to follow}
+  \begin{code}
+    let-? : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau ^^ Gamma
+    let-?     (pairR _ ((oz o' \\ e2)  ^ theta2)  _) = e2 ^ theta2
+    let-? p@  (pairR _ ((oz os \\ _)   ^ _)       _) = Let p ^ oi
+  \end{code}
+  \begin{code}
+    dbe : Expr tau Gamma -> Expr tau ^^ Gamma
+    dbe (Let (pairR (e1 ^ phi1) ((_\\_ {bound = Gamma'} psi e2) ^ phi2) c)) =
+      mult^^ (map^^ let-?
+        (thin^^ phi1 (dbe e1) ,R thin^^ phi2 (map^^ (map|- psi) (Gamma' \\R dbe e2))))
+    (dots)
+  \end{code}
+  The other cases are just the same as in the previous section.
+  \paragraph{Correctness}
+  We also prove that |dbe| preserves semantics.
+  \begin{code}
+    dbe-correct :
+      (e : Expr tau Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) →
+      let e' ^ theta' = dbe e
+      in eval e' (theta' .. theta) env == eval e theta env
+  \end{code}
+  Even the more straight-forward cases require some massaging to get to work.
+  For relevant pairs,
+  we need to make use of associativity of |_.._| to apply some
+  equalities about the result of |_,R_|.
+  For bound variables,
+  to even be able to apply the induction hypothesis,
+  we need to make available some equalities about |_\\R_|.
+  It then remains to use that composition and concatenation of OPEs commute:
+  | (theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2) |.
+  \\
+  For let-bindings, we additionally use the semantics-preserving nature of |let-?|.
+  \begin{code}
+    lemma-let-? :
+      (p : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) ->
+      let e' ^ theta' = let-? p
+      in eval (Let p) theta env ≡ eval e' (theta' .. theta) env
+  \end{code}
 \subsection{Pushing Bindings Inward}
+  ...
 \subsection{Open Ends}
+  \begin{itemize}
+    \item Dead Binding Elimination: adapt correctness proof from strong version
+    \item Pushing Bindings Inward: finish correctness proof
+  \end{itemize}
 
 \section{Generic de Bruijn Representation}
 \subsection{Syntax Tree}
