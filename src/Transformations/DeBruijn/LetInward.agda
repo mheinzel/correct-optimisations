@@ -5,7 +5,7 @@ open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Unit
 open import Data.Product
-open import Data.Sum
+open import Data.Maybe.Base as Maybe using (Maybe ; just ; nothing)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
@@ -42,31 +42,19 @@ weaken θ (Let e₁ e₂) = Let (weaken θ e₁) (weaken (θ os) e₂)
 weaken θ (Val x) = Val x
 weaken θ (Plus e₁ e₂) = Plus (weaken θ e₁) (weaken θ e₂)
   
-strengthen-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ → ⊤ ⊎ Ref σ Γ'
-strengthen-Ref (θ os) Top = inj₂ Top
-strengthen-Ref (θ os) (Pop x) with strengthen-Ref θ x
-... | inj₁ tt = inj₁ tt
-... | inj₂ x' = inj₂ (Pop x')
-strengthen-Ref (θ o') Top = inj₁ tt -- ref became invalid by strengthening
+strengthen-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ → Maybe (Ref σ Γ')
+strengthen-Ref (θ os) Top     = just Top
+strengthen-Ref (θ os) (Pop x) = Maybe.map Pop (strengthen-Ref θ x)
+strengthen-Ref (θ o') Top     = nothing -- ref became invalid by strengthening
 strengthen-Ref (θ o') (Pop x) = strengthen-Ref θ x
 
-strengthen : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr Γ τ → ⊤ ⊎ Expr Γ' τ
-strengthen θ (Var x) with strengthen-Ref θ x
-... | inj₁ tt = inj₁ tt
-... | inj₂ x' = inj₂ (Var x') 
-strengthen θ (App e₁ e₂) with strengthen θ e₁ | strengthen θ e₂
-... | inj₂ e₁' | inj₂ e₂' = inj₂ (App e₁' e₂')
-... | _        | _        = inj₁ tt
-strengthen θ (Lam {σ = σ} e) with strengthen (θ os) e
-... | inj₂ e' = inj₂ (Lam e')
-... | inj₁ tt = inj₁ tt
-strengthen θ (Let {σ = σ} e₁ e₂) with strengthen θ e₁ | strengthen (θ os) e₂
-... | inj₂ e₁' | inj₂ e₂' = inj₂ (Let e₁' e₂')
-... | _        | _        = inj₁ tt
-strengthen θ (Val x) = inj₂ (Val x)
-strengthen θ (Plus e₁ e₂) with strengthen θ e₁ | strengthen θ e₂
-... | inj₂ e₁' | inj₂ e₂' = inj₂ (Plus e₁' e₂')
-... | _        | _        = inj₁ tt
+strengthen : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr Γ τ → Maybe (Expr Γ' τ)
+strengthen θ (Var x)      = Maybe.map Var (strengthen-Ref θ x)
+strengthen θ (App e₁ e₂)  = Maybe.zipWith App (strengthen θ e₁) (strengthen θ e₂)
+strengthen θ (Lam e)      = Maybe.map Lam (strengthen (θ os) e)
+strengthen θ (Let e₁ e₂)  = Maybe.zipWith Let (strengthen θ e₁) (strengthen (θ os) e₂)
+strengthen θ (Val x)      = just (Val x)
+strengthen θ (Plus e₁ e₂) = Maybe.zipWith Plus (strengthen θ e₁) (strengthen θ e₂)
 
 pop-at : (Γ : Ctx) → Ref τ Γ → Ctx
 pop-at (σ ∷ Γ) Top = Γ
@@ -76,10 +64,10 @@ o-pop-at : (i : Ref τ Γ) → pop-at Γ i ⊑ Γ
 o-pop-at Top = oi o'
 o-pop-at (Pop i) = (o-pop-at i) os
 
-strengthen-pop-at : (i : Ref σ Γ) → Expr Γ τ → ⊤ ⊎ Expr (pop-at Γ i) τ
+strengthen-pop-at : (i : Ref σ Γ) → Expr Γ τ → Maybe (Expr (pop-at Γ i) τ)
 strengthen-pop-at i = strengthen (o-pop-at i)
 
-strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr (σ' ∷ Γ) τ → ⊤ ⊎ Expr (σ' ∷ pop-at Γ i) τ
+strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr (σ' ∷ Γ) τ → Maybe (Expr (σ' ∷ pop-at Γ i) τ)
 strengthen-keep-pop-at i = strengthen ((o-pop-at i) os)
 
 -- NOTE: The following code feels like it requires more different operations than it should.
@@ -114,22 +102,22 @@ push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
 ... | Top = decl
 ... | Pop x' = Var x'
 push-let i decl (App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (App (rename-top [] i e₁) (rename-top [] i e₂))
-... | inj₁ tt  | inj₂ e₂' = App (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = App e₁' (push-let i decl e₂)
-... | inj₂ e₁' | inj₂ e₂' = App e₁' e₂'
+... | nothing  | nothing  = Let decl (App (rename-top [] i e₁) (rename-top [] i e₂))
+... | nothing  | just e₂' = App (push-let i decl e₁) e₂'
+... | just e₁' | nothing  = App e₁' (push-let i decl e₂)
+... | just e₁' | just e₂' = App e₁' e₂'
 push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't push into lambda
 push-let i decl (Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
-... | inj₁ tt  | inj₂ e₂' = Let (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
-... | inj₂ e₁' | inj₂ e₂' = Let e₁' e₂'
+... | nothing  | nothing  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
+... | nothing  | just e₂' = Let (push-let i decl e₁) e₂'
+... | just e₁' | nothing  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
+... | just e₁' | just e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
 push-let i decl (Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | inj₁ tt  | inj₁ tt  = Let decl (Plus (rename-top [] i e₁) (rename-top [] i e₂))
-... | inj₁ tt  | inj₂ e₂' = Plus (push-let i decl e₁) e₂'
-... | inj₂ e₁' | inj₁ tt  = Plus e₁' (push-let i decl e₂)
-... | inj₂ e₁' | inj₂ e₂' = Plus e₁' e₂'
+... | nothing  | nothing  = Let decl (Plus (rename-top [] i e₁) (rename-top [] i e₂))
+... | nothing  | just e₂' = Plus (push-let i decl e₁) e₂'
+... | just e₁' | nothing  = Plus e₁' (push-let i decl e₂)
+... | just e₁' | just e₂' = Plus e₁' e₂'
 
 -- This is the same signature as for `Let` itself.
 push-let' : Expr Γ σ → Expr (σ ∷ Γ) τ → Expr Γ τ

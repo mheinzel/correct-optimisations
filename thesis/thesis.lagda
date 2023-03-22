@@ -129,7 +129,7 @@
   If the binding is not used in a subexpression,
   we need to obtain a strengthened version of it.
   \begin{code}
-  strengthen-pop-at : (i : Ref sigma Gamma) -> Expr Gamma tau -> Top \+/ Expr (pop-at Gamma i) tau
+    strengthen-pop-at : (i : Ref sigma Gamma) -> Expr Gamma tau -> Maybe (Expr (pop-at Gamma i) tau)
   \end{code}
   \paragraph{Binary constructors}
   This information is then used to decide how to deal with a binary constructor:
