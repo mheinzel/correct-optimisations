@@ -148,7 +148,6 @@
     Expr (Gamma' ++ Gamma) tau -> Expr (Gamma' ++ (sigma :: pop-at Gamma i)) tau
   \end{code}
 \subsection{Open Ends and Questions}
-  %
   \begin{itemize}
     \item review dead binding elimination: after gaining additional experience,
       are annotated expressions with sub-contexts still a good design?

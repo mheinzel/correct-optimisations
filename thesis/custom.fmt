@@ -47,19 +47,17 @@
 %format thin^^ = "\Varid{thin}{\Uparrow}"
 %format map^^ = "\Varid{map}{\Uparrow}"
 %format mult^^ = "\Varid{mult}{\Uparrow}"
-%format ><R = "\times^R"
-%format _><R_ = "\_{\times^R}\_"
-%format ,R = ",^R"
-%format _,R_ = "\_{,^R}\_"
+%format ><R = "\times_R"
+%format _><R_ = "\_{\times_R}\_"
+%format ,R = ",_R"
+%format _,R_ = "\_{,_R}\_"
 %format |- = "\vdash"
 %format _|-_ = "\_{\vdash}\_"
 %format \\ = "\fatbslash"
 %format _\\_ = "\_{\fatbslash}\_"
-%format \\R = "\fatbslash^R"
-%format _\\R_ = "\_{\fatbslash^R}\_"
+%format \\R = "\fatbslash_R"
+%format _\\R_ = "\_{\fatbslash_R}\_"
 %format map|- = "\Varid{map}{\vdash}"
-%format pairR = "\Varid{pair}^R"
-% TODO: we could make some operators more similar to the papers they come from.
-% e.g. composition of OPEs (from stdmaryrd), _R insteaf of ^R
+%format pairR = "\Varid{pair}_R"
 %endif
 % We're not extracting Agda code yet, so there is no 'else' required.
