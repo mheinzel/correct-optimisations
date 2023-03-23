@@ -5,7 +5,7 @@ open import Data.List using (List; []; _∷_; _++_)
 open import Function using (_$_; _∘_)
 open import Relation.Binary.PropositionalEquality
 
-open import Data.Relevant as Relevant using (pairᴿ; _,ᴿ_; _\\_; _\\R_)
+open import Data.Relevant as Relevant using (pairᴿ; _,ᴿ_; _\\_; _\\ᴿ_)
 open import Data.OPE
 open import Data.Var using (_─Scoped; Var; z; s; injectˡ; injectʳ)
 open import Generic.Syntax
@@ -120,7 +120,7 @@ module Tighten where
   tighten d (`con t) = map⇑ `con (tighten-⟦∙⟧ d d t)
 
   tighten-Scope [] d t = tighten d t
-  tighten-Scope Δ@(_ ∷ _) d t = Δ \\R tighten d t
+  tighten-Scope Δ@(_ ∷ _) d t = Δ \\ᴿ tighten d t
 
   tighten-⟦∙⟧ (`σ A k) d' (a , t) = map⇑ (a ,_) (tighten-⟦∙⟧ (k a) d' t)
   tighten-⟦∙⟧ (`X Δ j d) d' (t₁ , t₂) = tighten-Scope Δ d' t₁ ,ᴿ tighten-⟦∙⟧ d d' t₂
@@ -135,7 +135,7 @@ module TightenSem where
     Kripke Var (λ σ → CoDeBruijn.Tm d σ ⇑_) Δ τ Γ →
     CoDeBruijn.Scope (CoDeBruijn.Tm d) Δ τ ⇑ Γ
   alg-Kripke [] t = t
-  alg-Kripke Δ@(_ ∷ _) k = Δ \\R k (Data.Environment.pack (injectʳ _)) (Data.Environment.pack (injectˡ _))
+  alg-Kripke Δ@(_ ∷ _) k = Δ \\ᴿ k (Data.Environment.pack (injectʳ _)) (Data.Environment.pack (injectˡ _))
 
   alg-⟦∙⟧ :
     (d : Desc I) {d' : Desc I} →

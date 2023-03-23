@@ -22,9 +22,9 @@ private
     σ τ : U
     Γ : List U
 
-let-? : ∀ {σ τ Γ} → (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
-let-? (pairᴿ (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) = e₂ ↑ θ₂  -- remove binding
-let-? (pairᴿ (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) = Let (pairᴿ (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) ↑ oi
+let-? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+let-?   (pairᴿ _ ((oz o' \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂  -- remove binding
+let-? p@(pairᴿ _ ((oz os \\ _)  ↑ _)  _) = Let p ↑ oi
 
 lemma-let-? :
   (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
@@ -72,7 +72,7 @@ mutual
   dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
     map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
   dbe (Lam (_\\_ {bound = Γ'} ψ e)) =
-    map⇑ (Lam ∘ map⊢ ψ) (Γ' \\R dbe e)
+    map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
   dbe (Let p) =
     mult⇑ (map⇑ let-? (dbe-Let p))
   dbe (Val v) =
@@ -82,7 +82,7 @@ mutual
 
   dbe-Let : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) ⇑ Γ
   dbe-Let (pairᴿ (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e₂) ↑ ϕ₂) c) =
-    thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\R dbe e₂))
+    thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\ᴿ dbe e₂))
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
@@ -114,7 +114,7 @@ dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
   with dbe e₁
 ...  | e₁' ↑ θ₁
   with Γ' ⊣ θ₁
-...  | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+...  | split ϕ₁ ϕ₂ (refl , refl) =
   extensionality _ _ λ v →  -- TODO: move extensionality out?
       eval e₁' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
     ≡⟨ cong (λ x → eval e₁' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
@@ -123,7 +123,7 @@ dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
       eval e₁ (ψ ++⊑ θ) (Cons v env)
     ∎
 
-dbe-correct-×R :
+dbe-correct-×ᴿ :
   {Γₑ : Ctx}
   {τ₁ τ₂ τ : U} (eval-step : ⟦ τ₁ ⟧ → ⟦ τ₂ ⟧ → ⟦ τ ⟧) →
   (p : (Expr τ₁ ×ᴿ Expr τ₂) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
@@ -137,7 +137,7 @@ dbe-correct-×R :
   eval-binop eval-step p' (θ' ₒ θ) env ≡ eval-binop eval-step p θ env
   --   eval-step (eval e₁'' (θ₁'' ₒ θ' ₒ θ) env) (eval e₂'' (θ₂'' ₒ θ' ₒ θ) env)
   -- ≡ eval-step (eval e₁ (θ₁ ₒ θ) env) (eval e₂ (θ₂ ₒ θ) env)
-dbe-correct-×R eval-step (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
+dbe-correct-×ᴿ eval-step (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ h₁ h₂
   with dbe e₁    | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with cop (θ₁' ₒ θ₁) (θ₂' ₒ θ₂) 
@@ -176,7 +176,7 @@ dbe-correct-Let (pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂)
   with dbe e₁    | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with Γ' ⊣ θ₂'
-...  | ⊣r ϕ₁ ϕ₂ (refl , refl)
+...  | split ϕ₁ ϕ₂ (refl , refl)
   with cop (θ₁' ₒ θ₁) (ϕ₂ ₒ θ₂) 
 ...  | coproduct Γ' ψ' θ₁'' θ₂'' p₁ p₂ c =
     eval e₂' ((ϕ₁ ₒ ψ) ++⊑ (θ₂'' ₒ ψ' ₒ θ)) (Cons (eval e₁' (θ₁'' ₒ ψ' ₒ θ) env) env)
@@ -199,7 +199,7 @@ dbe-correct :
 dbe-correct Var env θ =
   cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
 dbe-correct (App (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
-  dbe-correct-×R _$_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+  dbe-correct-×ᴿ _$_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (dbe-correct e₁ env (θ₁ ₒ θ))
     (dbe-correct e₂ env (θ₂ ₒ θ))
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
@@ -222,6 +222,6 @@ dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ 
 dbe-correct (Val v) env θ =
   refl
 dbe-correct (Plus (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
-  dbe-correct-×R _+_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
+  dbe-correct-×ᴿ _+_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (dbe-correct e₁ env (θ₁ ₒ θ))
     (dbe-correct e₂ env (θ₂ ₒ θ))

@@ -87,8 +87,6 @@ record _×ᴿ_ (S T : I ─Indexed) (Γ : List I) : Set where
     outr  : T ⇑ Γ
     cover : Cover (_⇑_.thinning outl) (_⇑_.thinning outr)
 
--- TODO: better name? _⊢ᴿ_?
--- mentions "relevance", distinguishes from Stdlib._⊢_ : (A → B) → (B → Set) → (A → Set)
 record _⊢_ (Γ' : List I) (T : I ─Indexed) (Γ : List I) : Set where
   constructor _\\_
   field
@@ -100,17 +98,17 @@ map⊢ : Γ₁ ⊑ Γ₂ → (Γ₁ ⊢ T) Γ → (Γ₂ ⊢ T) Γ
 map⊢ ϕ (θ \\ t) = (θ ₒ ϕ) \\ t
 
 {- original definition
-_\\R_ : {T : I ─Indexed} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
-Γ' \\R (t ↑ ψ)       with Γ' ⊣ ψ
-Γ' \\R (t ↑ .(θ ++⊑ ϕ)) | ⊣r θ ϕ (refl , refl) = (θ \\ t) ↑ ϕ
+_\\ᴿ_ : {T : I ─Indexed} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+Γ' \\ᴿ (t ↑ ψ)       with Γ' ⊣ ψ
+Γ' \\ᴿ (t ↑ .(θ ++⊑ ϕ)) | split θ ϕ (refl , refl) = (θ \\ t) ↑ ϕ
 -}
 
 -- TODO: better name? R → ᴿ
-\\R-helper : {Γ Γ' Γ'' : List I} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Γ' ⊣R ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
-\\R-helper (⊣r ϕ₁ ϕ₂ (refl , refl)) t = (ϕ₁ \\ t) ↑ ϕ₂
+\\ᴿ-helper : {Γ Γ' Γ'' : List I} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Split Γ' ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
+\\ᴿ-helper (split ϕ₁ ϕ₂ (refl , refl)) t = (ϕ₁ \\ t) ↑ ϕ₂
 
-_\\R_ : (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
-Γ' \\R (t ↑ ψ) = \\R-helper (Γ' ⊣ ψ) t
+_\\ᴿ_ : (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+Γ' \\ᴿ (t ↑ ψ) = \\ᴿ-helper (Γ' ⊣ ψ) t
 
 -- Just to avoid a huge chain of Σ-types.
 record Coproduct {I : Set} {Γ₁ Γ₂ Γ : List I} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where

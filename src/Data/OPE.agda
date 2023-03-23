@@ -74,21 +74,21 @@ _++⊑_ :
 (θ os) ++⊑ ϕ = (θ ++⊑ ϕ) os
 oz ++⊑ ϕ = ϕ
 
-record _⊣R_ (Γ₁ : List I) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) : Set where
-  constructor ⊣r
+record Split (Γ₁ : List I) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) : Set where
+  constructor split
   field
-    {Γ₁'} : List I
-    {Γ₂'} : List I
-    ϕ₁ : (Γ₁' ⊑ Γ₁)
-    ϕ₂ : (Γ₂' ⊑ Γ₂)
-    H : Σ (Γ ≡ Γ₁' ++ Γ₂') λ { refl → ψ ≡ ϕ₁ ++⊑ ϕ₂ }
+    {used₁} : List I
+    {used₂} : List I
+    thinning₁ : (used₁ ⊑ Γ₁)
+    thinning₂ : (used₂ ⊑ Γ₂)
+    eq : Σ (Γ ≡ used₁ ++ used₂) λ { refl → ψ ≡ thinning₁ ++⊑ thinning₂ }
 
-_⊣_ : (Γ₁ : List I) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) → Γ₁ ⊣R ψ
-[] ⊣ ψ = ⊣r oz ψ (refl , refl)
+_⊣_ : (Γ₁ : List I) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) → Split Γ₁ ψ
+[] ⊣ ψ = split oz ψ (refl , refl)
 (τ ∷ Γ₁) ⊣ (ψ o')       with Γ₁ ⊣ ψ
-(τ ∷ Γ₁) ⊣ (.(ϕ₁ ++⊑ ϕ₂) o') | ⊣r ϕ₁ ϕ₂ (refl , refl) = ⊣r (ϕ₁ o') ϕ₂ (refl , refl)
+(τ ∷ Γ₁) ⊣ (.(ϕ₁ ++⊑ ϕ₂) o') | split ϕ₁ ϕ₂ (refl , refl) = split (ϕ₁ o') ϕ₂ (refl , refl)
 (τ ∷ Γ₁) ⊣ (ψ os)       with Γ₁ ⊣ ψ
-(τ ∷ Γ₁) ⊣ (.(ϕ₁ ++⊑ ϕ₂) os) | ⊣r ϕ₁ ϕ₂ (refl , refl) = ⊣r (ϕ₁ os) ϕ₂ (refl , refl)
+(τ ∷ Γ₁) ⊣ (.(ϕ₁ ++⊑ ϕ₂) os) | split ϕ₁ ϕ₂ (refl , refl) = split (ϕ₁ os) ϕ₂ (refl , refl)
 
 law-commute-ₒ++⊑ :
   {Γ₁ Γ₂ Γ₃ Γ₁' Γ₂' Γ₃' : List I} →

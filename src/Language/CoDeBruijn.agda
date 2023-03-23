@@ -148,9 +148,9 @@ into (DeBruijn.Var {σ} x) =
 into (DeBruijn.App e₁ e₂) =
   map⇑ App (into e₁ ,ᴿ into e₂)
 into (DeBruijn.Lam e) =
-  map⇑ Lam ((_ ∷ []) \\R into e)
+  map⇑ Lam ((_ ∷ []) \\ᴿ into e)
 into (DeBruijn.Let e₁ e₂) =
-  map⇑ Let (into e₁ ,ᴿ ((_ ∷ []) \\R into e₂))
+  map⇑ Let (into e₁ ,ᴿ ((_ ∷ []) \\ᴿ into e₂))
 into (DeBruijn.Val v) =
   (Val v) ↑ oe
 into (DeBruijn.Plus e₁ e₂) =
@@ -194,14 +194,14 @@ into-correct (DeBruijn.Lam e) env
   with into e  | into-correct e
 ...  | e' ↑ θ' | h
   with (_ ∷ []) ⊣ θ'
-... | ⊣r ϕ₁ ϕ₂ (refl , refl) =
+... | split ϕ₁ ϕ₂ (refl , refl) =
   extensionality _ _ λ v →
     h (Cons v env)
 into-correct (DeBruijn.Let e₁ e₂) env
   with into e₁  | into e₂  | into-correct e₁ env | into-correct e₂ (Cons (DeBruijn.eval e₁ env) env)
 ...  | e₁' ↑ θ₁ | e₂' ↑ θ₂ | h₁                  | h₂
   with (_ ∷ []) ⊣ θ₂
-... | ⊣r ψ θ₂' (refl , refl)
+... | split ψ θ₂' (refl , refl)
   with cop θ₁ θ₂'
 ...  | coproduct _ θ ϕ₁ ϕ₂ refl refl c =
     eval e₂' (ψ ++⊑ (ϕ₂ ₒ θ)) (Cons (eval e₁' (ϕ₁ ₒ θ) env) env)
