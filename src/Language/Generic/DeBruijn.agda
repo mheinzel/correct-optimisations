@@ -77,7 +77,7 @@ Semantics.alg Eval = λ where
   (Val v)      → v
   (Plus v₁ v₂) → v₁ + v₂
 
-eval : ∀ {Γ Γ' σ} → Tm Lang σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
+eval : ∀ {Γ Γ' σ} → Expr σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
 eval t env = Sem.semantics Eval env t
 
 -- Conversion
@@ -117,6 +117,8 @@ module _ where
 
   from : ∀ {Γ Γ' σ} → (Γ ─Env) Var Γ' → Tm Lang σ Γ → DeBruijn.Expr Γ' σ
   from env t = Sem.semantics From env t
+
+  -- Correctness of Conversion
 
   into-Env : ∀ {Γ' Γ} → Env Γ → (Γ ─Env) Value Γ'
   into-Env Nil = pack (λ ())
