@@ -280,10 +280,47 @@
       in eval (Let p) theta env ≡ eval e' (theta' .. theta) env
   \end{code}
 \subsection{Pushing Bindings Inward}
-  ...
+  The main differences compared to the de-Bruijn-based implementation are that
+  variable usage information is available without having to query it repeatedly,
+  and that the changes in context require laborious bookkeeping.
+  Since there are many properties and operations for OPEs and covers
+  related to concatenation of contexts,
+  we phrase the reordering of context differently than before:
+  Instead of using a |Ref| to specify a particular binding in the context we want to move,
+  we segment the context into a part before and after that binding.
+  In de Bruijn setting, we could have the following signature:
+  \begin{code}
+    push-let :
+      (Gamma1 Gamma2 : Ctx) ->
+      Expr sigma (Gamma1 ++ Gamma2) ->
+      Expr tau (Gamma1 ++ sigma :: Gamma2) ->
+      Expr tau (Gamma1 ++ Gamma2)
+  \end{code}
+  But here, declaration and binding form a relevant pair,
+  each in their own context with an own OPE into the overall context.
+  For now, we will ignore the cover and also return the result with a thinning
+  (i.e. without having to show that the whole context |Gamma1 ++ Gamma2| is relevant).
+  \begin{code}
+    push-let :
+      (Gamma1 Gamma2 : Ctx) ->
+      Expr sigma ^^ (Gamma1 ++ Gamma2) ->
+      Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
+      Expr tau ^^ (Gamma1 ++ Gamma2)
+  \end{code}
+  However ...
+  \begin{code}
+    push-let :
+      (Gamma1 Gamma2 : Ctx) ->
+      Expr sigma ^^ (Gamma1 ++ Gamma2) ->
+      Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
+      Expr tau ^^ (Gamma1 ++ Gamma2)
+  \end{code}
+  \paragraph{Correctness}
+  Work in progress, but it's messy.
 \subsection{Open Ends}
   \begin{itemize}
     \item Dead Binding Elimination: adapt correctness proof from strong version
+    \item Pushing Bindings Inward: can we avoid returning a thinning from push-let by manipulating the cover in a smart way?
     \item Pushing Bindings Inward: finish correctness proof
   \end{itemize}
 
