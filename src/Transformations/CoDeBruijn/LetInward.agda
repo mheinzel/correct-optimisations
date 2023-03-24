@@ -285,7 +285,7 @@ push-let Γ₁ Γ₂ decl Var θ p with Γ₁
 push-let Γ₁ Γ₂ decl Var θ p    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
 push-let Γ₁ Γ₂ decl Var θ refl | [] = decl -- The declaration must be live, so we know the variable references it.
 
-push-let Γ₁ Γ₂ decl (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
@@ -299,16 +299,14 @@ push-let Γ₁ Γ₂ decl (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ App (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in both subexpressions
+  -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
-  map⇑ App (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ push-let _ _ decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl (Lam (_\\_ {Γ'} ψ e)) θ refl = -- don't push into lambdas!
-  -- If we had the cover, we could just do this:
-  -- Let (pairᴿ decl (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ) cover) ↑ oi
-  map⇑ Let (decl ,ᴿ (((oz os) \\ (Lam (ψ \\ reorder-Ctx Γ' Γ₁ (_ ∷ []) Γ₂ e refl))) ↑ θ))
+push-let Γ₁ Γ₂ decl e@(Lam _) ψ refl = -- don't push into lambdas!
+  map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl (Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) ψ refl
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
@@ -323,19 +321,14 @@ push-let Γ₁ Γ₂ decl (Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ 
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Let (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in both subexpressions
-  -- TODO: stop here, don't duplicate the declaration!!!
-...  | split θ₁ (θ₂ os) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
-    with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
-                      (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-                      (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
-    with split ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
-    map⇑ Let (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
+  -- Let used in both subexpressions (don't push further!)
+...  | split θ₁ (θ₂ os) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
+  map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
 push-let Γ₁ Γ₂ decl (Val v) θ p =
   (Val v) ↑ oe
 
-push-let Γ₁ Γ₂ decl (Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
@@ -346,9 +339,9 @@ push-let Γ₁ Γ₂ decl (Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in both subexpressions
+  -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
-  map⇑ Plus (push-let _ _ decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ push-let _ _ decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
 -- This is the same signature as for `Let live` itself, just with a thinning so we can drop the Let.
 -- (in case it was dead)
