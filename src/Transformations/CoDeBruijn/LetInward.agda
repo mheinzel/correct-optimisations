@@ -188,6 +188,14 @@ now:
 - equality constraint so we can split on e (helping Agda with unification)
 - TODO: solve issues with covers!
 
+with Cover:
+  (decl : Expr σ ⇑ Γ) →
+  Expr τ Γ' → Γ' ≡ Γ₁ ++ σ ∷ Γ₂ →
+  (θ : (Γ₁ ++ Γ₂) ⊑ Γ) →
+  Cover decl.thinning θ →
+  Expr τ Γ
+???
+
 more precise?
   Expr σ ⇑ (Γ₁ ++ Γ₂) →
   Expr τ (Γ₁' ++ σ ∷ Γ₂')
@@ -205,7 +213,7 @@ most precise?
   Expr τ ⇑ (Γ₁ ++ Γ₂)
 -}
 
-
+{-
 psh-let :
   ∀ Γ₁ Γ₁ˡ Γ₁ʳ {Γ' Γ₂ Γ₂ˡ Γ₂ʳ} →
   Expr σ (Γ₁ˡ ++ Γ₂ˡ) →
@@ -270,6 +278,16 @@ psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Lam (_\\_ {Γ'} ψ e
 psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Let x) p θ₁ʳ θ₂ʳ env = {!!}
 psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Val v) p θ₁ʳ θ₂ʳ env = {!!}
 psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Plus x) p θ₁ʳ θ₂ʳ env = {!!}
+-}
+
+push-let-c :
+  ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx)
+  (decl : Expr σ ⇑ Γ)
+  (body : Expr τ Γ') (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) (ψ : (Γ₁ ++ Γ₂) ⊑ Γ) →
+  Cover (_⇑_.thinning decl) ψ →
+  Expr τ Γ
+
+push-let-c = {!!}
 
 -- Here we know up front how the body's Ctx is split, and also ensure that the binding is used.
 -- We return a thinned value, but we could probably make it return an Expr τ Γ directly,
@@ -278,35 +296,42 @@ psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Plus x) p θ₁ʳ θ
 push-let :
   ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx)
   (decl : Expr σ ⇑ Γ)
-  (body : Expr τ Γ') (ψ : (Γ₁ ++ Γ₂) ⊑ Γ) (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
+  (body : Expr τ Γ') (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) (ψ : (Γ₁ ++ Γ₂) ⊑ Γ) →
+  Cover (_⇑_.thinning decl) ψ →
   Expr τ ⇑ Γ
 
-push-let Γ₁ Γ₂ decl Var θ p with Γ₁
-push-let Γ₁ Γ₂ decl Var θ p    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
-push-let Γ₁ Γ₂ decl Var θ refl | [] = decl -- The declaration must be live, so we know the variable references it.
+push-let Γ₁ Γ₂ decl Var p ψ cover with Γ₁
+push-let Γ₁ Γ₂ decl Var p ψ cover    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
+push-let Γ₁ Γ₂ decl Var refl ψ cover | [] = decl -- The declaration must be live, so we know the variable references it.
 
-push-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl@(d ↑ ψᵈ) e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ cover
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
-  -- Let not used at all (should be impossible, but tricky to show!)
-...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  -- Let not used at all (impossible!)
+...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
+  with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
   -- Let used in right subexpression
-...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
+...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
+  with c₁ , c₂ ← cover-split-++⊑ θ₁ ϕ₁ _ _ c =
                                         -- Here, we should also be able to work in a smaller context, then thin⇑.
                                         -- Parts of Γ might neither be free in decl nor e₂.
                                         -- This is necessary if we want to pass down a cover.
-  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  let coproduct Γ' ψ' ψᵈ' ϕψ' pψᵈ pϕψ c' = cop ψᵈ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)
+     -- TODO: we actually have a Cover ψᵈ ψ, so we should exploit that!
+     -- c' must contain that somehow...
+     -- Sketch this out on paper!!
+  in
+  App (pairᴿ (e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) (push-let-c Γ₁' Γ₂' (d ↑ ψᵈ') e₂ refl ϕψ' c' ↑ ψ') {!cover!}) ↑ oi
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ App (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ App (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!} ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl e@(Lam _) ψ refl = -- don't push into lambdas!
+push-let Γ₁ Γ₂ decl e@(Lam _) refl ψ cover = -- don't push into lambdas!
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) refl ψ cover
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
@@ -314,31 +339,32 @@ push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ �
   -- Let used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
     with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
-                      (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
+                      (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+                      {!!}
     with split ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Let (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ Let (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!} ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl (Val v) θ p =
+push-let Γ₁ Γ₂ decl (Val v) p θ cover =
   (Val v) ↑ oe
 
-push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl
+push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ cover
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
-  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) refl)
+  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) {!!})
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ ((θ₁ ++⊑ θ₂) ₒ ψ) refl ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!} ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
@@ -347,10 +373,11 @@ push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ re
 -- (in case it was dead)
 push-let-top : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 push-let-top (pairᴿ (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) =
-  push-let [] _ (decl ↑ ϕ) e θ refl
+  push-let [] _ (decl ↑ ϕ) e refl θ c
 push-let-top (pairᴿ decl ((oz o' \\ e) ↑ θ) c) =
   e ↑ θ   -- binding is unused, why bother?
 
+{-
 mutual
   law-eval-reorder-Ctx-×ᴿ :
     ∀ {τ₁ τ₂} (binop : ⟦ τ₁ ⟧ → ⟦ τ₂ ⟧ → ⟦ τ ⟧)
@@ -451,3 +478,4 @@ push-let-top-correct (pairᴿ decl ((oz o' \\ e) ↑ θ) c) env =
   ≡⟨ sym (lemma-eval e (Cons _ env) θ (oi o')) ⟩
     eval e (θ o' ₒ oi) (Cons _ env)
   ∎
+-}
