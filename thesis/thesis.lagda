@@ -283,6 +283,7 @@
   The main differences compared to the de-Bruijn-based implementation are that
   variable usage information is available without having to query it repeatedly,
   and that the changes in context require laborious bookkeeping.
+  \paragraph{Signature}
   Since there are many properties and operations for OPEs and covers
   related to concatenation of contexts,
   we phrase the reordering of context differently than before:
@@ -297,7 +298,15 @@
       Expr tau (Gamma1 ++ Gamma2)
   \end{code}
   But here, declaration and binding form a relevant pair,
-  each in their own context with an own OPE into the overall context.
+  each in their own context with an OPE into the overall context.
+  \begin{code}
+    push-let :
+      (Gamma1 Gamma2 : Ctx) ->
+      (decl : Expr sigma ^^ (Gamma1 ++ Gamma2)) ->
+      (body : Expr tau ^^ (Gamma1 ++ sigma :: Gamma2)) ->
+      Cover (thinning decl) (thinning body) ->
+      Expr tau (Gamma1 ++ Gamma2)
+  \end{code}
   For now, we will ignore the cover and also return the result with a thinning
   (i.e. without having to show that the whole context |Gamma1 ++ Gamma2| is relevant).
   \begin{code}
@@ -307,16 +316,41 @@
       Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
       Expr tau ^^ (Gamma1 ++ Gamma2)
   \end{code}
-  However ...
+  Finally, this representation is not as precise as it could be:
+  The context of the body is thinned into a precisely specified overall context,
+  but its on structure is opaque and needs to be discovered.
+  For example, it does not need to make use of |sigma| and treating this case separately
+  is cumbersome.
+  Also, it is clear that the inner context consists of two parts
+  (thinned into |Gamma1| and |Gamma2| respectively), but we first need to split it.
+  We therefore make stronger assumptions about the context of the body
+  (not just the context it is thinned into).
+  The structure of the overall context, on the other hand is less important to us.
   \begin{code}
     push-let :
       (Gamma1 Gamma2 : Ctx) ->
-      Expr sigma ^^ (Gamma1 ++ Gamma2) ->
-      Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
-      Expr tau ^^ (Gamma1 ++ Gamma2)
+      Expr sigma ^^ Gamma ->
+      Expr tau (Gamma1 ++ sigma :: Gamma2) ->
+      Gamma1 ++ Gamma2 C= Gamma ->
+      Expr tau ^^ Gamma
   \end{code}
+  \paragraph{Implementation}
+  TODO, but mostly similar to de Bruijn.
+  Variable usage information is immediately available:
+  We need to split and examine the thinnings into subexpressions.
   \paragraph{Correctness}
   Work in progress, but it's messy.
+  There are many lemmas about splitting OPEs, reordering the context etc.
+  \paragraph{Covers}
+  As hinted at above, it should not be necessary to return a result with a thinning.
+  If all variables occur in either declaration or body, they will still occur in the result.
+  This would also simplify the implementation (and thus the proof),
+  since constructing a relevant pair directly is a simpler operation
+  than using |_,R_| to discover a coproduct with new thinnings.
+  However, constructing the required covers from the input requires non-trivial manipulation
+  (splitting, composition, concatenation) and observing some equalities.
+  It seems like the ``right'' way of doing things,
+  but still requires some work.
 \subsection{Open Ends}
   \begin{itemize}
     \item Dead Binding Elimination: adapt correctness proof from strong version
