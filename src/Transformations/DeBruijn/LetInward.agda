@@ -101,20 +101,20 @@ push-let : (i : Ref σ Γ) → Expr (pop-at Γ i) σ → Expr Γ τ → Expr (po
 push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
 ... | Top = decl
 ... | Pop x' = Var x'
-push-let i decl (App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | nothing  | nothing  = Let decl (App (rename-top [] i e₁) (rename-top [] i e₂))
+push-let i decl e@(App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
+... | nothing  | nothing  = Let decl (rename-top [] i e)
 ... | nothing  | just e₂' = App (push-let i decl e₁) e₂'
 ... | just e₁' | nothing  = App e₁' (push-let i decl e₂)
 ... | just e₁' | just e₂' = App e₁' e₂'
-push-let i decl (Lam e) = Let decl (Lam (rename-top (_ ∷ []) i e))  -- don't push into lambda
-push-let i decl (Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
-... | nothing  | nothing  = Let decl (Let (rename-top [] i e₁) (rename-top (_ ∷ []) i e₂))
+push-let i decl e@(Lam _) = Let decl (rename-top [] i e)  -- don't push into lambda
+push-let i decl e@(Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
+... | nothing  | nothing  = Let decl (rename-top [] i e)
 ... | nothing  | just e₂' = Let (push-let i decl e₁) e₂'
 ... | just e₁' | nothing  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
 ... | just e₁' | just e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
-push-let i decl (Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | nothing  | nothing  = Let decl (Plus (rename-top [] i e₁) (rename-top [] i e₂))
+push-let i decl e@(Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
+... | nothing  | nothing  = Let decl (rename-top [] i e)
 ... | nothing  | just e₂' = Plus (push-let i decl e₁) e₂'
 ... | just e₁' | nothing  = Plus e₁' (push-let i decl e₂)
 ... | just e₁' | just e₂' = Plus e₁' e₂'
