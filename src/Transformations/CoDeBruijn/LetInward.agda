@@ -296,14 +296,6 @@ psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Val v) p θ₁ʳ θ�
 psh-let-correct Γ₁ Γ₁ˡ Γ₁ʳ decl θ₁ˡ θ₂ˡ (Plus x) p θ₁ʳ θ₂ʳ env = {!!}
 -}
 
-push-let-c :
-  ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx)
-  (decl : Expr σ ⇑ Γ)
-  (body : Expr τ Γ') (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) (ψ : (Γ₁ ++ Γ₂) ⊑ Γ) →
-  Cover (_⇑_.thinning decl) ψ →
-  Expr τ Γ
-push-let-c = {!!}
-
 -- Here we know up front how the body's Ctx is split, and also ensure that the binding is used.
 -- We return a thinned value, but we could probably make it return an Expr τ Γ directly,
 -- if we show a few things about covers and require a Cover (_⇑_.thinning decl) θ.
@@ -312,41 +304,34 @@ push-let :
   ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx)
   (decl : Expr σ ⇑ Γ)
   (body : Expr τ Γ') (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) (ψ : (Γ₁ ++ Γ₂) ⊑ Γ) →
-  Cover (_⇑_.thinning decl) ψ →
   Expr τ ⇑ Γ
 
-push-let Γ₁ Γ₂ decl Var p ψ cover with Γ₁
-push-let Γ₁ Γ₂ decl Var p ψ cover    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
-push-let Γ₁ Γ₂ decl Var refl ψ cover | [] = decl -- The declaration must be live, so we know the variable references it.
+push-let Γ₁ Γ₂ decl Var p ψ with Γ₁
+push-let Γ₁ Γ₂ decl Var p ψ    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
+push-let Γ₁ Γ₂ decl Var refl ψ | [] = decl -- The declaration must be live, so we know the variable references it.
 
-push-let Γ₁ Γ₂ decl@(d ↑ ψᵈ) e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ cover
+push-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (impossible!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
   with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
   -- Let used in right subexpression
-...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
-  with c₁ , c₂ ← cover-split-++⊑ θ₁ ϕ₁ _ _ c =
+...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
                                         -- Here, we should also be able to work in a smaller context, then thin⇑.
                                         -- Parts of Γ might neither be free in decl nor e₂.
                                         -- This is necessary if we want to pass down a cover.
-  let coproduct Γ' ψ' ψᵈ' ϕψ' pψᵈ pϕψ c' = cop ψᵈ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)
-     -- TODO: we actually have a Cover ψᵈ ψ, so we should exploit that!
-     -- c' must contain that somehow...
-     -- Sketch this out on paper!!
-  in
-  App (pairᴿ (e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) (push-let-c Γ₁' Γ₂' (d ↑ ψᵈ') e₂ refl ϕψ' c' ↑ ψ') {!cover!}) ↑ oi
+  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl {!!})
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ App (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!} ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ App (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl e@(Lam _) refl ψ cover = -- don't push into lambdas!
+push-let Γ₁ Γ₂ decl e@(Lam _) refl ψ = -- don't push into lambdas!
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) refl ψ cover
+push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
@@ -356,30 +341,29 @@ push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ �
     with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
                       (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-                      {!!}
     with split ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Let (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!} ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ Let (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
-push-let Γ₁ Γ₂ decl (Val v) p θ cover =
+push-let Γ₁ Γ₂ decl (Val v) p θ =
   (Val v) ↑ oe
 
-push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ cover
+push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- Let not used at all (should be impossible, but tricky to show!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
-  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) {!!})
+  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ))
   -- Let used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!} ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+  map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- Let used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
@@ -388,7 +372,7 @@ push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl 
 -- (in case it was dead)
 push-let-top : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 push-let-top (pairᴿ (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) =
-  push-let [] _ (decl ↑ ϕ) e refl θ c
+  push-let [] _ (decl ↑ ϕ) e refl θ
 push-let-top (pairᴿ decl ((oz o' \\ e) ↑ θ) c) =
   e ↑ θ   -- binding is unused, why bother?
 
@@ -445,16 +429,16 @@ push-let-correct :
   ∀ {Γ' Γ σ} (Γ₁ Γ₂ : Ctx)
   (decl : Expr σ ⇑ Γ) (e : Expr τ Γ') (θ : (Γ₁ ++ Γ₂) ⊑ Γ) (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
   (env : Env Γ) →
-    eval⇑ (push-let Γ₁ Γ₂ decl e p θ {!!}) env
-  ≡ eval (Let (pairᴿ decl ((oz os \\ reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) ↑ θ) {!!})) oi env
+    eval⇑ (push-let Γ₁ Γ₂ decl e p θ) env
+  ≡ eval⇑ (map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) ↑ θ))) env
 
 push-let-correct Γ₁ Γ₂ decl    Var θ p env with Γ₁
 push-let-correct Γ₁ Γ₂ decl    Var θ p env    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
 push-let-correct Γ₁ Γ₂ (d ↑ ϕ) Var θ refl env | [] =
-    eval d ϕ env
-  ≡⟨ cong (λ x → eval d x env) (sym (law-ₒoi ϕ)) ⟩
-    eval d (ϕ ₒ oi) env
-  ∎
+  {!!}
+    -- eval d ϕ env
+  -- ≡⟨ cong (λ x → eval d x env) (sym (law-ₒoi ϕ)) ⟩
+    -- eval d (ϕ ₒ oi) env
 
 push-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl env
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
@@ -470,7 +454,7 @@ push-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ 
   with split4 θ'₁ θ'₂ θ'₃ θ'₄ (pθ , qθ) ← ⊣4 [] Γ₁ (σ ∷ []) _ θ
   with split4 ϕ'₁ ϕ'₂ ϕ'₃ ϕ'₄ (pϕ , qϕ) ← ⊣4 [] Γ₁ (σ ∷ []) _ ϕ
   =
-  let e₁' ↑ θ' = push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!}
+  let e₁' ↑ θ' = push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ)
       coproduct Γ' ψ' θ'' ϕ'' eqθ eqϕ c = cop θ' ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)
   in
     eval e₁' (θ'' ₒ ψ') env (eval e₂ (ϕ'' ₒ ψ') env)
@@ -482,7 +466,14 @@ push-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ 
   
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   {!!}
-push-let-correct Γ₁ Γ₂ decl (Lam x) θ p env = {!!}
+push-let-correct Γ₁ Γ₂ decl e@(Lam _) θ refl env =
+  extensionality _ _ λ v →
+    let e' ↑ θ' = push-let Γ₁ Γ₂ decl e refl θ
+    in
+      eval e' θ' env v
+    ≡⟨ refl ⟩
+      eval⇑ (map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) Γ₂ e refl) ↑ θ))) env v
+    ∎
 push-let-correct Γ₁ Γ₂ decl (Let x) θ p env = {!!}
 push-let-correct Γ₁ Γ₂ decl (Val v) θ p env = {!!}
 push-let-correct Γ₁ Γ₂ decl (Plus x) θ p env = {!!}
@@ -490,11 +481,19 @@ push-let-correct Γ₁ Γ₂ decl (Plus x) θ p env = {!!}
 push-let-top-correct :
   (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
   eval⇑ (push-let-top p) env ≡ eval (Let p) oi env
-push-let-top-correct (pairᴿ (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) env =
-    eval⇑ (push-let [] _ (decl ↑ ϕ) e refl θ {!!}) env
-  ≡⟨ push-let-correct [] _ (decl ↑ ϕ) e θ refl env ⟩
-    eval (reorder-Ctx [] [] (_ ∷ []) _ e refl) (θ os ₒ oi) (Cons _ env)
-  ≡⟨ cong (λ x → eval x (θ os ₒ oi) (Cons _ env)) (law-reorder-Ctx-Γ₂≡[] [] (_ ∷ []) _ e refl) ⟩
+push-let-top-correct (pairᴿ (decl ↑ ϕ) ((oz os \\ e) ↑ θ) c) env
+  with cop ϕ θ | push-let-correct [] _ (decl ↑ ϕ) e θ refl env
+...  | coproduct Γ' ψ ϕ' θ' refl refl cover | h =
+    eval⇑ (push-let [] _ (decl ↑ ϕ) e refl θ) env
+  ≡⟨ h ⟩
+    eval (Let (pairᴿ (decl ↑ ϕ') ((oz os \\ reorder-Ctx [] [] (_ ∷ []) _ e refl) ↑ θ') cover)) ψ env
+  ≡⟨ refl ⟩
+    eval (reorder-Ctx [] [] (_ ∷ []) _ e refl) (θ os) (Cons (eval decl ϕ env) env)
+  ≡⟨ cong (λ x → eval x (θ os) (Cons _ env)) (law-reorder-Ctx-Γ₂≡[] [] (_ ∷ []) _ e refl) ⟩
+    eval e (θ os) (Cons (eval decl ϕ env) env)
+  ≡⟨ cong (λ x → eval e (θ os) (Cons (eval decl x env) env)) (sym (law-ₒoi ϕ)) ⟩
+    eval e (θ os) (Cons (eval decl (ϕ ₒ oi) env) env)
+  ≡⟨ cong (λ x → eval e (x os) _) (sym (law-ₒoi θ)) ⟩
     eval e (θ os ₒ oi) (Cons (eval decl (ϕ ₒ oi) env) env)
   ∎
 push-let-top-correct (pairᴿ decl ((oz o' \\ e) ↑ θ) c) env =
