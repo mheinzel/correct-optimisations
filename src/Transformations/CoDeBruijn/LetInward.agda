@@ -467,8 +467,8 @@ push-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ 
     {!!}
   ∎
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
-  with split4 θ'₁ θ'₂ θ'₃ θ'₄ (refl , qθ) ← ⊣4 [] Γ₁ (σ ∷ []) _ θ
-  with split4 ϕ'₁ ϕ'₂ ϕ'₃ ϕ'₄ (refl , qϕ) ← ⊣4 [] Γ₁ (σ ∷ []) _ ϕ
+  with split4 θ'₁ θ'₂ θ'₃ θ'₄ (pθ , qθ) ← ⊣4 [] Γ₁ (σ ∷ []) _ θ
+  with split4 ϕ'₁ ϕ'₂ ϕ'₃ ϕ'₄ (pϕ , qϕ) ← ⊣4 [] Γ₁ (σ ∷ []) _ ϕ
   =
   let e₁' ↑ θ' = push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) {!!}
       coproduct Γ' ψ' θ'' ϕ'' eqθ eqϕ c = cop θ' ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)
