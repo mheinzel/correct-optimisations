@@ -142,7 +142,7 @@ lemma-eval-Let p env θ = refl
 -- CONVERSION
 
 -- decide which variables are used or not
-into : DeBruijn.Expr Γ σ → Expr σ ⇑ Γ
+into : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
 into (DeBruijn.Var {σ} x) =
   Var {σ} ↑ o-Ref x
 into (DeBruijn.App e₁ e₂) =
@@ -156,7 +156,7 @@ into (DeBruijn.Val v) =
 into (DeBruijn.Plus e₁ e₂) =
   map⇑ Plus (into e₁ ,ᴿ into e₂)
 
-from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr Γ σ
+from : ∀ {Γ' Γ σ} → Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr σ Γ
 from θ Var =
   DeBruijn.Var (ref-o θ)
 from θ (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
@@ -176,7 +176,7 @@ into-correct-Ref Top (Cons v env) = refl
 into-correct-Ref (Pop x) (Cons v env) = into-correct-Ref x env
 
 into-correct :
-  (e : DeBruijn.Expr Γ τ) (env : Env Γ) →
+  (e : DeBruijn.Expr τ Γ) (env : Env Γ) →
   let e' ↑ θ' = into e
   in eval e' θ' env ≡ DeBruijn.eval e env
 into-correct (DeBruijn.Var x) env =

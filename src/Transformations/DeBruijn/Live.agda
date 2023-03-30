@@ -45,7 +45,7 @@ data LiveExpr {Γ : Ctx} : (Δ Δ' : SubCtx Γ) → (σ : U) → Set where
     LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
 
 -- forget the information about variable usage
-forget : LiveExpr Δ Δ' σ → Expr ⌊ Δ ⌋ σ
+forget : LiveExpr Δ Δ' σ → Expr σ ⌊ Δ ⌋
 forget (Var x) = Var x
 forget (App e₁ e₂) = App (forget e₁) (forget e₂)
 forget (Lam e₁) = Lam (forget e₁)
@@ -54,7 +54,7 @@ forget (Val v) = Val v
 forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
 
 -- decide which variables are used or not
-analyse : ∀ Δ → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ] LiveExpr Δ Δ' σ
+analyse : ∀ Δ → Expr σ ⌊ Δ ⌋ → Σ[ Δ' ∈ SubCtx Γ ] LiveExpr Δ Δ' σ
 analyse Δ (Var x) = sing Δ x , Var x
 analyse Δ (App e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 ... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , App le₁ le₂
@@ -75,7 +75,7 @@ analyse Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
 Δ'⊆Δ {Γ} {Δ} (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
 
 -- forget ∘ analyse ≡ id
-analyse-preserves : (e : Expr ⌊ Δ ⌋ σ) → forget (proj₂ (analyse Δ e)) ≡ e
+analyse-preserves : (e : Expr σ ⌊ Δ ⌋) → forget (proj₂ (analyse Δ e)) ≡ e
 analyse-preserves (Var x) = refl
 analyse-preserves (App e₁ e₂) = cong₂ App (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Lam e₁) = cong Lam (analyse-preserves e₁)

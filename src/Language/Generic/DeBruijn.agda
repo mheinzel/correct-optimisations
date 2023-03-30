@@ -89,7 +89,7 @@ module _ where
   into-Var Top = z
   into-Var (Pop x) = s (into-Var x)
 
-  into : ∀ {Γ τ} → DeBruijn.Expr Γ τ → Expr τ Γ
+  into : ∀ {Γ τ} → DeBruijn.Expr τ Γ → Expr τ Γ
   into (DeBruijn.Var x)      = `var (into-Var x)
   into (DeBruijn.App e₁ e₂)  = `con (App (into e₁) (into e₂))
   into (DeBruijn.Lam e)      = `con (Lam (into e))
@@ -97,15 +97,12 @@ module _ where
   into (DeBruijn.Val v)      = `con (Val v)
   into (DeBruijn.Plus e₁ e₂) = `con (Plus (into e₁) (into e₂))
 
-  DeBruijnExpr : U ─Scoped
-  DeBruijnExpr τ Γ = DeBruijn.Expr Γ τ  -- grrr  TODO
-
   Ref-Var : ∀ {σ Γ} → Var σ Γ → Ref σ Γ
   Ref-Var z = Top
   Ref-Var (s x) = Pop (Ref-Var x)
 
   -- TODO: maybe try without Semantics, just pattern matching?
-  From : Semantics Lang Var DeBruijnExpr
+  From : Semantics Lang Var DeBruijn.Expr
   Semantics.th^𝓥 From = th^Var
   Semantics.var From = DeBruijn.Var ∘ Ref-Var
   Semantics.alg From = λ where
@@ -115,7 +112,7 @@ module _ where
     (Val v)      → DeBruijn.Val v
     (Plus e₁ e₂) → DeBruijn.Plus e₁ e₂
 
-  from : ∀ {Γ Γ' σ} → (Γ ─Env) Var Γ' → Tm Lang σ Γ → DeBruijn.Expr Γ' σ
+  from : ∀ {Γ Γ' σ} → (Γ ─Env) Var Γ' → Tm Lang σ Γ → DeBruijn.Expr σ Γ'
   from env t = Sem.semantics From env t
 
   -- Correctness of Conversion
@@ -168,7 +165,7 @@ module _ where
   into-Var-correct (Pop x) (Cons v env) = into-Var-correct x env
   
   into-correct :
-    ∀ {Δ Γ τ} (e : DeBruijn.Expr Γ τ) (env : Env Γ) (env' : (Γ ─Env) Value Δ) →
+    ∀ {Δ Γ τ} (e : DeBruijn.Expr τ Γ) (env : Env Γ) (env' : (Γ ─Env) Value Δ) →
     (p : {σ : U} (x : Var σ Γ) → lookup {Δ = Δ} (into-Env env) x ≡ lookup env' x) →
     eval (into e) env' ≡ DeBruijn.eval e env
   into-correct (DeBruijn.Var x) env env' p =
@@ -197,7 +194,7 @@ module _ where
     cong₂ _+_ (into-correct e₁ env env' p) (into-correct e₂ env env' p)
 
   -- TODO: I'm doing something wrong, I just don't get it.
-  rel-eval≡ : Rel DeBruijnExpr Value
+  rel-eval≡ : Rel DeBruijn.Expr Value
   rel-eval≡ = mkRel (λ σ {Γ} e v → (env : (Γ ─Env) Value []) → DeBruijn.eval e (from-Env env) ≡ v)
 
   rel-lookup≡ : Rel Var Value

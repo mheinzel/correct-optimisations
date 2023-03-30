@@ -149,7 +149,7 @@ renameVar (Drop Δ₁) (Keep Δ₂) H x = Pop (renameVar Δ₁ Δ₂ H x)
 renameVar (Keep Δ₁) (Keep Δ₂) H Top = Top
 renameVar (Keep Δ₁) (Keep Δ₂) H (Pop x) = Pop (renameVar Δ₁ Δ₂ H x)
 
-renameExpr : (Δ₁ Δ₂ : SubCtx Γ) → .(Δ₁ ⊆ Δ₂) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₂ ⌋ σ
+renameExpr : (Δ₁ Δ₂ : SubCtx Γ) → .(Δ₁ ⊆ Δ₂) → Expr σ ⌊ Δ₁ ⌋ → Expr σ ⌊ Δ₂ ⌋
 renameExpr Δ₁ Δ₂ H (Var x) = Var (renameVar Δ₁ Δ₂ H x)
 renameExpr Δ₁ Δ₂ H (App e₁ e₂) = App (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
 renameExpr Δ₁ Δ₂ H (Lam e) = Lam (renameExpr (Keep Δ₁) (Keep Δ₂) H e)
@@ -157,10 +157,10 @@ renameExpr Δ₁ Δ₂ H (Let e₁ e₂) = Let (renameExpr Δ₁ Δ₂ H e₁) (
 renameExpr Δ₁ Δ₂ H (Val v) = Val v
 renameExpr Δ₁ Δ₂ H (Plus e₁ e₂) = Plus (renameExpr Δ₁ Δ₂ H e₁) (renameExpr Δ₁ Δ₂ H e₂)
 
-injExpr₁ : (Δ₁ Δ₂ : SubCtx Γ) → Expr ⌊ Δ₁ ⌋ σ → Expr ⌊ Δ₁ ∪ Δ₂ ⌋ σ
+injExpr₁ : (Δ₁ Δ₂ : SubCtx Γ) → Expr σ ⌊ Δ₁ ⌋ → Expr σ ⌊ Δ₁ ∪ Δ₂ ⌋
 injExpr₁ Δ₁ Δ₂ = renameExpr Δ₁ (Δ₁ ∪ Δ₂) (⊆∪₁ Δ₁ Δ₂)
 
-injExpr₂ : (Δ₁ Δ₂ : SubCtx Γ) → Expr ⌊ Δ₂ ⌋ σ → Expr ⌊ Δ₁ ∪ Δ₂ ⌋ σ
+injExpr₂ : (Δ₁ Δ₂ : SubCtx Γ) → Expr σ ⌊ Δ₂ ⌋ → Expr σ ⌊ Δ₁ ∪ Δ₂ ⌋
 injExpr₂ Δ₁ Δ₂ = renameExpr Δ₂ (Δ₁ ∪ Δ₂) (⊆∪₂ Δ₁ Δ₂)
 
 -- Restricting an environment to some subset of (required) values
@@ -190,7 +190,7 @@ renameVar-id (Drop Δ) x = renameVar-id Δ x
 renameVar-id (Keep Δ) Top = refl
 renameVar-id (Keep Δ) (Pop x) = cong Pop (renameVar-id Δ x)
 
-renameExpr-id : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → renameExpr Δ Δ (⊆-refl Δ) e ≡ e
+renameExpr-id : (Δ : SubCtx Γ) (e : Expr σ ⌊ Δ ⌋) → renameExpr Δ Δ (⊆-refl Δ) e ≡ e
 renameExpr-id Δ (Var x) = cong Var (renameVar-id Δ x)
 renameExpr-id Δ (Lam e) = cong Lam (renameExpr-id (Keep Δ) e)
 renameExpr-id Δ (App e₁ e₂) = cong₂ App (renameExpr-id Δ e₁) (renameExpr-id Δ e₂)
@@ -206,7 +206,7 @@ renameVar-trans (Drop Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ x = cong 
 renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ Top = refl
 renameVar-trans (Keep Δ₁) (Keep Δ₂) (Keep Δ₃) H₁₂ H₂₃ (Pop x) = cong Pop (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
 
-renameExpr-trans : (Δ₁ Δ₂ Δ₃ : SubCtx Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (e : Expr ⌊ Δ₁ ⌋ σ) →
+renameExpr-trans : (Δ₁ Δ₂ Δ₃ : SubCtx Γ) → .(H₁₂ : Δ₁ ⊆ Δ₂) → .(H₂₃ : Δ₂ ⊆ Δ₃) → (e : Expr σ ⌊ Δ₁ ⌋) →
   renameExpr Δ₂ Δ₃ H₂₃ (renameExpr Δ₁ Δ₂ H₁₂ e) ≡ renameExpr Δ₁ Δ₃ (⊆-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃) e
 renameExpr-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ (Var x) =
   cong Var (renameVar-trans Δ₁ Δ₂ Δ₃ H₁₂ H₂₃ x)
@@ -228,7 +228,7 @@ renameVar-preserves (Drop Δ₁) (Keep Δ₂) H x (Cons v env) = renameVar-prese
 renameVar-preserves (Keep Δ₁) (Keep Δ₂) H Top (Cons v env) = refl
 renameVar-preserves (Keep Δ₁) (Keep Δ₂) H (Pop x) (Cons v env) = renameVar-preserves Δ₁ Δ₂ H x env
 
-renameExpr-preserves : (Δ₁ Δ₂ : SubCtx Γ) → .(H : Δ₁ ⊆ Δ₂) → (e : Expr ⌊ Δ₁ ⌋ σ) (env : Env ⌊ Δ₂ ⌋) →
+renameExpr-preserves : (Δ₁ Δ₂ : SubCtx Γ) → .(H : Δ₁ ⊆ Δ₂) → (e : Expr σ ⌊ Δ₁ ⌋) (env : Env ⌊ Δ₂ ⌋) →
   eval (renameExpr Δ₁ Δ₂ H e) env ≡ eval e (prjEnv Δ₁ Δ₂ H env)
 renameExpr-preserves Δ₁ Δ₂ H (Var x) env = renameVar-preserves Δ₁ Δ₂ H x env
 renameExpr-preserves Δ₁ Δ₂ H (App e₁ e₂) env =

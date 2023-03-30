@@ -30,9 +30,9 @@ sing-ref {τ ∷ Γ} (Keep Δ) Top = Top
 sing-ref {τ ∷ Γ} (Keep Δ) (Pop x) = sing-ref Δ x
 
 -- IDEA: it might make sense to generalise this further:
--- dbe' : LiveExpr Δ Δ' σ → (Δᵤ : SubCtx Γ) → .(H : Δ' ⊆ Δᵤ) → Expr ⌊ Δᵤ ⌋ σ
+-- dbe' : LiveExpr Δ Δ' σ → (Δᵤ : SubCtx Γ) → .(H : Δ' ⊆ Δᵤ) → Expr σ ⌊ Δᵤ ⌋
 --
-dbe : LiveExpr Δ Δ' σ → Expr ⌊ Δ' ⌋ σ
+dbe : LiveExpr Δ Δ' σ → Expr σ ⌊ Δ' ⌋
 dbe {Γ} {Δ} (Var x) =
   Var (sing-ref Δ x)
 dbe (App {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) =
@@ -118,10 +118,10 @@ dbe-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H
     (dbe-correct e₁ Δᵤ env _)
     (dbe-correct e₂ Δᵤ env _)
 
-optimise : (Δ : SubCtx Γ) → Expr ⌊ Δ ⌋ σ → Σ[ Δ' ∈ SubCtx Γ ] (Expr ⌊ Δ' ⌋ σ)
+optimise : (Δ : SubCtx Γ) → Expr σ ⌊ Δ ⌋ → Σ[ Δ' ∈ SubCtx Γ ] (Expr σ ⌊ Δ' ⌋)
 optimise Δ e = let Δ' , e' = analyse Δ e in Δ' , dbe e'
 
-optimise-correct : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) (env : Env ⌊ Δ ⌋) →
+optimise-correct : (Δ : SubCtx Γ) (e : Expr σ ⌊ Δ ⌋) (env : Env ⌊ Δ ⌋) →
   let Δ' , e' = optimise Δ e
       H = Δ'⊆Δ (proj₂ (analyse Δ e))
   in eval e' (prjEnv Δ' Δ H env) ≡ eval e env
@@ -136,7 +136,7 @@ optimise-correct {Γ} Δ e env =
     evalLive Δ' le (prjEnv Δ' Δ H env) (⊆-refl Δ')
   ≡⟨ evalLive-correct le Δ' env (⊆-refl Δ') H ⟩  -- evalLive ≡ eval ∘ forget
     eval (forget le) env
-  ≡⟨ cong (λ e → eval e env) (analyse-preserves {Γ} {Δ} e) ⟩  -- forget ∘ analyse ≡ id
+  ≡⟨ cong (λ e → eval e env) (analyse-preserves {Δ = Δ} e) ⟩  -- forget ∘ analyse ≡ id
     eval e env
   ∎
 
@@ -145,5 +145,5 @@ module Iteration where
   import Transformations.DeBruijn.DeadBinding as DBE
 
   -- TODO: how feasible is this?
-  -- optimise-converges : (Δ : SubCtx Γ) (e : Expr ⌊ Δ ⌋ σ) → DBE.optimise Δ e ≡ optimise Δ e
+  -- optimise-converges : (Δ : SubCtx Γ) (e : Expr σ ⌊ Δ ⌋) → DBE.optimise Δ e ≡ optimise Δ e
   -- optimise-converges Δ e = {!!}

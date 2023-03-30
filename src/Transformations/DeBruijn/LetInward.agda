@@ -34,7 +34,7 @@ weaken-Ref (θ os) Top = Top
 weaken-Ref (θ os) (Pop x) = Pop (weaken-Ref θ x)
 weaken-Ref (θ o') x = Pop (weaken-Ref θ x)
 
-weaken : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr Γ' τ → Expr Γ τ
+weaken : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr τ Γ' → Expr τ Γ
 weaken θ (Var x) = Var (weaken-Ref θ x)
 weaken θ (App e₁ e₂) = App (weaken θ e₁) (weaken θ e₂)
 weaken θ (Lam e) = Lam (weaken (θ os) e)
@@ -48,7 +48,7 @@ strengthen-Ref (θ os) (Pop x) = Maybe.map Pop (strengthen-Ref θ x)
 strengthen-Ref (θ o') Top     = nothing -- ref became invalid by strengthening
 strengthen-Ref (θ o') (Pop x) = strengthen-Ref θ x
 
-strengthen : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr Γ τ → Maybe (Expr Γ' τ)
+strengthen : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr τ Γ → Maybe (Expr τ Γ')
 strengthen θ (Var x)      = Maybe.map Var (strengthen-Ref θ x)
 strengthen θ (App e₁ e₂)  = Maybe.zipWith App (strengthen θ e₁) (strengthen θ e₂)
 strengthen θ (Lam e)      = Maybe.map Lam (strengthen (θ os) e)
@@ -64,10 +64,10 @@ o-pop-at : (i : Ref τ Γ) → pop-at Γ i ⊑ Γ
 o-pop-at Top = oi o'
 o-pop-at (Pop i) = (o-pop-at i) os
 
-strengthen-pop-at : (i : Ref σ Γ) → Expr Γ τ → Maybe (Expr (pop-at Γ i) τ)
+strengthen-pop-at : (i : Ref σ Γ) → Expr τ Γ → Maybe (Expr τ (pop-at Γ i))
 strengthen-pop-at i = strengthen (o-pop-at i)
 
-strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr (σ' ∷ Γ) τ → Maybe (Expr (σ' ∷ pop-at Γ i) τ)
+strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr τ (σ' ∷ Γ) → Maybe (Expr τ (σ' ∷ pop-at Γ i))
 strengthen-keep-pop-at i = strengthen ((o-pop-at i) os)
 
 -- NOTE: The following code feels like it requires more different operations than it should.
@@ -88,7 +88,7 @@ rename-top-Ref (σ' ∷ Γ') i (Pop x) = Pop (rename-top-Ref Γ' i x)  -- just w
 rename-top-Ref [] Top x = x
 rename-top-Ref [] (Pop i) x = flip-Ref (lift-Ref (rename-top-Ref [] i) x)
 
-rename-top : (Γ' : Ctx) (i : Ref σ Γ) → Expr (Γ' ++ Γ) τ → Expr (Γ' ++ (σ ∷ pop-at Γ i)) τ
+rename-top : (Γ' : Ctx) (i : Ref σ Γ) → Expr τ (Γ' ++ Γ) → Expr τ (Γ' ++ (σ ∷ pop-at Γ i))
 rename-top Γ' i (Var x) = Var (rename-top-Ref Γ' i x)
 rename-top Γ' i (App e₁ e₂) = App (rename-top Γ' i e₁) (rename-top Γ' i e₂)
 rename-top Γ' i (Lam e) = Lam (rename-top (_ ∷ Γ') i e)
@@ -97,7 +97,7 @@ rename-top Γ' i (Val v) = Val v
 rename-top Γ' i (Plus e₁ e₂) = Plus (rename-top Γ' i e₁) (rename-top Γ' i e₂)
 
 -- TODO: can we find a more general type, to allow for reordering and only optionally popping something?
-push-let : (i : Ref σ Γ) → Expr (pop-at Γ i) σ → Expr Γ τ → Expr (pop-at Γ i) τ
+push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
 push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
 ... | Top = decl
 ... | Pop x' = Var x'
@@ -120,7 +120,7 @@ push-let i decl e@(Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-po
 ... | just e₁' | just e₂' = Plus e₁' e₂'
 
 -- This is the same signature as for `Let` itself.
-push-let' : Expr Γ σ → Expr (σ ∷ Γ) τ → Expr Γ τ
+push-let' : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ
 push-let' decl e = push-let Top decl e
 
 
@@ -148,6 +148,6 @@ push-let e₁ (Plus {Γ} {Δ₂} {Δ₃} e₂ e₃) with Δ₂ | Δ₃
 -}
 
 -- NOTE: there is an alternative phrasing:
--- push-let : {σ : U} (Γ₁ Γ₂ : Ctx) → Expr (Γ₁ ++ Γ₂) σ → Expr (Γ₁ ++ (σ ∷ Γ₂)) τ → Expr (Γ₁ ++ Γ₂) τ
+-- push-let : {σ : U} (Γ₁ Γ₂ : Ctx) → Expr σ (Γ₁ ++ Γ₂) → Expr τ (Γ₁ ++ (σ ∷ Γ₂)) → Expr τ (Γ₁ ++ Γ₂)
 
 -- TODO: what would it look like to push multiple bindings simultaneously?
