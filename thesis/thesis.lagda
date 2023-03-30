@@ -116,7 +116,7 @@
   While we initially deal with a binding for the topmost entry in the context
   (|Expr Gamma sigma -> Expr (sigma :: Gamma) tau -> Expr Gamma tau|),
   recursively applying this function under binders requires more flexibility.
-  The solution chosen here allows to the position of that binding to be specified
+  The solution chosen here allows the position of that binding to be specified
   by a reference.
   \begin{code}
   pop-at : (Gamma : Ctx) -> Ref tau Gamma -> Ctx
@@ -125,6 +125,12 @@
   \end{code}
   \begin{code}
   push-let : (i : Ref sigma Gamma) -> Expr (pop-at Gamma i) sigma -> Expr Gamma tau -> Expr (pop-at Gamma i) tau
+  \end{code}
+  Note that alternatively,
+  we could have used list concatenation or insertion, e.g.
+  \begin{code}
+  Expr (Gamma1 ++ Gamma2) sigma -> Expr (Gamma1 ++ sigma :: Gamma2) tau -> Expr (Gamma1 ++ Gamma2) tau
+  Expr Gamma sigma -> Expr (insert n sigma Gamma) tau -> Expr Gamma tau
   \end{code}
   \paragraph{Variable usage}
   Instead of working with an annotated version of the syntax tree,
