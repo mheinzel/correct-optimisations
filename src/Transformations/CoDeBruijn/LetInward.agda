@@ -186,19 +186,19 @@ push-let Γ₁ Γ₂ decl Var refl ψ | [] = decl -- The declaration must be liv
 
 push-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
-  -- Let not used at all (impossible!)
+  -- declaration not used at all (impossible!)
 ...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
   with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
-  -- Let used in right subexpression
+  -- declaration used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
                                         -- Here, we should also be able to work in a smaller context, then thin⇑.
                                         -- Parts of Γ might neither be free in decl nor e₂.
                                         -- This is necessary if we want to pass down a cover.
   map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl {!!})
-  -- Let used in left subexpression
+  -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ App (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in both subexpressions (don't push further!)
+  -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
@@ -207,20 +207,20 @@ push-let Γ₁ Γ₂ decl e@(Lam _) refl ψ = -- don't push into lambdas!
 
 push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
-  -- Let not used at all (should be impossible, but tricky to show!)
-...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in right subexpression
+  -- declaration not used at all (impossible!)
+...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
+  with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
+  -- declaration used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
     with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
                       (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
     with split ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
     map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
-  -- Let used in left subexpression
+  -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Let (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in both subexpressions (don't push further!)
+  -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
@@ -229,16 +229,16 @@ push-let Γ₁ Γ₂ decl (Val v) p θ =
 
 push-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
-  -- Let not used at all (should be impossible, but tricky to show!)
-...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in right subexpression
+  -- declaration not used at all (impossible!)
+...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
+  with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
+  -- declaration used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Plus ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ))
-  -- Let used in left subexpression
+  -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ Plus (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-  -- Let used in both subexpressions (don't push further!)
+  -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
@@ -314,16 +314,25 @@ push-let-correct Γ₁ Γ₂ (d ↑ ϕ) Var θ refl env | [] =
   -- ≡⟨ cong (λ x → eval d x env) (sym (law-ₒoi ϕ)) ⟩
     -- eval d (ϕ ₒ oi) env
 
+  -- declaration not used at all (impossible!)
+  -- declaration used in right subexpression
+  -- declaration used in left subexpression
+  -- declaration used in both subexpressions (don't push further!)
+
 push-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) ψ refl env
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
-...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
-  {!!}
+
+  -- declaration not used at all (impossible!)
+...  | split θ₁ (θ₂ o') (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
+  with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
+  -- declaration used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl) =
     {!!} -- eval⇑ (map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) ?)) env
   ≡⟨ {!!} ⟩
     -- eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) {!!}) (ψ os ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
     {!!}
   ∎
+  -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl)
   with split4 θ'₁ θ'₂ θ'₃ θ'₄ (pθ , qθ) ← ⊣4 [] Γ₁ (σ ∷ []) _ θ
   with split4 ϕ'₁ ϕ'₂ ϕ'₃ ϕ'₄ (pϕ , qϕ) ← ⊣4 [] Γ₁ (σ ∷ []) _ ϕ
@@ -337,7 +346,7 @@ push-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ 
     -- eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) {!!})) {!!}) (ψ os ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
     -- eval (Let (pairᴿ decl ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) Γ₂ e {!refl!}) ↑ ψ) {!!})) oi env
   ∎
-  
+  -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ os) (refl , refl) =
   {!!}
 push-let-correct Γ₁ Γ₂ decl e@(Lam _) θ refl env =
@@ -348,6 +357,7 @@ push-let-correct Γ₁ Γ₂ decl e@(Lam _) θ refl env =
     ≡⟨ refl ⟩
       eval⇑ (map⇑ Let (decl ,ᴿ ((oz os \\ reorder-Ctx [] Γ₁ (_ ∷ []) Γ₂ e refl) ↑ θ))) env v
     ∎
+
 push-let-correct Γ₁ Γ₂ decl (Let x) θ p env = {!!}
 push-let-correct Γ₁ Γ₂ decl (Val v) θ p env = {!!}
 push-let-correct Γ₁ Γ₂ decl (Plus x) θ p env = {!!}
