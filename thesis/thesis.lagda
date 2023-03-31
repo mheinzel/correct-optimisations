@@ -126,32 +126,50 @@
   \begin{code}
   push-let : (i : Ref sigma Gamma) -> Expr (pop-at Gamma i) sigma -> Expr Gamma tau -> Expr (pop-at Gamma i) tau
   \end{code}
-  Note that alternatively,
-  we could have used list concatenation or insertion, e.g.
+  Supplying |Top| as the first argument results in the same signature
+  as the |Let| constructor itself.
+  Note that we could have alternatively used list concatenation or insertion, e.g.
   \begin{code}
-  Expr (Gamma1 ++ Gamma2) sigma -> Expr (Gamma1 ++ sigma :: Gamma2) tau -> Expr (Gamma1 ++ Gamma2) tau
-  Expr Gamma sigma -> Expr (insert n sigma Gamma) tau -> Expr Gamma tau
+  Expr (pop-at Gamma i) sigma    -> Expr Gamma tau                        -> Expr (pop-at Gamma i) tau
+  Expr (Gamma1 ++ Gamma2) sigma  -> Expr (Gamma1 ++ sigma :: Gamma2) tau  -> Expr (Gamma1 ++ Gamma2) tau
+  Expr Gamma sigma               -> Expr (insert n sigma Gamma) tau       -> Expr Gamma tau
   \end{code}
-  \paragraph{Variable usage}
+  \paragraph{Variables}
+  When pushing a binding into a variable, there are two possible cases:
+  If variable references exactly the let-binding we are pushing,
+    we can replace it by the declaration,
+    effectively inlining it.
+  If the variable it references a different element of the context,
+    the declaration is eliminated
+    and we  only need to strengthen the variable into the smaller context.
+  \paragraph{Creating the binding}
+  Once we stop pushing the let-binding (e.g. when we reach a lambda),
+  it is still necessary to rename the expression in its body,
+  since it makes use of the newly created binding,
+  but expects it at a different de Bruijn index.
+  \begin{code}
+  rename-top : (i : Ref sigma Gamma) -> Expr Gamma tau -> Expr (sigma :: pop-at Gamma i) tau
+  \end{code}
+  \paragraph{Binary constructors}
+  For binary operators, we need to check which subexpressions make use of the declaration.
   Instead of working with an annotated version of the syntax tree,
   we here query variable usage in subexpressions on demand.
   If the binding is not used in a subexpression,
-  we need to obtain a strengthened version of it.
+  we need to obtain a strengthened version of that expression,
+  so we combine this into a single operation.
   \begin{code}
     strengthen-pop-at : (i : Ref sigma Gamma) -> Expr Gamma tau -> Maybe (Expr (pop-at Gamma i) tau)
   \end{code}
-  \paragraph{Binary constructors}
-  This information is then used to decide how to deal with a binary constructor:
-  If one subexpression can be strengthened, we only need to recurse into the other.
+  If one of the subexpressions can be strengthened, we only need to recurse into the other.
   If both subexpressions use the declaration, we do not push further,
-  but create a let-binding at the current location.
-  Note that it is still necessary to rename the subexpressions
-  since they make use of the newly created binding,
-  but expect it at a different de Bruijn index.
+  but create a let-binding at the current location (see above).
+  \paragraph{Binders}
+  If we recurse into the body of a let-binding,
+  an additional binding comes into scope.
+  This means that we need to bump the reference
+  and weaken the declaration.
   \begin{code}
-  rename-top :
-    (Gamma' : Ctx) (i : Ref sigma Gamma) ->
-    Expr (Gamma' ++ Gamma) tau -> Expr (Gamma' ++ (sigma :: pop-at Gamma i)) tau
+    weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
   \end{code}
 \subsection{Open Ends and Questions}
   \begin{itemize}
@@ -295,7 +313,7 @@
   we phrase the reordering of context differently than before:
   Instead of using a |Ref| to specify a particular binding in the context we want to move,
   we segment the context into a part before and after that binding.
-  In de Bruijn setting, we could have the following signature:
+  In de Bruijn setting, this would correspond to the following signature:
   \begin{code}
     push-let :
       (Gamma1 Gamma2 : Ctx) ->

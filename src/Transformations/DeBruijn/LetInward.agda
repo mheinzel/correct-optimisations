@@ -99,8 +99,8 @@ rename-top Γ' i (Plus e₁ e₂) = Plus (rename-top Γ' i e₁) (rename-top Γ'
 -- TODO: can we find a more general type, to allow for reordering and only optionally popping something?
 push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
 push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
-... | Top = decl
-... | Pop x' = Var x'
+... | Top = decl       -- x' was the same as i, so we discover that σ ≡ τ
+... | Pop x' = Var x'  -- declaration was unused
 push-let i decl e@(App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
 ... | nothing  | nothing  = Let decl (rename-top [] i e)
 ... | nothing  | just e₂' = App (push-let i decl e₁) e₂'
