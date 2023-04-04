@@ -16,6 +16,8 @@
 %format Gamma' = Gamma "^{\prime}"
 %format Gamma1 = Gamma "_1"
 %format Gamma2 = Gamma "_2"
+%format Gamma3 = Gamma "_3"
+%format Gamma4 = Gamma "_4"
 %format theta = "\theta"
 %format theta' = theta "'^{\prime}"
 %format theta1 = theta "_1"

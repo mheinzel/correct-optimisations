@@ -22,7 +22,7 @@
 \subsection{Syntax Tree}
   Using standard intrinsically-typed syntax trees.
   \begin{code}
-    data Expr (Gamma : Ctx) : (tau : U) -> Set where
+    data Expr (Gamma : Ctx) (tau : U) -> Set where
       Val   : (interpret(sigma)) -> Expr Gamma sigma
       Plus  : Expr Gamma NAT -> Expr Gamma NAT -> Expr Gamma NAT
       Let   : Expr Gamma sigma -> Expr (sigma :: Gamma) tau -> Expr Gamma tau
@@ -305,8 +305,11 @@
   \end{code}
 \subsection{Pushing Bindings Inward}
   The main differences compared to the de-Bruijn-based implementation are that
-  variable usage information is available without having to query it repeatedly,
-  and that the changes in context require laborious bookkeeping.
+  \begin{itemize}
+    \item variable usage information is available without querying it repeatedly,
+    \item we can enforce that pushed declaration is used,
+    \item the changes in context (and thus OPEs and covers) require laborious bookkeeping.
+  \end{itemize}
   \paragraph{Signature}
   Since there are many properties and operations for OPEs and covers
   related to concatenation of contexts,
@@ -358,13 +361,35 @@
       Gamma1 ++ Gamma2 C= Gamma ->
       Expr tau ^^ Gamma
   \end{code}
-  \paragraph{Implementation}
-  TODO, but mostly similar to de Bruijn.
+
+  \paragraph{Variables}
+  Here we know that we are in a context consisting of exactly the type of the variable.
+  After making this fact obvious to the typechecker,
+  we can replace the variable by the declaration.
+  \paragraph{Creating the binding}
+  As in the de Bruijn setting, we need to rename the body of the newly created binding.
+  However, it becomes more cumbersome here.
+  \begin{code}
+    reorder-Ctx :
+      Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
+      Expr tau (Gamma1 ++ Gamma3 ++ Gamma2 ++ Gamma4)
+  \end{code}
+  The context is split into four segments.
+  Since subexpressions are in their own context,
+  we first need to split their context (and the thinnings) into segments as well.
+  This is also true for the cover, which needs to be carefully reassembled.
+  Going under binders requires rewriting using list concatenation's associativity.
+  \paragraph{Binary operators}
   Variable usage information is immediately available:
-  We need to split and examine the thinnings into subexpressions.
+  We need to split and examine the thinnings of the subexpressions.
+  \paragraph{Binders}
+  % TODO: revisit why this requires so much massaging
+
   \paragraph{Correctness}
   Work in progress, but it's messy.
   There are many lemmas about splitting OPEs, reordering the context etc.
+  It seems like some of the complications could be avoided
+  if we manage to avoid the usage of |_,R_| as explained in the next paragraph.
   \paragraph{Covers}
   As hinted at above, it should not be necessary to return a result with a thinning.
   If all variables occur in either declaration or body, they will still occur in the result.
@@ -375,6 +400,7 @@
   (splitting, composition, concatenation) and observing some equalities.
   It seems like the ``right'' way of doing things,
   but still requires some work.
+% TODO: turn open ends into inline comments/todos?
 \subsection{Open Ends}
   \begin{itemize}
     \item Dead Binding Elimination: adapt correctness proof from strong version
