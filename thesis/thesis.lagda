@@ -22,11 +22,11 @@
 \subsection{Syntax Tree}
   Using standard intrinsically-typed syntax trees.
   \begin{code}
-    data Expr (Gamma : Ctx) (tau : U) -> Set where
-      Val   : (interpret(sigma)) -> Expr Gamma sigma
-      Plus  : Expr Gamma NAT -> Expr Gamma NAT -> Expr Gamma NAT
-      Let   : Expr Gamma sigma -> Expr (sigma :: Gamma) tau -> Expr Gamma tau
-      Var   : Ref sigma Gamma -> Expr Gamma sigma
+    data Expr : (tau : U) (Gamma : Ctx) -> Set where
+      Val   : (interpret(sigma)) -> Expr sigma Gamma
+      Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
+      Let   : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma
+      Var   : Ref sigma Gamma -> Expr sigma Gamma
   \end{code}
   Here, the context of variables in scope is a list of types,
   references are de Bruijn indices into that list
@@ -47,7 +47,7 @@
     lookup (Pop i)  (Cons v env)   = lookup i env
   \end{code}
   \begin{code}
-    eval : Expr Gamma sigma -> Env Gamma -> (interpret(sigma))
+    eval : Expr sigma Gamma -> Env Gamma -> (interpret(sigma))
     eval (Val v)       env  = v
     eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
     eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
@@ -75,12 +75,12 @@
       (dots)
   \end{code}
   \begin{code}
-    analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
+    analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
   \end{code}
   \paragraph{Transformation}
   In a second pass, dead let-bindings can then be identified and removed.
   \begin{code}
-    dbe : LiveExpr Delta Delta' tau -> Expr (floor(Delta')) tau
+    dbe : LiveExpr Delta Delta' tau -> Expr tau (floor(Delta'))
   \end{code}
   \paragraph{Correctness}
   We show that the transformation preserves semantics based on the (total) evaluation function.
@@ -114,7 +114,7 @@
   This seemingly simple transformation shows some unexpected complications.
   \paragraph{Signature}
   While we initially deal with a binding for the topmost entry in the context
-  (|Expr Gamma sigma -> Expr (sigma :: Gamma) tau -> Expr Gamma tau|),
+  (|Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|),
   recursively applying this function under binders requires more flexibility.
   The solution chosen here allows the position of that binding to be specified
   by a reference.
@@ -124,15 +124,15 @@
   pop-at (sigma :: Gamma) (Pop i) = sigma :: pop-at Gamma i
   \end{code}
   \begin{code}
-  push-let : (i : Ref sigma Gamma) -> Expr (pop-at Gamma i) sigma -> Expr Gamma tau -> Expr (pop-at Gamma i) tau
+  push-let : (i : Ref sigma Gamma) -> Expr sigma (pop-at Gamma i) -> Expr tau Gamma -> Expr tau (pop-at Gamma i)
   \end{code}
   Supplying |Top| as the first argument results in the same signature
   as the |Let| constructor itself.
   Note that we could have alternatively used list concatenation or insertion, e.g.
   \begin{code}
-  Expr (pop-at Gamma i) sigma    -> Expr Gamma tau                        -> Expr (pop-at Gamma i) tau
-  Expr (Gamma1 ++ Gamma2) sigma  -> Expr (Gamma1 ++ sigma :: Gamma2) tau  -> Expr (Gamma1 ++ Gamma2) tau
-  Expr Gamma sigma               -> Expr (insert n sigma Gamma) tau       -> Expr Gamma tau
+  Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
+  Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+  Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
   \end{code}
   \paragraph{Variables}
   When pushing a binding into a variable, there are two possible cases:
@@ -148,7 +148,7 @@
   since it makes use of the newly created binding,
   but expects it at a different de Bruijn index.
   \begin{code}
-  rename-top : (i : Ref sigma Gamma) -> Expr Gamma tau -> Expr (sigma :: pop-at Gamma i) tau
+  rename-top : (i : Ref sigma Gamma) -> Expr tau Gamma -> Expr tau (sigma :: pop-at Gamma i)
   \end{code}
   \paragraph{Binary constructors}
   For binary operators, we need to check which subexpressions make use of the declaration.
@@ -158,7 +158,7 @@
   we need to obtain a strengthened version of that expression,
   so we combine this into a single operation.
   \begin{code}
-    strengthen-pop-at : (i : Ref sigma Gamma) -> Expr Gamma tau -> Maybe (Expr (pop-at Gamma i) tau)
+    strengthen-pop-at : (i : Ref sigma Gamma) -> Expr tau Gamma -> Maybe (Expr tau (pop-at Gamma i))
   \end{code}
   If one of the subexpressions can be strengthened, we only need to recurse into the other.
   If both subexpressions use the declaration, we do not push further,
@@ -192,8 +192,8 @@
   \begin{code}
     data Expr : (sigma : U) (Gamma : Ctx) -> Set where
       Var : Expr sigma (sigma :: [])
-      App : (Expr (sigma ⇒ tau) ><R Expr sigma) Gamma -> Expr tau Gamma
-      Lam : ((sigma :: []) |- Expr tau) Gamma -> Expr (sigma ⇒ tau) Gamma
+      App : (Expr (sigma => tau) ><R Expr sigma) Gamma -> Expr tau Gamma
+      Lam : ((sigma :: []) |- Expr tau) Gamma -> Expr (sigma => tau) Gamma
       Let : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau Gamma
       Val : (v : (interpret (sigma))) -> Expr sigma []
       Plus : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
@@ -208,7 +208,7 @@
   A converted expression will therefore generally be required to have a larger context than before,
   indicated by an OPE.
   \begin{code}
-    from :  Gamma' C= Gamma -> Expr sigma Gamma' -> DeBruijn.Expr Gamma sigma
+    from :  Gamma' C= Gamma -> Expr sigma Gamma' -> DeBruijn.Expr sigma Gamma
   \end{code}
   The implementation proceeds by induction over the syntax,
   composes OPEs on the way
@@ -230,7 +230,7 @@
         thinning : support C= scope
   \end{code}
   \begin{code}
-    into : DeBruijn.Expr Gamma sigma -> Expr sigma ^^ Gamma
+    into : DeBruijn.Expr sigma Gamma -> Expr sigma ^^ Gamma
   \end{code}
 \subsection{Dead Binding Elimination}
   Co-de-Bruijn expressions enforce that every variable in an expression's context
@@ -680,18 +680,18 @@ We can see how the context changes when introducing a new binding
 that is then available in the body of a |Let|.
 
 \begin{code}
-  data Expr (Gamma : Ctx) : (tau : U) -> Set where
-    Val   : (interpret(sigma)) -> Expr Gamma sigma
-    Plus  : Expr Gamma NAT -> Expr Gamma NAT -> Expr Gamma NAT
-    Let   : Expr Gamma sigma -> Expr (tau :: Gamma) tau -> Expr Gamma tau
-    Var   : Ref sigma Gamma -> Expr Gamma sigma
+  data Expr : (Gamma : Ctx) (tau : U) -> Set where
+    Val   : (interpret(sigma)) -> Expr sigma Gamma
+    Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
+    Let   : Expr sigma Gamma -> Expr tau (tau :: Gamma) -> Expr tau Gamma
+    Var   : Ref sigma Gamma -> Expr sigma Gamma
 \end{code}
 
 This allows the definition of a total evaluator
 using an environment that matches the expression's context.
 
 \begin{code}
-  eval : Expr Gamma sigma -> Env Gamma -> (interpret(sigma))
+  eval : Expr sigma Gamma -> Env Gamma -> (interpret(sigma))
   eval (Val v)       env  = v
   eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
   eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
@@ -746,7 +746,7 @@ A similar relation on |Ctx| does not have this property
 which would complicate equality proofs on terms including witnesses of |_c=_|.
 
 From now on, we will only consider expressions
-|Expr (floor(Delta)) tau| in some sub-context.
+|Expr tau (floor(Delta))| in some sub-context.
 Initially, we take |Delta = all Gamma : SubCtx Gamma|,
 the complete sub-context of the original context.
 
@@ -773,8 +773,8 @@ The only requirement we have for it is that we can forget the annotations again,
 with |forget . analyse == id|.
 
 \begin{code}
-  analyse : Expr (floor(Delta)) tau -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
-  forget  : LiveExpr Delta Delta' tau -> Expr (floor(Delta)) tau
+  analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
+  forget  : LiveExpr Delta Delta' tau -> Expr tau (floor(Delta))
 \end{code}
 
 % NOTE:
@@ -799,7 +799,7 @@ with some renaming
 and the abovementioned case distinction.
 
 \begin{code}
-  dbe : LiveExpr Delta Delta' tau -> Expr (floor(Delta')) tau
+  dbe : LiveExpr Delta Delta' tau -> Expr tau (floor(Delta'))
   dbe (Let {Delta1} {Drop Delta2} e1 e2) = injExpr2 Delta1 Delta2 (dbe e2)
   (dots)
 \end{code}
