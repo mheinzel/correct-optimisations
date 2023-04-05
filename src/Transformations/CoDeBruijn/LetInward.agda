@@ -194,7 +194,7 @@ push-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl �
                                         -- Here, we should also be able to work in a smaller context, then thin⇑.
                                         -- Parts of Γ might neither be free in decl nor e₂.
                                         -- This is necessary if we want to pass down a cover.
-  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl {!!})
+  map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ push-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ))
   -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (θ₂ os) (refl , refl) | split ϕ₁ (ϕ₂ o') (refl , refl) =
   map⇑ App (push-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
@@ -212,6 +212,7 @@ push-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ �
   with c₁ , () ← cover-split-++⊑ θ₁ ϕ₁ _ _ c
   -- declaration used in right subexpression
 ...  | split θ₁ (θ₂ o') (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (ϕ₂ os) (refl , refl)
+    -- TODO: can we avoid this mess?
     with e₂' ↑ ϕ' ← push-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
                       (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
                       (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))

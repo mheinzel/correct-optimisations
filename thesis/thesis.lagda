@@ -143,6 +143,7 @@
     the declaration is eliminated
     and we  only need to strengthen the variable into the smaller context.
   \paragraph{Creating the binding}
+  % TODO: "lambda", how to call it? abstraction?
   Once we stop pushing the let-binding (e.g. when we reach a lambda),
   it is still necessary to rename the expression in its body,
   since it makes use of the newly created binding,
@@ -361,8 +362,8 @@
       Gamma1 ++ Gamma2 C= Gamma ->
       Expr tau ^^ Gamma
   \end{code}
-
   \paragraph{Variables}
+  % TODO: reword, explain why there are not two cases anymore
   Here we know that we are in a context consisting of exactly the type of the variable.
   After making this fact obvious to the typechecker,
   we can replace the variable by the declaration.
@@ -374,17 +375,23 @@
       Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
       Expr tau (Gamma1 ++ Gamma3 ++ Gamma2 ++ Gamma4)
   \end{code}
-  The context is split into four segments.
+  The context is split into four segments (where |Gamma3| is |sigma :: []|).
   Since subexpressions are in their own context,
   we first need to split their context (and the thinnings) into segments as well.
-  This is also true for the cover, which needs to be carefully reassembled.
+  This is also true for the cover, which then needs to be carefully reassembled.
   Going under binders requires rewriting using list concatenation's associativity.
-  \paragraph{Binary operators}
+  \paragraph{Binary constructors}
   Variable usage information is immediately available:
-  We need to split and examine the thinnings of the subexpressions.
+  We split and examine the thinnings of the subexpressions to see where the declaration is used.
+  Using the cover, we can rule out the case where no subexpression uses the declaration.
+  No strengthening is necessary, discovering that a variable is unused is enough.
+  The subexpressions are then combined using |_,R_|, creating the new thinnings and cover for us.
   \paragraph{Binders}
-  % TODO: revisit why this requires so much massaging
-
+  No weakening of the declaration is necessary anymore, we simply update its thinning.
+  But recursing into the body of another let-binding still complicates things:
+  Although we know that its variable usage should be unaffected,
+  the type signature of |push-let| does not enforce that
+  and we need to split its thinning.
   \paragraph{Correctness}
   Work in progress, but it's messy.
   There are many lemmas about splitting OPEs, reordering the context etc.
