@@ -417,9 +417,51 @@
 
 \section{Generic de Bruijn Representation}
 \subsection{Syntax Tree}
-\subsection{Conversion to de Bruijn Representation}
+  Using the syntax-generic approach (see section \ref{sec:background-syntax-generic}),
+  we give a description of a language equivalent to the one we used so far.
+  \begin{code}
+    data `Lang : Set where
+      `App  : U -> U -> `Lang
+      `Lam  : U -> U -> `Lang
+      `Let  : U -> U -> `Lang
+      `Val  : U -> `Lang
+      `Plus : `Lang
+  \end{code}
+  \begin{code}
+    Lang : Desc U
+    Lang = \'sigma `Lang lambda where
+      (`App sigma tau)  -> \'X [] (sigma => tau) (\'X [] sigma (\'# tau))
+      (`Lam sigma tau)  -> \'X (sigma :: []) tau (\'# (sigma => tau))
+      (`Let sigma tau)  -> \'X [] sigma (\'X (sigma :: []) tau (\'# tau))
+      (`Val tau)        -> \'sigma (interpretU(tau)) lambda _ -> \'# tau
+      `Plus             -> \'X [] NAT (\'X [] NAT (\'# NAT))
+  \end{code}
+  The evaluation function can be defined either by structural recursion over expressions,
+  or using the provided notion of a |Semantics|.
+% TODO: not sure what else to call it
+\subsection{Conversion From This Representation}
+  Done using |Semantics|. Straight-forward, since the languages are basically the same.
+  \paragraph{Correctness}
+  I tried proving it correct using the concept of |Simulation|,
+  which seems to be what I should be using,
+  but I'm kind of stuck.
+  I can probably do it manually by structural recursion,
+  but it would be nice to know what I'm doing wrong here.
+\subsection{Conversion To This Representation}
+  Done manually using structural recursion.
+  \paragraph{Correctness}
+  Done manually using structural recursion.
+  There is some friction around the different types of environment used for the two representations,
+  as well as how opaque their environment type is.
 \subsection{Open Ends}
-(Dead Binding Elimination)
+  \begin{itemize}
+    \item Conversion From This Representation: correctness (how to use |Semantics| etc.)
+    \item Doing transformations.
+      For these, I went straight on to co-de-Bruijn, as it seems to have some advantages.
+      Doing one using the |Semantics| approach could be interesting,
+      since I still don't have a good intuition for picking the right type of computation
+      (a bit like a "carrier type").
+  \end{itemize}
 
 \section{Generic co-de-Bruijn Representation}
 \subsection{Generic co-de-Bruijn Terms}
@@ -706,11 +748,13 @@ using an environment that matches the expression's context.
 \end{code}
 
 
-% \section{Syntax-generic Programming}
+\section{Syntax-generic Programming}
+\label{sec:background-syntax-generic}
 % Immediately go into the syntax-related work, just a short overview, link to literature
 % (might not end up being in the thesis)
-% \cite{Allais2018UniverseOfSyntaxes}
-% \Fixme{just state that there is this idea, keep it simple}
+% Mention issues with sized types
+\cite{Allais2018UniverseOfSyntaxes}
+\Fixme{explain, but keep it short}
 
 
 \chapter{Results}

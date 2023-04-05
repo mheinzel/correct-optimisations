@@ -69,5 +69,8 @@
 %format _\\R_ = "\_{\fatbslash_R}\_"
 %format map|- = "\Varid{map}{\vdash}"
 %format pairR = "\Varid{pair}_R"
+%format \'sigma = "\Varid{`}\sigma"
+%format \'# = "\Varid{`}\blacksquare"
+%format \'X = "\Varid{`}X"
 %endif
 % We're not extracting Agda code yet, so there is no 'else' required.
