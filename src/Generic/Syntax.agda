@@ -7,7 +7,6 @@ module Generic.Syntax where
 
 open import Data.Bool using (Bool; if_then_else_)
 open import Data.List.Base using (List; []; map; foldr)
-open import Function using (_$_)
 open import Relation.Binary.PropositionalEquality
 
 open import Data.Var using (_─Scoped)
@@ -38,7 +37,7 @@ module _ {I : Set} where
 
 
  _`+_ : Desc I → Desc I → Desc I
- d `+ e = `σ Bool $ λ isLeft →
+ d `+ e = `σ Bool λ isLeft →
           if isLeft then d else e
 
 

@@ -1,7 +1,7 @@
 module Language.Generic where
 
 open import Data.List using (_∷_ ; [])
-open import Function using (const ; _$_)
+open import Function using (const)
 
 open import Generic.Syntax
 open import Data.Environment using (Thinnable)
@@ -17,7 +17,7 @@ data `Lang : Set where
   `Plus : `Lang
 
 Lang : Desc U
-Lang = `σ `Lang $ λ where
+Lang = `σ `Lang λ where
   (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
   (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
   (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
