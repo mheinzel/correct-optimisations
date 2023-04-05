@@ -23,7 +23,7 @@
   Using standard intrinsically-typed syntax trees.
   \begin{code}
     data Expr : (tau : U) (Gamma : Ctx) -> Set where
-      Val   : (interpret(sigma)) -> Expr sigma Gamma
+      Val   : (interpretU(sigma)) -> Expr sigma Gamma
       Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
       Let   : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma
       Var   : Ref sigma Gamma -> Expr sigma Gamma
@@ -39,15 +39,15 @@
   \begin{code}
     data Env : Ctx -> Set where
       Nil   : Env []
-      Cons  : (interpret(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
+      Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
   \end{code}
   \begin{code}
-    lookup : Ref sigma Gamma -> Env Gamma -> (interpret(sigma))
+    lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
     lookup Top      (Cons v env)   = v
     lookup (Pop i)  (Cons v env)   = lookup i env
   \end{code}
   \begin{code}
-    eval : Expr sigma Gamma -> Env Gamma -> (interpret(sigma))
+    eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
     eval (Val v)       env  = v
     eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
     eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
@@ -196,7 +196,7 @@
       App : (Expr (sigma => tau) ><R Expr sigma) Gamma -> Expr tau Gamma
       Lam : ((sigma :: []) |- Expr tau) Gamma -> Expr (sigma => tau) Gamma
       Let : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau Gamma
-      Val : (v : (interpret (sigma))) -> Expr sigma []
+      Val : (v : (interpretU(sigma))) -> Expr sigma []
       Plus : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
   \end{code}
 \subsection{Conversion to de Bruijn Representation}
@@ -632,9 +632,9 @@ We will demonstrate the approach in Agda and start by defining the types that ex
     BOOL  : U
     NAT   : U
 
-  interpret_ : U -> Set
-  (interpret(BOOL))  = Bool
-  (interpret(NAT))   = Nat
+  interpretU_ : U -> Set
+  (interpretU(BOOL))  = Bool
+  (interpretU(NAT))   = Nat
 \end{code}
 
 To know if a variable occurence is valid, one must consider its \emph{context},
@@ -658,7 +658,7 @@ Together, these are called an \emph{environment} in a given context.
 \begin{code}
   data Env : Ctx -> Set where
     Nil   : Env []
-    Cons  : (interpret(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
+    Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
 \end{code}
 
 A variable then is an index into its context,
@@ -674,7 +674,7 @@ variable lookup is total.
 \end{code}
 
 \begin{code}
-  lookup : Ref sigma Gamma -> Env Gamma -> (interpret(sigma))
+  lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
   lookup Top      (Cons v env)   = v
   lookup (Pop i)  (Cons v env)   = lookup i env
 \end{code}
@@ -688,7 +688,7 @@ that is then available in the body of a |Let|.
 
 \begin{code}
   data Expr : (Gamma : Ctx) (tau : U) -> Set where
-    Val   : (interpret(sigma)) -> Expr sigma Gamma
+    Val   : (interpretU(sigma)) -> Expr sigma Gamma
     Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
     Let   : Expr sigma Gamma -> Expr tau (tau :: Gamma) -> Expr tau Gamma
     Var   : Ref sigma Gamma -> Expr sigma Gamma
@@ -698,7 +698,7 @@ This allows the definition of a total evaluator
 using an environment that matches the expression's context.
 
 \begin{code}
-  eval : Expr sigma Gamma -> Env Gamma -> (interpret(sigma))
+  eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
   eval (Val v)       env  = v
   eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
   eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
@@ -795,7 +795,7 @@ If it is not, we directly evaluate the body, ignoring the bound declaration.
 Another important detail is that evaluation works under any environment containing (at least) the live context.
 
 \begin{code}
-  evalLive : LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpret(tau))
+  evalLive : LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpretU(tau))
 \end{code}
 
 This \emph{optimised semantics} shows that we can do a similar program transformation

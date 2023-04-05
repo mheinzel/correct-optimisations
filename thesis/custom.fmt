@@ -2,6 +2,7 @@
 %format forall = "\forall"
 %format (Irrelevant (a)) = ".(" a ")"
 %format (Exists (e) (t)) = "\Sigma[" e "\in" t "]"
+%format lambda = "\lambda"
 %format e' = "\Varid{e}^{\prime}"
 %format e1 = "\Varid{e}_1"
 %format e2 = "\Varid{e}_2"
@@ -33,8 +34,13 @@
 %format _c=_ = "\_{\subseteq}\_"
 %format c= = "\subseteq"
 %format \/ = "\cup"
-%format interpret_ = "\llbracket \_ \rrbracket"
-%format (interpret (a)) = "\llbracket\ " a "\ \rrbracket"
+% TODO: distinguish?
+% interpretU : U -> Set
+%format interpretU_ = "\llbracket \_ \rrbracket"
+%format (interpretU (a)) = "\llbracket\ " a "\ \rrbracket"
+% interpretD : Desc -> (List I -> I -Scoped) -> I -Scoped
+%format interpretD_ = "\llbracket \_ \rrbracket"
+%format (interpretD (a)) = "\llbracket\ " a "\ \rrbracket"
 %format floor_ = "\lfloor \_ \rfloor"
 %format (floor (a)) = "\lfloor\ " a "\ \rfloor"
 %format (dots (a)) = "\ldots"
