@@ -80,6 +80,14 @@ Semantics.alg Eval = λ where
 eval : ∀ {Γ Γ' σ} → Expr σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
 eval t env = Sem.semantics Eval env t
 
+eval' : ∀ {Γ Γ' σ} → Expr σ Γ → (Γ ─Env) Value Γ' → Value σ Γ'
+eval' (`var x) env = lookup env x
+eval' (`con (App e₁ e₂)) env = eval' e₁ env (eval' e₂ env)
+eval' (`con (Lam e)) env = λ v → eval' e (env ∙ v)
+eval' (`con (Let e₁ e₂)) env = eval' e₂ (env ∙ (eval' e₁ env))
+eval' (`con (Val v)) env = v
+eval' (`con (Plus e₁ e₂)) env = eval' e₁ env + eval' e₂ env
+
 -- Conversion
 -- Just to check that this is the same as our original language.
 module _ where
