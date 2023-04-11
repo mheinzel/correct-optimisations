@@ -77,6 +77,10 @@
   \begin{code}
     analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
   \end{code}
+  \OpenEnd{
+  Coud be useful to revisit this: Now, after gaining additional experience,
+  are annotated expressions with sub-contexts still a good design?
+  }
   \paragraph{Transformation}
   In a second pass, dead let-bindings can then be identified and removed.
   \begin{code}
@@ -108,6 +112,9 @@
       (dots)
   \end{code}
   The remaining algorithm and most of the correctness proof are unaffected.
+  \Question{
+  Since the strong version is so similar, do that immediately?
+  }
 \subsection{Pushing Bindings Inward}
   We want to push a let-binding as far inward as possible,
   without pushing into a lambda or duplicating the binding.
@@ -161,6 +168,11 @@
   \begin{code}
     strengthen-pop-at : (i : Ref sigma Gamma) -> Expr tau Gamma -> Maybe (Expr tau (pop-at Gamma i))
   \end{code}
+  \OpenEnd{
+  Repeated querying is not ideal. This problem goes away with co-de-Bruijn representation,
+  but could it also be avoided here using annotations (as with |LiveExpr|)
+  or carrying additional information bottom-up?
+  }
   If one of the subexpressions can be strengthened, we only need to recurse into the other.
   If both subexpressions use the declaration, we do not push further,
   but create a let-binding at the current location (see above).
@@ -172,16 +184,8 @@
   \begin{code}
     weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
   \end{code}
-\subsection{Open Ends and Questions}
-  \begin{itemize}
-    \item review dead binding elimination: after gaining additional experience,
-      are annotated expressions with sub-contexts still a good design?
-    \item dead binding elimination: since the stronger version is so similar,
-      do that immediately?
-    \item push let inward: repeated querying is not ideal,
-      but there were complications with |LiveExpr|.
-    \item push let inward: no correctness proof yet
-  \end{itemize}
+  \paragraph{Correctness}
+  \OpenEnd{No correctness proof yet, how hard is it?}
 
 \section{Co-de-Bruijn Representation}
 \subsection{Syntax Tree}
@@ -260,6 +264,11 @@
   And finally, this also means that (as in the de Bruijn setting)
   previously live bindings might now have become dead,
   requiring another iteration.
+  \paragraph{Correctness}
+  \OpenEnd{
+  No correctness proof yet, but can probably be copied from the strong version
+  (with only minimal changes).
+  }
 \subsection{Strong Dead Binding Elimination}
   To avoid this,
   instead of identifying unused bound variables in the input expression,
@@ -393,10 +402,12 @@
   the type signature of |push-let| does not enforce that
   and we need to split its thinning.
   \paragraph{Correctness}
-  Work in progress, but it's messy.
+  \OpenEnd{
+  Work on the proof is in progress, but it's messy.
   There are many lemmas about splitting OPEs, reordering the context etc.
   It seems like some of the complications could be avoided
   if we manage to avoid the usage of |_,R_| as explained in the next paragraph.
+  }
   \paragraph{Covers}
   As hinted at above, it should not be necessary to return a result with a thinning.
   If all variables occur in either declaration or body, they will still occur in the result.
@@ -405,15 +416,9 @@
   than using |_,R_| to discover a coproduct with new thinnings.
   However, constructing the required covers from the input requires non-trivial manipulation
   (splitting, composition, concatenation) and observing some equalities.
-  It seems like the ``right'' way of doing things,
-  but still requires some work.
-% TODO: turn open ends into inline comments/todos?
-\subsection{Open Ends}
-  \begin{itemize}
-    \item Dead Binding Elimination: adapt correctness proof from strong version
-    \item Pushing Bindings Inward: can we avoid returning a thinning from push-let by manipulating the cover in a smart way?
-    \item Pushing Bindings Inward: finish correctness proof
-  \end{itemize}
+  \OpenEnd{
+  Can we get this to work? It seems like the ``right'' way of doing things, but not easy.
+  }
 
 \section{Generic de Bruijn Representation}
 \subsection{Syntax Tree}
@@ -442,26 +447,26 @@
 \subsection{Conversion From This Representation}
   Done using |Semantics|. Straight-forward, since the languages are basically the same.
   \paragraph{Correctness}
+  \OpenEnd{
   I tried proving it correct using the concept of |Simulation|,
   which seems to be what I should be using,
   but I'm kind of stuck.
   I can probably do it manually by structural recursion,
   but it would be nice to know what I'm doing wrong here.
+  }
 \subsection{Conversion To This Representation}
   Done manually using structural recursion.
   \paragraph{Correctness}
   Done manually using structural recursion.
   There is some friction around the different types of environment used for the two representations,
   as well as how opaque their environment type is.
-\subsection{Open Ends}
-  \begin{itemize}
-    \item Conversion From This Representation: correctness (how to use |Semantics| etc.)
-    \item Doing transformations.
-      For these, I went straight on to co-de-Bruijn, as it seems to have some advantages.
-      Doing one using the |Semantics| approach could be interesting,
-      since I still don't have a good intuition for picking the right type of computation
-      (a bit like a "carrier type").
-  \end{itemize}
+\subsection{Transformations}
+  I skipped these and I went straight on to co-de-Bruijn, as it seems to have some advantages.
+  \OpenEnd{
+  Doing one transformation using the |Semantics| approach could be interesting,
+  since I still don't have a good intuition for picking the right type of computation
+  (a bit like a "carrier type").
+  }
 
 \section{Generic co-de-Bruijn Representation}
 \subsection{Generic co-de-Bruijn Terms}
@@ -469,9 +474,9 @@
 \subsection{Syntax Tree}
 \subsection{Conversion to co-de-Bruijn Representation}
 \subsection{Generic Conversion to de Bruijn Representation}
-\subsection{Open Ends}
-(Dead Binding Elimination)
-(Strong Dead Binding Elimination)
+% Open Ends:
+% (Dead Binding Elimination)
+% (Strong Dead Binding Elimination)
 
 
 \chapter{Introduction}
