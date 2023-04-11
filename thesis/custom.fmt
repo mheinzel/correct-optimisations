@@ -1,7 +1,8 @@
 %if style == poly
 %format forall = "\forall"
 %format (Irrelevant (a)) = ".(" a ")"
-%format (Exists (e) (t)) = "\Sigma[" e "\in" t "]"
+%format (Exists (e) (t)) = "\Sigma[\ " e "\in" t "\ ]"
+%format (At(x)(p)) = x "@(" p ")"
 %format lambda = "\lambda"
 %format e' = "\Varid{e}^{\prime}"
 %format e1 = "\Varid{e}_1"
@@ -29,6 +30,7 @@
 %format psi = "\psi"
 %format psi1 = psi "_1"
 %format psi2 = psi "_2"
+%format (Forall (x)) = "\forall[\ " x "\ ]"
 %format injExpr1 = "\Varid{injExpr}_1"
 %format injExpr2 = "\Varid{injExpr}_2"
 %format _c=_ = "\_{\subseteq}\_"
@@ -41,6 +43,9 @@
 % interpretD : Desc -> (List I -> I -Scoped) -> I -Scoped
 %format interpretD_ = "\llbracket \_ \rrbracket"
 %format (interpretD (a)) = "\llbracket\ " a "\ \rrbracket"
+% interpretC : Desc -> (List I -> I -Scoped) -> I -Scoped  (for co-de-Bruijn)
+%format interpretC_ = "\llbracket \_ \rrbracket"
+%format (interpretC (a)) = "\llbracket\ " a "\ \rrbracket"
 %format floor_ = "\lfloor \_ \rfloor"
 %format (floor (a)) = "\lfloor\ " a "\ \rfloor"
 %format (dots (a)) = "\ldots"
@@ -57,8 +62,10 @@
 %format thin^^ = "\Varid{thin}{\Uparrow}"
 %format map^^ = "\Varid{map}{\Uparrow}"
 %format mult^^ = "\Varid{mult}{\Uparrow}"
+%format >< = "\times"
 %format ><R = "\times_R"
 %format _><R_ = "\_{\times_R}\_"
+%format ><R-trivial = "\times_R\Varid{-trivial}"
 %format ,R = ",_R"
 %format _,R_ = "\_{,_R}\_"
 %format |- = "\vdash"

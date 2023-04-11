@@ -277,8 +277,8 @@
   \Fixme{unexplained operations, hard to follow}
   \begin{code}
     let-? : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau ^^ Gamma
-    let-?     (pairR _ ((oz o' \\ e2)  ^ theta2)  _) = e2 ^ theta2
-    let-? p@  (pairR _ ((oz os \\ _)   ^ _)       _) = Let p ^ oi
+    let-?         (pairR _ ((oz o' \\ e2)  ^ theta2)  _)  = e2 ^ theta2
+    let-? (At(p)  (pairR _ ((oz os \\ _)   ^ _)       _)) = Let p ^ oi
   \end{code}
   \begin{code}
     dbe : Expr tau Gamma -> Expr tau ^^ Gamma
@@ -424,6 +424,7 @@
 \subsection{Syntax Tree}
   Using the syntax-generic approach (see section \ref{sec:background-syntax-generic}),
   we give a description of a language equivalent to the one we used so far.
+  \Fixme{describe issues with getting package to compile, especially sized types}
   \begin{code}
     data `Lang : Set where
       `App  : U -> U -> `Lang
@@ -444,7 +445,7 @@
   The evaluation function can be defined either by structural recursion over expressions,
   or using the provided notion of a |Semantics|.
 % TODO: not sure what else to call it
-\subsection{Conversion From This Representation}
+\subsection{Conversion From Generic (To Concrete)}
   Done using |Semantics|. Straight-forward, since the languages are basically the same.
   \paragraph{Correctness}
   \OpenEnd{
@@ -454,7 +455,7 @@
   I can probably do it manually by structural recursion,
   but it would be nice to know what I'm doing wrong here.
   }
-\subsection{Conversion To This Representation}
+\subsection{Conversion To Generic (From Concrete)}
   Done manually using structural recursion.
   \paragraph{Correctness}
   Done manually using structural recursion.
@@ -470,13 +471,89 @@
 
 \section{Generic co-de-Bruijn Representation}
 \subsection{Generic co-de-Bruijn Terms}
+  The \texttt{generic-syntax} package only interprets syntax descriptions into de Bruijn terms.
+  McBride shows an interpretation into co-de-Bruijn terms
+  \cite{McBride2018EveryBodysGotToBeSomewhere},
+  but it is based on a different structure for syntax descriptions.
+  Since we want to interpret a single description into both types of terms,
+  we create our own co-de-Bruijn interpretation based on the de Bruijn version.
+  \begin{code}
+    interpretC_ : Desc I -> (List I -> I -Scoped) -> I -Scoped
+    (interpretC(\'sigma A d))    X i Gamma  = (Exists(a)(A)) ((interpretC(d a)) X i Gamma)
+    (interpretC(\'X Delta j d))  X i        = X Gamma j ><R (interpretC(d)) X i
+    (interpretC(\'# j))          X i Gamma  = i == j >< Gamma == []
+  \end{code}
+  \begin{code}
+    Scope : I -Scoped -> List I -> I -Scoped
+    Scope T []                   i = T i
+    Scope T (At(Delta)(_ :: _))  i = Delta |- T i
+  \end{code}
+  \begin{code}
+    data Tm (d : Desc I) : I -Scoped where
+      `var  : Tm d i (i :: [])
+      `con  : (Forall (interpretC(d) (Scope (Tm d)) i => Tm d i))
+  \end{code}
+  The differences are that
+  \begin{itemize}
+    \item we use relevant pairs (|_><R_|) instead of products
+    \item at the leaves (|\'#|), we constrain the context to be empty
+    \item a (non-empty) scope is not just a change in context,
+      but comes with an explicit wrapper (|_||-_|)
+    \item variables live in a singleton context and therefore do not need an index into the context
+  \end{itemize}
+  This has some consequences when working with co-de-Bruijn terms.
+  Each ``product'' now comes with thinnings and covers and at the end is terminated by |\'#|.
+  This is especially annoying for the unary product at the end.
+  \begin{code}
+    % Convenience function for the construction of (interpretC(\'X Delta i (\'# j))) ,
+    % which as a product requires a (trivial) Cover.
+    ><R-trivial : {tau : I} {T : List I -> Set} → T Gamma → (T ><R lambda Gamma' -> tau == tau >< Gamma' == []) Gamma
+    ><R-trivial t = pairR (t ^ oi) ((refl , refl) ^ oe) cover-oi-oe
+  \end{code}
+  \Fixme{comments}
+  Similarly, when deconstructing a term, we get additional thinnings
+  and first need to make the fact obvious that they must by identity and empty thinning.
 \subsection{Generic Semantics}
+  It is not sufficient to slightly tweak the implementation of this,
+  as it relies on |interpretC_| giving rise to traversable functors, which is not true here.
+  \OpenEnd{
+  It would be very nice to get this to work, but my initial attempts didn't get far.
+  Not sure it's impossible, either.
+  }
 \subsection{Syntax Tree}
-\subsection{Conversion to co-de-Bruijn Representation}
-\subsection{Generic Conversion to de Bruijn Representation}
-% Open Ends:
-% (Dead Binding Elimination)
-% (Strong Dead Binding Elimination)
+  We obtain terms by interpreting the same syntax description we gave in the de Bruijn section.
+  \begin{code}
+    Expr : U -Scoped
+    Expr = Tm Lang
+  \end{code}
+  The evaluation function is just slightly more verbose.
+\subsection{Conversion From/To Generic (From Concrete)}
+  Done using structural recursion, the only slight pain point are the trivial relevant pairs
+  (described above).
+\subsection{Generic Conversion From de Bruijn Representation}
+  \begin{code}
+    relax :
+      (d : Desc I) -> Gamma' C= Gamma ->
+      CoDeBruijn.Tm d tau Gamma' ->
+      DeBruijn.Tm d tau Gamma
+  \end{code}
+\subsection{Generic Conversion To de Bruijn Representation}
+  \begin{code}
+  tighten :
+    (d : Desc I) ->
+    DeBruijn.Tm d tau Gamma ->
+    CoDeBruijn.Tm d tau ^^ Gamma
+  \end{code}
+  Proving correctness would require some definition of semantics (e.g. evaluation).
+\subsection{Dead Binding Elimination}
+  This can be done generically for any language with let-bindings.
+  \begin{code}
+    dbe : Tm (d \'+ Let) sigma Gamma -> Tm (d \'+ Let) sigma ^^ Gamma
+  \end{code}
+  \OpenEnd{
+  Seems doable, but still needs to be implemented!
+  Including strong version.
+  }
 
 
 \chapter{Introduction}

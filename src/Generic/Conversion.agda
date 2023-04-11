@@ -52,6 +52,8 @@ module Relax where
   relax-⟦∙⟧ (`σ A k) d' θ (a , t) =
     a , relax-⟦∙⟧ (k a) d' θ t
   relax-⟦∙⟧ (`X Δ j d) d' θ (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) cover) =
+
+
     relax-Scope Δ d' (θ₁ ₒ θ) t₁ , relax-⟦∙⟧ d d' (θ₂ ₒ θ) t₂
   relax-⟦∙⟧ (`∎ j) d' θ (refl , refl) =
     refl
