@@ -103,7 +103,7 @@ such as
 \emph{dead binding elimination},
 which is explained below.
 
-\paragraph{Dead binding elimination}
+\subsection{Dead Binding Elimination}
 An expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new variable, but it might never be used
 in the body.
@@ -126,6 +126,8 @@ Alternatively, \emph{strongly live variable analysis} can achieve the same resul
 by only considering variables to be live
 if they are used in declarations of variables that are live themselves.
 
+\subsection{Moving let-bindings}
+
 
 \section{Binding Representation}
 
@@ -145,7 +147,7 @@ such as GHC's rapier \cite{Jones2002GHCInliner},
 but these are generally still error-prone
 \cite{Maclaurin2022Foil}.
 
-\paragraph{de Bruijn indices}
+\subsection{de Bruijn Indices}
 With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
 each variable is instead represented as a natural number,
@@ -173,7 +175,12 @@ We can see this in our example when removing the innermost (unused) let-binding:
   &\ \ \ \ \DeBruijn{1}
 \end{align*}
 
-\paragraph{Other representations}
+\subsection{co-de-Bruijn Representation}
+\cite{McBride2018EveryBodysGotToBeSomewhere}
+\Fixme{This only really makes sense with intrinsically typed syntax}
+
+\subsection{Other Representations}
+\Fixme{Does this warrant its own subsection? Just want to briefly mention others.}
 There are many other techniques%
 \footnote{
 There is an introductory blogpost
@@ -189,6 +196,7 @@ and also combinations of multiple techniques, e.g. the locally nameless represen
 \section{Intrinsically Typed Syntax}
 \label{sec:background-intrinsically-typed}
 
+\subsection{de Bruijn Representation}
 %Just as the language as seen so far allows to build
 Whether we use explicit names or de Bruijn indices,
 the language as seen so far makes it possible to represent expressions
@@ -289,6 +297,8 @@ using an environment that matches the expression's context.
   eval (Var x)       env  = lookup x env
 \end{code}
 
+\subsection{co-de-Bruijn Representation}
+
 
 \section{Syntax-generic Programming}
 \label{sec:background-syntax-generic}
@@ -296,6 +306,8 @@ using an environment that matches the expression's context.
 % (might not end up being in the thesis)
 % Mention issues with sized types
 \cite{Allais2018UniverseOfSyntaxes}
+\subsection{Descriptions}
+\subsection{de Bruijn Representation}
 \Fixme{explain, but keep it short}
 
 
@@ -309,7 +321,9 @@ the full source code is available online%
 \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
 
 
-\section{Dead Binding Elimination}
+\section{de Bruijn Representation}
+
+\subsection{Dead Binding Elimination}
 \label{sec:results-dbe}
 
 \paragraph{Sub-contexts}
@@ -448,29 +462,24 @@ on the number of bindings.
 The correctness of the iterated implementation
 follows directly from the correctness of each individual iteration step.
 
+\subsection{Pushing let-bindings Inwards}
+\Fixme{Summarise that co-de-Bruijn could help (also with CSE)}
 
-\section{$\lambda$-calculus with Let-bindings}
-\label{sec:results-lambda}
+\section{co-de-Bruijn Representation}
+\subsection{Dead Binding Elimination}
+\subsection{Pushing let-bindings Inwards}
 
-Most functional languages are based on some variant of the $\lambda$-calculus.
-Extending our expression language with $\lambda$-abstractions and function application
-would therefore make our work more applicable to these settings
-and provide an additional source of bindings with new kinds of transformations.
+\section{Generic co-de-Bruijn Representation}
+\subsection{Terms}
+\subsection{Conversion From/To de Bruijn}
+\subsection{Dead Binding Elimination}
+\subsection{(Pushing let-bindings Inwards)}
 
-We implemented a prototype of this extended language,
-and adapted dead binding elimination to accommodate the new constructors.
-The additional cases are very similar to the existing ones,
-but the possible results of evaluation now include functions.
-Therefore, reasoning about semantic equivalence using propositional equality
-requires postulating function extensionality.
-This does not impact the soundness of the proof
-and could be avoided by moving to a different setting,
-such as homotopy type theory
-\cite{Univalent2013HomotopyTypeTheory}.
 
-While these changes were unproblematic,
-$\lambda$-abstractions could make other transformations more challenging,
-so they remain a prototype for now and are not included in our core language.
+\chapter{Related Work}
+\Fixme{?}
+\chapter{Further Work}
+\Fixme{?}
 
 
 \bibliography{../correct-optimisations}{}
