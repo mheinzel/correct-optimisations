@@ -79,5 +79,6 @@
 %format \'sigma = "\Varid{`}\sigma"
 %format \'# = "\Varid{`}\blacksquare"
 %format \'X = "\Varid{`}X"
+%format \'+ = "\Varid{`+}"
 %endif
 % We're not extracting Agda code yet, so there is no 'else' required.

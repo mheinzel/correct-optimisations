@@ -131,6 +131,7 @@ if they are used in declarations of variables that are live themselves.
 
 
 \section{Binding Representation}
+\Outline{Just a short overview, highlight challenges}
 
 \paragraph{Explicit names}
 The syntax specified above treats variables as letters, or more generally strings,
@@ -148,7 +149,7 @@ such as GHC's rapier \cite{Jones2002GHCInliner},
 but these are generally still error-prone
 \cite{Maclaurin2022Foil}.
 
-\subsection{de Bruijn Indices}
+\paragraph{de Bruijn Indices}
 With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
 each variable is instead represented as a natural number,
@@ -176,12 +177,10 @@ We can see this in our example when removing the innermost (unused) let-binding:
   &\ \ \ \ \DeBruijn{1}
 \end{align*}
 
-\subsection{co-de-Bruijn Representation}
+\paragraph{co-de-Bruijn Representation}
 \cite{McBride2018EveryBodysGotToBeSomewhere}
-\Fixme{This only really makes sense with intrinsically typed syntax}
 
-\subsection{Other Representations}
-\Fixme{Does this warrant its own subsection? Just want to briefly mention others.}
+\paragraph{Other Representations}
 There are many other techniques%
 \footnote{
 There is an introductory blogpost
@@ -477,10 +476,11 @@ follows directly from the correctness of each individual iteration step.
 \subsection{(Pushing let-bindings Inwards)}
 
 
-\chapter{Related Work}
-\Fixme{?}
-\chapter{Further Work}
-\Fixme{?}
+\chapter{Discussion}
+\section{Related Work}
+\Outline{?}
+\section{Further Work}
+\Outline{?}
 
 
 \bibliography{../correct-optimisations}{}
@@ -589,7 +589,7 @@ follows directly from the correctness of each individual iteration step.
   }
 \subsection{Pushing Bindings Inward}
   We want to push a let-binding as far inward as possible,
-  without pushing into a lambda or duplicating the binding.
+  without pushing into a $lambda$-abstraction or duplicating the binding.
   This seemingly simple transformation shows some unexpected complications.
   \paragraph{Signature}
   While we initially deal with a binding for the topmost entry in the context
@@ -622,8 +622,7 @@ follows directly from the correctness of each individual iteration step.
     the declaration is eliminated
     and we  only need to strengthen the variable into the smaller context.
   \paragraph{Creating the binding}
-  % TODO: "lambda", how to call it? abstraction?
-  Once we stop pushing the let-binding (e.g. when we reach a lambda),
+  Once we stop pushing the let-binding (e.g. when we reach a $lambda$-abstraction),
   it is still necessary to rename the expression in its body,
   since it makes use of the newly created binding,
   but expects it at a different de Bruijn index.
@@ -844,7 +843,7 @@ follows directly from the correctness of each individual iteration step.
       Expr tau ^^ Gamma
   \end{code}
   \paragraph{Variables}
-  % TODO: reword, explain why there are not two cases anymore
+  \Fixme{reword, explain why there are not two cases anymore}
   Here we know that we are in a context consisting of exactly the type of the variable.
   After making this fact obvious to the typechecker,
   we can replace the variable by the declaration.
@@ -916,7 +915,6 @@ follows directly from the correctness of each individual iteration step.
   \end{code}
   The evaluation function can be defined either by structural recursion over expressions,
   or using the provided notion of a |Semantics|.
-% TODO: not sure what else to call it
 \subsection{Conversion From Generic (To Concrete)}
   Done using |Semantics|. Straight-forward, since the languages are basically the same.
   \paragraph{Correctness}
@@ -981,7 +979,6 @@ follows directly from the correctness of each individual iteration step.
     ><R-trivial : {T : List I -> Set} → T Gamma → (T ><R lambda Gamma' -> tau == tau >< Gamma' == []) Gamma
     ><R-trivial t = pairR (t ^ oi) ((refl , refl) ^ oe) cover-oi-oe
   \end{code}
-  \Fixme{comments}
   Similarly, when deconstructing a term, we get additional thinnings
   and first need to make the fact obvious that they must be the identity and empty thinning.
 \subsection{Generic Semantics}
