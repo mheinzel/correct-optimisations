@@ -17,6 +17,7 @@
 
 
 \chapter{Introduction}
+\Fixme{Abstract?}
 
 \Fixme{Copied from proposal, adapt}
 When writing a compiler for a programming language,
@@ -972,20 +973,19 @@ follows directly from the correctness of each individual iteration step.
       but comes with an explicit wrapper (|_||-_|)
     \item variables live in a singleton context and therefore do not need an index into the context
   \end{itemize}
-  This has some consequences when working with co-de-Bruijn terms.
-  Each ``product'' now comes with thinnings and covers and at the end is terminated by |\'#|.
-  This is especially annoying for the unary product at the end.
+  This has some consequences when working with co-de-Bruijn terms,
+  as ``products'' now come with thinnings and covers.
+  At the end they are terminated by |\'#|, which means that even constructing a unary product
+  |(interpretC(\'X Delta i (\'# j)))| requires trivial thinnings and covers, which be abstract over:
   \begin{code}
-    % Convenience function for the construction of (interpretC(\'X Delta i (\'# j))) ,
-    % which as a product requires a (trivial) Cover.
-    ><R-trivial : {tau : I} {T : List I -> Set} → T Gamma → (T ><R lambda Gamma' -> tau == tau >< Gamma' == []) Gamma
+    ><R-trivial : {T : List I -> Set} → T Gamma → (T ><R lambda Gamma' -> tau == tau >< Gamma' == []) Gamma
     ><R-trivial t = pairR (t ^ oi) ((refl , refl) ^ oe) cover-oi-oe
   \end{code}
   \Fixme{comments}
   Similarly, when deconstructing a term, we get additional thinnings
-  and first need to make the fact obvious that they must by identity and empty thinning.
+  and first need to make the fact obvious that they must be the identity and empty thinning.
 \subsection{Generic Semantics}
-  It is not sufficient to slightly tweak the implementation of this,
+  It is not sufficient to slightly tweak the de Bruijn implementation of this,
   as it relies on |interpretC_| giving rise to traversable functors, which is not true here.
   \OpenEnd{
   It would be very nice to get this to work, but my initial attempts didn't get far.
