@@ -101,7 +101,7 @@ helper-assoc {θ₁ = θ₁} {θ₁' = θ₁'} {θ₂ = θ₂} {θ₂' = θ₂'}
     θ₂ ₒ θ₂' ₒ θ
   ∎
 
-dbe-correct-Lam : 
+dbe-correct-Lam :
   {Γₑ : Ctx} (l : ((σ ∷ []) ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let _\\_ {bound = Γ'} ψ e₁ = l
       e₁' ↑ θ₁' = dbe e₁
@@ -177,7 +177,7 @@ dbe-correct-Let (pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂)
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with Γ' ⊣ θ₂'
 ...  | split ϕ₁ ϕ₂ (refl , refl)
-  with cop (θ₁' ₒ θ₁) (ϕ₂ ₒ θ₂) 
+  with cop (θ₁' ₒ θ₁) (ϕ₂ ₒ θ₂)
 ...  | coproduct Γ' ψ' θ₁'' θ₂'' p₁ p₂ c =
     eval e₂' ((ϕ₁ ₒ ψ) ++⊑ (θ₂'' ₒ ψ' ₒ θ)) (Cons (eval e₁' (θ₁'' ₒ ψ' ₒ θ) env) env)
   ≡⟨ cong (λ x → eval e₂' _ (Cons (eval e₁' x env) env)) (helper-assoc (sym p₁)) ⟩
