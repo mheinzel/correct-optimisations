@@ -131,13 +131,12 @@ if they are used in declarations of variables that are live themselves.
 
 
 \section{Binding Representation}
-\Outline{Just a short overview, highlight challenges}
 
 \paragraph{Explicit names}
 The syntax specified above treats variables as letters, or more generally strings,
 and one can use the same representation inside a compiler.
 While this is how humans usually write programs, it comes with several downsides.
-For example, some extra work is necessary
+For example, additional work is necessary
 if we want the equality of expressions to be independent of the specific variable names chosen
 (\emph{$\alpha$-equivalence}).
 Also, there are pitfalls like variable shadowing and variable capture during substitution,
@@ -152,11 +151,13 @@ but these are generally still error-prone
 \paragraph{de Bruijn Indices}
 With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
-each variable is instead represented as a natural number,
+we instead adopt a \emph{nameless} representation.
+Each variable is represented as a natural number,
 counting the number of nested bindings between variable occurence and its binding:
 $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
 If we adapt the syntax for let-bindings to omit the unnecessary variable name,
 the example expression from dead binding elimination is represented as follows:
+\Fixme{Numbered examples/figures to make reference clearer?}
 
 \begin{align*}
   &\LetB 42 \In                       \\
@@ -168,7 +169,7 @@ the example expression from dead binding elimination is represented as follows:
 This makes $\alpha$-equivalence of expressions trivial and avoids variable capture,
 but there are still opportunities for mistakes during transformations.
 Adding or removing a binding
-requires us to add or subtract 1 from all free variables in the binding's body.
+requires us to traverse the binding's body and add or subtract 1 from all its free variables.
 We can see this in our example when removing the innermost (unused) let-binding:
 
 \begin{align*}
@@ -177,8 +178,30 @@ We can see this in our example when removing the innermost (unused) let-binding:
   &\ \ \ \ \DeBruijn{1}
 \end{align*}
 
+While useful for machines, this representation can be unintuitive for humans to reason about.
+This can be alleviated by formally describing the necessary invariants
+and using tooling to make sure they are upheld.
+We show a possible way of using dependent types to do this in section
+\ref{sec:background-intrinsically-typed-de-bruijn}.
+
 \paragraph{co-de-Bruijn Representation}
-\cite{McBride2018EveryBodysGotToBeSomewhere}
+Another nameless representation is described by McBride \cite{McBride2018EveryBodysGotToBeSomewhere}.
+Where de Bruijn representation uses references to indicate which of the variables in scope they refer to,
+the co-de-Bruijn way is for each syntax tree node
+to shrink down the context of which variables occur in each subexpression.
+Once a variable occurence is reached, the context only consists of a single element.
+Introducing or removing a binding can now be done without traversing the expression,
+as we can instead modify the way the context is shrunk down to its \emph{relevant}
+(actually occurring) part.
+We will see further advantages of the co-de-Bruijn approach later.
+
+This representation and its invariants can be even harder for humans to comprehend.
+McBride writes that
+``only a fool would attempt to enforce the co-de-Bruijn invariants without support
+from a typechecker''
+and makes heavy use of Agda's dependent type system.
+We follow his approach closely, as shown in section
+\ref{sec:background-intrinsically-typed-co-de-bruijn}.
 
 \paragraph{Other Representations}
 There are many other techniques%
@@ -197,6 +220,7 @@ and also combinations of multiple techniques, e.g. the locally nameless represen
 \label{sec:background-intrinsically-typed}
 
 \subsection{de Bruijn Representation}
+\label{sec:background-intrinsically-typed-de-bruijn}
 %Just as the language as seen so far allows to build
 Whether we use explicit names or de Bruijn indices,
 the language as seen so far makes it possible to represent expressions
@@ -298,6 +322,7 @@ using an environment that matches the expression's context.
 \end{code}
 
 \subsection{co-de-Bruijn Representation}
+\label{sec:background-intrinsically-typed-co-de-bruijn}
 
 
 \section{Syntax-generic Programming}
