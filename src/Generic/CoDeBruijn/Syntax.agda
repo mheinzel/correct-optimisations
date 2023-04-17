@@ -76,7 +76,9 @@ module _ {I : Set} where
 module _ {I : Set} {d e : Desc I} {X : List I → I ─Scoped}
          {A : Set} {i : I} {Γ : List I} where
 
- case : (⟦ d ⟧ X i Γ → A) → (⟦ e ⟧ X i Γ → A) →
-        (⟦ d `+ e  ⟧ X i Γ → A)
- case l r (true   , t) = l t
- case l r (false  , t) = r t
+ pattern injˡ t = true , t
+ pattern injʳ t = false , t
+ 
+ case : (⟦ d ⟧ X i Γ → A) → (⟦ e ⟧ X i Γ → A) → (⟦ d `+ e  ⟧ X i Γ → A)
+ case l r (injˡ t) = l t
+ case l r (injʳ t) = r t

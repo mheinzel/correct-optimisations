@@ -6,8 +6,10 @@
 module Generic.Syntax where
 
 open import Data.Bool using (Bool; if_then_else_)
-open import Data.List.Base using (List; []; map; foldr)
+open import Data.List.Base using (List; []; _∷_; map; foldr)
+open import Data.Product as Prod using (_×_; _,_; uncurry)
 open import Relation.Binary.PropositionalEquality
+open import Function using (_$_)
 
 open import Data.Var using (_─Scoped)
 
@@ -34,7 +36,6 @@ reindex f (`∎ i)     = `∎ (f i)
 module _ {I : Set} where
 
  infixr 5 _`+_
-
 
  _`+_ : Desc I → Desc I → Desc I
  d `+ e = `σ Bool λ isLeft →
@@ -65,3 +66,7 @@ module _ {I : Set} where
 
  `Xs : List I → Desc I → Desc I
  `Xs js d = foldr (`X []) d js
+
+Let : Desc I
+Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
+  `X [] σ (`X (σ ∷ []) τ (`∎ τ))
