@@ -1021,9 +1021,14 @@ follows directly from the correctness of each individual iteration step.
   \end{code}
   The evaluation function is just slightly more verbose.
 \subsection{Conversion From/To Generic (From Concrete)}
+  This just shows that the generic representation indeed corresponds
+  to the concrete one.
   Done using structural recursion, the only slight pain point are the trivial relevant pairs
   (described above).
 \subsection{Generic Conversion From de Bruijn Representation}
+  This is similar to the concrete implementation.
+  Straightforward traversal, composing OPEs as we go.
+  \Fixme{Unify terminology: OPE/thinning}
   \begin{code}
     relax :
       (d : Desc I) -> Gamma' C= Gamma ->
@@ -1031,6 +1036,10 @@ follows directly from the correctness of each individual iteration step.
       DeBruijn.Tm d tau Gamma
   \end{code}
 \subsection{Generic Conversion To de Bruijn Representation}
+  This is more involved than the other direction,
+  but we have already seen the crucial points in the concrete implementation.
+  Relevant contexts, as well as their thinnings and covers,
+  need to be discovered using |_,R_| and |_\\R_|.
   \begin{code}
   tighten :
     (d : Desc I) ->
@@ -1039,14 +1048,21 @@ follows directly from the correctness of each individual iteration step.
   \end{code}
   Proving correctness would require some definition of semantics (e.g. evaluation).
 \subsection{Dead Binding Elimination}
-  This can be done generically for any language with let-bindings.
+  We do this generically for any language with let-bindings.
+  \begin{code}
+    Let : Desc I
+    Let {I} = \'sigma (I >< I) $ uncurry $ lambda sigma tau ->
+      \'X [] sigma (\'X (sigma :: []) tau (\'# tau))
+  \end{code}
+  \begin{code}
+    _\'+_ : Desc I -> Desc I -> Desc I
+    d \'+ e = \'sigma Bool lambda isLeft →
+                if isLeft then d else e
+  \end{code}
   \begin{code}
     dbe : Tm (d \'+ Let) sigma Gamma -> Tm (d \'+ Let) sigma ^^ Gamma
   \end{code}
-  \OpenEnd{
-  Seems doable, but still needs to be implemented!
-  Including strong version.
-  }
+\subsection{Strong Dead Binding Elimination}
 
 
 

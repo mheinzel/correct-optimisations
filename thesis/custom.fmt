@@ -80,5 +80,6 @@
 %format \'# = "\Varid{`}\blacksquare"
 %format \'X = "\Varid{`}X"
 %format \'+ = "\Varid{`+}"
+%format _\'+_ = "\_\Varid{`+}\_"
 %endif
 % We're not extracting Agda code yet, so there is no 'else' required.
