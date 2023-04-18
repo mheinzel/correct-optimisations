@@ -1060,10 +1060,45 @@ follows directly from the correctness of each individual iteration step.
                 if isLeft then d else e
   \end{code}
   \begin{code}
-    dbe : Tm (d \'+ Let) sigma Gamma -> Tm (d \'+ Let) sigma ^^ Gamma
+    pattern injˡ t = true , t
+    pattern injʳ t = false , t
   \end{code}
+  \Fixme{these general constructs might fit better into the generic syntax background section}
+  The implementation is similar to the concrete version,
+  but we split it into three mutually recursive functions,
+  each handling a different ``layer'' of the term datatype.
+  \begin{code}
+    dbe :
+      Tm (d \'+ Let) sigma Gamma ->
+      Tm (d \'+ Let) sigma ^^ Gamma
+    dbe-⟦∙⟧ :
+      (interpretC(d)) (Scope (Tm (d' \'+ Let))) tau Gamma ->
+      (interpretC(d)) (Scope (Tm (d' \'+ Let))) tau ^^ Gamma
+    dbe-Scope :
+      (Delta : List I) ->
+      Scope (Tm (d \'+ Let)) Delta tau Gamma ->
+      Scope (Tm (d \'+ Let)) Delta tau ^^ Gamma
+  \end{code}
+  The implementation of |dbe| is split into
+  a case for constructors of the unknown description |d|
+  and a case for let-bindings, where most of the work happens.
 \subsection{Strong Dead Binding Elimination}
-
+  The type signatures are identical, the implementation only differs in one place:
+  Instead of checking for unused bindings before doing recursive calls,
+  we do it afterwards.
+  \begin{code}
+    let-? : Tm (d \'+ Let) sigma ^^ Gamma -> ((sigma :: []) ⊢ Tm (d \'+ Let) tau) ^^ Gamma → Tm (d \'+ Let) tau ^^ Gamma
+    let-? (t1 ^ theta1) ((oz o' \\ t2) ^ theta2) = t2 ^ theta2  -- Binding dead, just keep body.
+    let-? (t1 ^ theta1) ((oz os \\ t2) ^ theta2) =              -- Assemble constructor.
+      let t' ^ theta' = (t1 ^ theta1) ,R (><R-trivial (oz os \\ t2) ^ theta2)
+      in `con (injʳ (_ , t')) ^ theta'
+  \end{code}
+  \begin{code}
+    dbe (`con (injʳ (a , pairR (t1 ^ theta1) (pairR ((psi \\ t2) ^ _) ((refl , refl) ^ _) c ^ theta2) _)))
+      with refl <- cover-oi-oe⁻¹ c =
+        let-? (thin^^ theta1 (dbe t1)) (thin^^ theta2 (map^^ (map|- psi) (_ \\R dbe t2)))
+  \end{code}
+  \Fixme{Who's gonna try parsing this? Probably too much detail.}
 
 
 
