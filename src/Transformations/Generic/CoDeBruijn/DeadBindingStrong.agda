@@ -19,26 +19,24 @@ private
     σ τ : I
     Γ Δ : List I
 
--- Only remove directly dead bindings.
+let-? : (d : Desc I) → (Tm (d `+ Let) σ ⇑ Γ) → ((σ ∷ []) ⊢ Tm (d `+ Let) τ) ⇑ Γ → Tm (d `+ Let) τ ⇑ Γ
+let-? d (t₁ ↑ θ₁) (((oz o') \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
+let-? d (t₁ ↑ θ₁) (((oz os) \\ t₂) ↑ θ₂) =
+  let t' ↑ θ' = (t₁ ↑ θ₁) ,ᴿ (×ᴿ-trivial (oz os \\ t₂) ↑ θ₂)
+  in `con (injʳ (_ , t')) ↑ θ'
+
 dbe : (d : Desc I) → Tm (d `+ Let) τ Γ → Tm (d `+ Let) τ ⇑ Γ
 dbe-⟦∙⟧ : (d d' : Desc I) → ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ ⇑ Γ
 dbe-Scope : (Δ : List I) (d : Desc I) → Scope (Tm (d `+ Let)) Δ τ Γ → Scope (Tm (d `+ Let)) Δ τ ⇑ Γ
 
 dbe d `var = `var ↑ oi
 dbe d (`con (injˡ t)) = map⇑ (`con ∘ injˡ) (dbe-⟦∙⟧ d d t)
-dbe d (`con (injʳ (a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)))
-  with cover-oi-oe⁻¹ c | ψ
-...  | refl | oz o' =
-    thin⇑ θ₂ (dbe d t₂)
-...  | refl | oz os
-    with (_ ∷ []) \\ᴿ dbe d t₂
-...    | (_\\_ {[]} (oz o') t₂') ↑ θ₂' =
-      t₂' ↑ (θ₂' ₒ θ₂)
-...    | (_\\_ {_ ∷ _} (ψ'' os) t₂') ↑ θ₂' =
-      let t' ↑ θ' = thin⇑ θ₁ (dbe d t₁)
-                  ,ᴿ (×ᴿ-trivial (ψ'' os \\ t₂') ↑ (θ₂' ₒ θ₂))
-      in
-      `con (injʳ (a , t')) ↑ θ'
+dbe d (`con (injʳ (a , pairᴿ (t₁ ↑ θ₁) (t₀@(pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c) ↑ θ₂) _)))
+  with refl ← cover-oi-oe⁻¹ c =
+    -- It would be more efficient to first only run DBE on the body,
+    -- and only run DBE on the declaration if it turned out to be needed.
+    -- Should be possible, but requires some restructuring to appease the termination checker.
+    let-? d (thin⇑ θ₁ (dbe d t₁)) (thin⇑ θ₂ (map⇑ (map⊢ ψ) (_ \\ᴿ dbe d t₂)))
 
 dbe-⟦∙⟧ (`σ A d) d' (a , t) =
   map⇑ (a ,_) (dbe-⟦∙⟧ (d a) d' t)
