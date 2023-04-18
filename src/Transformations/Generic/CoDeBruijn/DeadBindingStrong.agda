@@ -18,32 +18,46 @@ private
     I : Set
     σ τ : I
     Γ Δ : List I
+    d d' : Desc I
 
-let-? : (d : Desc I) → (Tm (d `+ Let) σ ⇑ Γ) → ((σ ∷ []) ⊢ Tm (d `+ Let) τ) ⇑ Γ → Tm (d `+ Let) τ ⇑ Γ
-let-? d (t₁ ↑ θ₁) (((oz o') \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
-let-? d (t₁ ↑ θ₁) (((oz os) \\ t₂) ↑ θ₂) =
+let-? : Tm (d `+ Let) σ ⇑ Γ → ((σ ∷ []) ⊢ Tm (d `+ Let) τ) ⇑ Γ → Tm (d `+ Let) τ ⇑ Γ
+let-? (t₁ ↑ θ₁) (((oz o') \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
+let-? (t₁ ↑ θ₁) (((oz os) \\ t₂) ↑ θ₂) =
   let t' ↑ θ' = (t₁ ↑ θ₁) ,ᴿ (×ᴿ-trivial (oz os \\ t₂) ↑ θ₂)
   in `con (injʳ (_ , t')) ↑ θ'
 
-dbe : (d : Desc I) → Tm (d `+ Let) τ Γ → Tm (d `+ Let) τ ⇑ Γ
-dbe-⟦∙⟧ : (d d' : Desc I) → ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ ⇑ Γ
-dbe-Scope : (Δ : List I) (d : Desc I) → Scope (Tm (d `+ Let)) Δ τ Γ → Scope (Tm (d `+ Let)) Δ τ ⇑ Γ
+{-
+let-?' : ⟦ Let ⟧ (Scope (Tm (d `+ Let))) τ Γ → Tm (d `+ Let) τ ⇑ Γ
+let-?' t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)
+  with cover-oi-oe⁻¹ c | ψ
+...  | refl | oz o' =
+  t₂ ↑ θ₂
+...  | refl | oz os =
+  `con (injʳ t) ↑ oi
+-}
 
-dbe d `var = `var ↑ oi
-dbe d (`con (injˡ t)) = map⇑ (`con ∘ injˡ) (dbe-⟦∙⟧ d d t)
-dbe d (`con (injʳ (a , pairᴿ (t₁ ↑ θ₁) (t₀@(pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c) ↑ θ₂) _)))
+dbe : Tm (d `+ Let) τ Γ → Tm (d `+ Let) τ ⇑ Γ
+dbe-⟦∙⟧ : ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ ⇑ Γ
+dbe-Scope : (Δ : List I) → Scope (Tm (d `+ Let)) Δ τ Γ → Scope (Tm (d `+ Let)) Δ τ ⇑ Γ
+
+dbe `var = `var ↑ oi
+dbe (`con (injˡ t)) = map⇑ (`con ∘ injˡ) (dbe-⟦∙⟧ t)
+dbe (`con (injʳ t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)))
   with refl ← cover-oi-oe⁻¹ c =
-    -- It would be more efficient to first only run DBE on the body,
+    let-? (thin⇑ θ₁ (dbe t₁)) (thin⇑ θ₂ (map⇑ (map⊢ ψ) (_ \\ᴿ dbe t₂)))
+    -- This implementation is simpler, but gets rejected by the termination checker:
+    -- mult⇑ (map⇑ let-?' (dbe-⟦∙⟧ {d = Let} t))
+    --
+    -- Also, it would be more efficient to first only run DBE on the body,
     -- and only run DBE on the declaration if it turned out to be needed.
-    -- Should be possible, but requires some restructuring to appease the termination checker.
-    let-? d (thin⇑ θ₁ (dbe d t₁)) (thin⇑ θ₂ (map⇑ (map⊢ ψ) (_ \\ᴿ dbe d t₂)))
+    -- This however requires some restructuring to appease the termination checker.
 
-dbe-⟦∙⟧ (`σ A d) d' (a , t) =
-  map⇑ (a ,_) (dbe-⟦∙⟧ (d a) d' t)
-dbe-⟦∙⟧ (`X Δ j d) d' (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) =
-  thin⇑ θ₁ (dbe-Scope Δ d' t₁) ,ᴿ thin⇑ θ₂ (dbe-⟦∙⟧ d d' t₂)
-dbe-⟦∙⟧ (`∎ i) d' t =
+dbe-⟦∙⟧ {d = `σ A d} (a , t) =
+  map⇑ (a ,_) (dbe-⟦∙⟧ t)
+dbe-⟦∙⟧ {d = `X Δ j d} (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) =
+  thin⇑ θ₁ (dbe-Scope Δ t₁) ,ᴿ thin⇑ θ₂ (dbe-⟦∙⟧ t₂)
+dbe-⟦∙⟧ {d = `∎ i} t =
   t ↑ oi
 
-dbe-Scope [] d t = dbe d t
-dbe-Scope (_ ∷ _) d (ψ \\ t) = map⇑ (map⊢ ψ) (_ \\ᴿ dbe d t)
+dbe-Scope [] t = dbe t
+dbe-Scope (_ ∷ _) (ψ \\ t) = map⇑ (map⊢ ψ) (_ \\ᴿ dbe t)
