@@ -17,7 +17,7 @@
 
 
 \chapter{Introduction}
-\Fixme{Abstract?}
+\Fixme{Abstract}
 
 \Fixme{Copied from proposal, adapt}
 When writing a compiler for a programming language,
@@ -62,11 +62,19 @@ The goal of this thesis is to understand these consequences better and make the 
   \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
 \end{enumerate}
 
+\paragraph{Contributions}
+The source code is available online%
+\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
+\Fixme{write}
+
+\paragraph{Ethics}
 The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
 It classified this research as low-risk with no fuller ethics review or privacy assessment required.
 
 
-\chapter{Background}
+
+\chapter{Program Analysis and Transformation}
+\label{sec:program-transformations}
 
 As a running example, we will consider a simple expression language with let-bindings,
 variables, primitive values (integers and Booleans), and a few binary operators.
@@ -87,10 +95,6 @@ Encapsulating this pattern as $\Let{x} P \In Q$
 simplifies parts of the analysis and
 avoids the need for allowing functions as values.
 
-
-\section{Program Analysis and Transformation}
-\label{sec:background-transformations}
-
 For now we mainly consider transformations aimed at optimising functional programs.
 A large number of program analyses and optimisations are presented in the literature
 \cite{Nielson1999PrinciplesProgramAnalysis}
@@ -104,7 +108,9 @@ such as
 \emph{dead binding elimination},
 which is explained below.
 
-\subsection{Dead Binding Elimination}
+\section{Dead Binding Elimination}
+\label{sec:program-transformations-dbe}
+
 An expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new variable, but it might never be used
 in the body.
@@ -129,7 +135,9 @@ if they are used in declarations of variables that are live themselves.
 
 \Fixme{Also mention inlining let-bindings? Not implemented...}
 
-\subsection{Moving let-bindings}
+\section{Moving let-bindings}
+\label{sec:program-transformations-let-floating}
+
 Even when a binding cannot be removed,
 it can still be beneficial to move it to a different location.
 Several such strategies have for example been described and evaluated
@@ -150,9 +158,12 @@ if evaluated multiple times.
 \OpenEnd{Briefly look at implementing inling and local rewrites?}
 
 
-\section{Binding Representation}
 
-\paragraph{Explicit names}
+\chapter{Binding Representation}
+\label{sec:binding-representation}
+
+\section{Explicit names}
+\label{sec:binding-representation-names}
 The syntax specified above treats variables as letters, or more generally strings,
 and one can use the same representation inside a compiler.
 While this is how humans usually write programs, it comes with several downsides.
@@ -168,7 +179,9 @@ such as GHC's rapier \cite{Jones2002GHCInliner},
 but these are generally still error-prone
 \cite{Maclaurin2022Foil}.
 
-\paragraph{de Bruijn Indices}
+\section{de Bruijn Indices}
+\label{sec:binding-representation-de-bruijn}
+
 With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
 we instead adopt a \emph{nameless} representation.
@@ -202,9 +215,11 @@ While useful for machines, this representation can be unintuitive for humans to 
 This can be alleviated by formally describing the necessary invariants
 and using tooling to make sure they are upheld.
 We show a possible way of using dependent types to do this in section
-\ref{sec:background-intrinsically-typed-de-bruijn}.
+\ref{sec:de-bruijn-intrinsically-typed}.
 
-\paragraph{co-de-Bruijn Representation}
+\section{co-de-Bruijn Representation}
+\label{sec:binding-representation-co-de-bruijn}
+
 Another nameless representation is described by McBride \cite{McBride2018EveryBodysGotToBeSomewhere}.
 Where de Bruijn representation uses references to indicate which of the variables in scope they refer to,
 the co-de-Bruijn way is for each syntax tree node
@@ -221,9 +236,11 @@ McBride writes that
 from a typechecker''
 and makes heavy use of Agda's dependent type system.
 We follow his approach closely, as shown in section
-\ref{sec:background-intrinsically-typed-co-de-bruijn}.
+\ref{sec:co-de-bruijn-intrinsically-typed}.
 
-\paragraph{Other Representations}
+\section{Other Representations}
+\label{sec:binding-representation-other}
+
 There are many other techniques%
 \footnote{
 There is an introductory blogpost
@@ -236,12 +253,9 @@ and also combinations of multiple techniques, e.g. the locally nameless represen
 \cite{Chargueraud2011LocallyNameless}.
 
 
-\section{Intrinsically Typed Syntax}
-\label{sec:background-intrinsically-typed}
 
-\subsection{de Bruijn Representation}
-\label{sec:background-intrinsically-typed-de-bruijn}
-%Just as the language as seen so far allows to build
+\chapter{de Bruijn representation}
+
 Whether we use explicit names or de Bruijn indices,
 the language as seen so far makes it possible to represent expressions
 that are ill-typed (e.g. adding Booleans)
@@ -250,17 +264,22 @@ Evaluating such an expression leads to a runtime error;
 the evaluation function is partial.
 
 When implementing a compiler in a dependently typed programming language,
-we can use de Bruijn indices to define \emph{intrinsically typed syntax trees},
+we can define \emph{intrinsically typed syntax trees} with de Bruijn indices,
 where type- and scope-correctness invariants are specified on the type level
 and verified by the type checker.
-% MAYBE: mention inductive families (Dybjer)?
+\Fixme{mention inductive families (Dybjer)?}
 This makes the evaluation function total
 \cite{Augustsson1999WellTypedInterpreter}.
 Similarly, transformations on the syntax tree need to preserve the invariants.
 While the semantics of the expression could still change,
 guaranteeing type- and scope-correctness rules out
 a large class of mistakes.
-We will demonstrate the approach in Agda and start by defining the types that expressions can have.
+
+\section{Intrinsically Typed Syntax}
+\label{sec:de-bruijn-intrinsically-typed}
+
+To demonstrate this approach in Agda, 
+let us start by defining the types that expressions can have.
 \Fixme{rename to \emph{sorts}?}
 
 \begin{code}
@@ -341,35 +360,8 @@ using an environment that matches the expression's context.
   eval (Var x)       env  = lookup x env
 \end{code}
 
-\subsection{co-de-Bruijn Representation}
-\label{sec:background-intrinsically-typed-co-de-bruijn}
-
-
-\section{Syntax-generic Programming}
-\label{sec:background-syntax-generic}
-% Immediately go into the syntax-related work, just a short overview, link to literature
-% (might not end up being in the thesis)
-% Mention issues with sized types
-\cite{Allais2018UniverseOfSyntaxes}
-\subsection{Descriptions}
-\subsection{de Bruijn Representation}
-\Fixme{explain, but keep it short}
-
-
-\chapter{Results}
-
-\Fixme{Copied from proposal, adapt}
-As a first step, we implemented one optimisation in Agda,
-including a mechanised proof of its preservation of semantics.
-The main ideas are outlined below;
-the full source code is available online%
-\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
-
-
-\section{de Bruijn Representation}
-
-\subsection{Dead Binding Elimination}
-\label{sec:results-dbe}
+\section{Dead Binding Elimination}
+\label{sec:de-bruijn-dbe}
 
 \paragraph{Sub-contexts}
 To reason about the part of a context that is live (actually used),
@@ -488,7 +480,7 @@ The interesting one is again |Let|, where we split cases on the variable being u
 and need some auxiliary facts about evaluation, renaming and sub-contexts.
 
 \paragraph{Iterating the Optimisation}
-As discussed in section \ref{sec:background-transformations},
+As discussed in section \ref{sec:program-transformations},
 more than one pass of dead binding elimination might be necessary to remove all unused bindings.
 While in our simple setting all these bindings could be identified in a single pass
 using strongly live variable analysis,
@@ -507,32 +499,75 @@ on the number of bindings.
 The correctness of the iterated implementation
 follows directly from the correctness of each individual iteration step.
 
-\subsection{Pushing let-bindings Inwards}
-\Fixme{Summarise that co-de-Bruijn could help (also with CSE)}
+\section{Pushing let-bindings Inwards}
+\label{sec:de-bruijn-let-floating}
 
-\section{co-de-Bruijn Representation}
-\subsection{Dead Binding Elimination}
-\subsection{Pushing let-bindings Inwards}
+\section{Discussion}
+\label{sec:de-bruijn-discussion}
+\Outline{
+Usage information is nice, but complicated to maintain.
+Doing it for let-floating caused issues.
+Could co-de-Bruijn give us the same benefits by default?
+It would also help with CSE (equality of terms).
+}
 
-\section{Generic co-de-Bruijn Representation}
-\subsection{Terms}
-\subsection{Conversion From/To de Bruijn}
-\subsection{Dead Binding Elimination}
-  \Outline{
-  Note that we cannot simply remove any unused |Scope|,
-  as we have to adhere to the (opaque) description.
-  }
-\subsection{(Pushing let-bindings Inwards)}
+
+
+\chapter{co-de-Bruijn Representation}
+
+\section{Intrinsically Typed Syntax}
+\label{sec:co-de-bruijn-intrinsically-typed}
+\cite{McBride2018EveryBodysGotToBeSomewhere},
+
+\section{Conversion From/To de Bruijn}
+\label{sec:co-de-bruijn-conversion}
+
+\section{Dead Binding Elimination}
+\label{sec:co-de-bruijn-dbe}
+
+\section{Pushing let-bindings Inwards}
+\label{sec:co-de-bruijn-let-floating}
+
+\section{Discussion}
+\label{sec:co-de-bruijn-discussion}
+
+
+
+\chapter{Syntax-generic co-de-Bruijn Representation}
+\label{sec:generic-co-de-bruijn}
+\Outline{just a short explanation of general idea}
+\cite{Allais2018UniverseOfSyntaxes}
+
+\section{Descriptions of Syntax}
+\label{sec:generic-co-de-bruijn-descriptions}
+\Outline{Taken from \texttt{generic-syntax}, mention issues with sized types}
+
+\section{Terms}
+\label{sec:generic-co-de-bruijn-terms}
+\Outline{While they interpret into de Bruijn, we do co-de-Bruijn}
+
+\section{Conversion From/To de Bruijn}
+\label{sec:generic-co-de-bruijn-conversion}
+
+\section{Dead Binding Elimination}
+\label{sec:generic-co-de-bruijn-dbe}
+\Outline{
+Note that we cannot simply remove any unused |Scope|,
+as we have to adhere to the (opaque) description.
+}
+
+\section{(Pushing let-bindings Inwards)}
+
 
 
 \chapter{Discussion}
 \section{Related Work}
-\Outline{?}
 \section{Further Work}
-\Outline{?}
+
 
 
 \bibliography{../correct-optimisations}{}
+
 
 
 \appendix
@@ -574,7 +609,7 @@ follows directly from the correctness of each individual iteration step.
     eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
     eval (Var x)       env  = lookup x env
   \end{code}
-  For more details, see section \ref{sec:background-intrinsically-typed}.
+  For more details, see section \ref{sec:de-bruijn-intrinsically-typed}.
 \subsection{Dead Binding Elimination}
   \paragraph{Analysis}
   In a first pass, we perform \emph{live variable analysis}
@@ -611,10 +646,10 @@ follows directly from the correctness of each individual iteration step.
   We show that the transformation preserves semantics based on the (total) evaluation function.
   \paragraph{Iterating the transformation}
   Since this transformation can require multiple runs to eliminate all possible bindings
-  (section \ref{sec:background-transformations}),
+  (section \ref{sec:program-transformations}),
   we use well-founded recursion to iterate it until a fixpoint is reached.
   \paragraph{}
-  For more details, see section \autoref{sec:results-dbe}.
+  For more details, see section \ref{sec:de-bruijn-dbe}.
 \subsection{Strong Dead Binding Elimination}
   To avoid the need for iterating the transformation,
   we employ the more precise \emph{strongly live variable analysis}.
@@ -942,7 +977,7 @@ follows directly from the correctness of each individual iteration step.
 
 \section{Generic de Bruijn Representation}
 \subsection{Syntax Tree}
-  Using the syntax-generic approach (see section \ref{sec:background-syntax-generic}),
+  Using the syntax-generic approach,
   we give a description of a language equivalent to the one we used so far.
   \Fixme{describe issues with getting package to compile, especially sized types}
   \begin{code}
