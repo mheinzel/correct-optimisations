@@ -127,7 +127,27 @@ Alternatively, \emph{strongly live variable analysis} can achieve the same resul
 by only considering variables to be live
 if they are used in declarations of variables that are live themselves.
 
+\Fixme{Also mention inlining let-bindings? Not implemented...}
+
 \subsection{Moving let-bindings}
+Even when a binding cannot be removed,
+it can still be beneficial to move it to a different location.
+Several such strategies have for example been described and evaluated
+in the context of lazy functional programs
+\cite{Jones1996LetFloating}.
+
+Of those, we will focus on the \emph{floating-inward} transformation.
+\Fixme{Terminology: floating-inward transformation?}
+Generally, the further inward a let binding is moved, the better:
+Further optimisations might get unlocked and in the presence of branching,
+the binding it might never be executed.
+Of course, we must be careful that the binding remains in scope
+for all of the variable's occurences
+and consider some exceptions to the heuristic of pushing as far as possible.
+We do not want to duplicate the binding
+or move it inside a $\lambda$-abstraction, which duplicates work
+if evaluated multiple times.
+\OpenEnd{Briefly look at implementing inling and local rewrites?}
 
 
 \section{Binding Representation}
@@ -498,6 +518,10 @@ follows directly from the correctness of each individual iteration step.
 \subsection{Terms}
 \subsection{Conversion From/To de Bruijn}
 \subsection{Dead Binding Elimination}
+  \Outline{
+  Note that we cannot simply remove any unused |Scope|,
+  as we have to adhere to the (opaque) description.
+  }
 \subsection{(Pushing let-bindings Inwards)}
 
 
@@ -1049,6 +1073,10 @@ follows directly from the correctness of each individual iteration step.
   Proving correctness would require some definition of semantics (e.g. evaluation).
 \subsection{Dead Binding Elimination}
   We do this generically for any language with let-bindings.
+  \OpenEnd{Using this for you own description. How to instantiate?}
+  \OpenEnd{What about not moving into a lambda? Currently we do!
+  But we would want to move into other let-bindings,
+  so how can a user specify where to push and where not?}
   \begin{code}
     Let : Desc I
     Let {I} = \'sigma (I >< I) $ uncurry $ lambda sigma tau ->
