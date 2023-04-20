@@ -499,158 +499,10 @@ on the number of bindings.
 The correctness of the iterated implementation
 follows directly from the correctness of each individual iteration step.
 
-\section{Pushing let-bindings Inwards}
-\label{sec:de-bruijn-let-floating}
-
-\section{Discussion}
-\label{sec:de-bruijn-discussion}
-\Outline{
-Usage information is nice, but complicated to maintain.
-Doing it for let-floating caused issues.
-Could co-de-Bruijn give us the same benefits by default?
-It would also help with CSE (equality of terms).
-}
-
-
-
-\chapter{co-de-Bruijn Representation}
-
-\section{Intrinsically Typed Syntax}
-\label{sec:co-de-bruijn-intrinsically-typed}
-\cite{McBride2018EveryBodysGotToBeSomewhere},
-
-\section{Conversion From/To de Bruijn}
-\label{sec:co-de-bruijn-conversion}
-
-\section{Dead Binding Elimination}
-\label{sec:co-de-bruijn-dbe}
-
-\section{Pushing let-bindings Inwards}
-\label{sec:co-de-bruijn-let-floating}
-
-\section{Discussion}
-\label{sec:co-de-bruijn-discussion}
-
-
-
-\chapter{Syntax-generic co-de-Bruijn Representation}
-\label{sec:generic-co-de-bruijn}
-\Outline{just a short explanation of general idea}
-\cite{Allais2018UniverseOfSyntaxes}
-
-\section{Descriptions of Syntax}
-\label{sec:generic-co-de-bruijn-descriptions}
-\Outline{Taken from \texttt{generic-syntax}, mention issues with sized types}
-
-\section{Terms}
-\label{sec:generic-co-de-bruijn-terms}
-\Outline{While they interpret into de Bruijn, we do co-de-Bruijn}
-
-\section{Conversion From/To de Bruijn}
-\label{sec:generic-co-de-bruijn-conversion}
-
-\section{Dead Binding Elimination}
-\label{sec:generic-co-de-bruijn-dbe}
-\Outline{
-Note that we cannot simply remove any unused |Scope|,
-as we have to adhere to the (opaque) description.
-}
-
-\section{(Pushing let-bindings Inwards)}
-
-
-
-\chapter{Discussion}
-\section{Related Work}
-\section{Further Work}
-
-
-
-\bibliography{../correct-optimisations}{}
-
-
-
-\appendix
-
-\chapter{Overview of Current Results}
-
-\section{De Bruijn Representation}
-\subsection{Syntax Tree}
-  Using standard intrinsically-typed syntax trees.
-  \begin{code}
-    data Expr : (tau : U) (Gamma : Ctx) -> Set where
-      Val   : (interpretU(sigma)) -> Expr sigma Gamma
-      Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
-      Let   : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma
-      Var   : Ref sigma Gamma -> Expr sigma Gamma
-  \end{code}
-  Here, the context of variables in scope is a list of types,
-  references are de Bruijn indices into that list
-  and the environment for evaluation is a list of values matching the context.
-  \begin{code}
-    data Ref (sigma : U) : Ctx -> Set where
-      Top  : Ref sigma (sigma :: Gamma)
-      Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
-  \end{code}
-  \begin{code}
-    data Env : Ctx -> Set where
-      Nil   : Env []
-      Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
-  \end{code}
-  \begin{code}
-    lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
-    lookup Top      (Cons v env)   = v
-    lookup (Pop i)  (Cons v env)   = lookup i env
-  \end{code}
-  \begin{code}
-    eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
-    eval (Val v)       env  = v
-    eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
-    eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
-    eval (Var x)       env  = lookup x env
-  \end{code}
-  For more details, see section \ref{sec:de-bruijn-intrinsically-typed}.
-\subsection{Dead Binding Elimination}
-  \paragraph{Analysis}
-  In a first pass, we perform \emph{live variable analysis}
-  and create an annotated expression using \emph{sub-contexts}.
-  \begin{code}
-    data SubCtx : Ctx -> Set where
-      Empty  : SubCtx []
-      Drop   : SubCtx Gamma -> SubCtx (tau :: Gamma)
-      Keep   : SubCtx Gamma -> SubCtx (tau :: Gamma)
-  \end{code}
-  \begin{code}
-    floor_ : SubCtx Gamma -> Ctx
-  \end{code}
-  \begin{code}
-    data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
-      Let : LiveExpr Delta Delta1 sigma ->
-            LiveExpr (Keep Delta) Delta2 tau ->
-            LiveExpr Delta (Delta2 \/ pop Delta2) tau
-      (dots)
-  \end{code}
-  \begin{code}
-    analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
-  \end{code}
-  \OpenEnd{
-  Coud be useful to revisit this: Now, after gaining additional experience,
-  are annotated expressions with sub-contexts still a good design?
-  }
-  \paragraph{Transformation}
-  In a second pass, dead let-bindings can then be identified and removed.
-  \begin{code}
-    dbe : LiveExpr Delta Delta' tau -> Expr tau (floor(Delta'))
-  \end{code}
-  \paragraph{Correctness}
-  We show that the transformation preserves semantics based on the (total) evaluation function.
-  \paragraph{Iterating the transformation}
-  Since this transformation can require multiple runs to eliminate all possible bindings
-  (section \ref{sec:program-transformations}),
-  we use well-founded recursion to iterate it until a fixpoint is reached.
-  \paragraph{}
-  For more details, see section \ref{sec:de-bruijn-dbe}.
-\subsection{Strong Dead Binding Elimination}
+\section{Strong Dead Binding Elimination}
+\label{sec:de-bruijn-dbe-strong}
+\Question{Merge this into previous section? Or, since strong version is so similar, do that immediately?}
+\Draft{
   To avoid the need for iterating the transformation,
   we employ the more precise \emph{strongly live variable analysis}.
   The main difference is that we only consider variable usages in a declaration
@@ -668,10 +520,11 @@ as we have to adhere to the (opaque) description.
       (dots)
   \end{code}
   The remaining algorithm and most of the correctness proof are unaffected.
-  \Question{
-  Since the strong version is so similar, do that immediately?
-  }
-\subsection{Pushing Bindings Inward}
+}
+
+\section{Pushing let-bindings Inwards}
+\label{sec:de-bruijn-let-floating}
+\Draft{
   We want to push a let-binding as far inward as possible,
   without pushing into a $lambda$-abstraction or duplicating the binding.
   This seemingly simple transformation shows some unexpected complications.
@@ -740,10 +593,26 @@ as we have to adhere to the (opaque) description.
     weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
   \end{code}
   \paragraph{Correctness}
-  \OpenEnd{No correctness proof yet, how hard is it?}
+}
+\OpenEnd{No correctness proof yet, how hard is it?}
 
-\section{Co-de-Bruijn Representation}
-\subsection{Syntax Tree}
+\section{Discussion}
+\label{sec:de-bruijn-discussion}
+\Outline{
+Usage information is nice, but complicated to maintain.
+Doing it for let-floating caused issues.
+Could co-de-Bruijn give us the same benefits by default?
+It would also help with CSE (equality of terms).
+}
+
+
+
+\chapter{co-de-Bruijn Representation}
+
+\section{Intrinsically Typed Syntax}
+\label{sec:co-de-bruijn-intrinsically-typed}
+\cite{McBride2018EveryBodysGotToBeSomewhere},
+\Draft{
   We follow McBride's work on co-de-Bruijn representation
   \cite{McBride2018EveryBodysGotToBeSomewhere}
   and use OPEs |_C=_| to define the type of relevant pairs |_><R_|
@@ -758,7 +627,12 @@ as we have to adhere to the (opaque) description.
       Val : (v : (interpretU(sigma))) -> Expr sigma []
       Plus : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
   \end{code}
-\subsection{Conversion to de Bruijn Representation}
+}
+
+\section{Conversion From/To de Bruijn}
+\label{sec:co-de-bruijn-conversion}
+\Draft{
+  \paragraph{Relax}
   The main difference here is that
   variables are not kept in the context until the latest,
   but discarded at the earliest opportunity.
@@ -775,7 +649,9 @@ as we have to adhere to the (opaque) description.
   and finally at the variable makes use of the fact
   that an OPE from a singleton list is isomorphic to a de Bruijn reference.
   The proof of semantic equivalence mainly consists of congruences.
-\subsection{Conversion from de Bruijn Representation}
+}
+\Draft{
+  \paragraph{Tighten}
   In the opposite direction,
   the resulting co-de-Bruijn expression will generally have a smaller context
   that is not known upfront.
@@ -792,7 +668,11 @@ as we have to adhere to the (opaque) description.
   \begin{code}
     into : DeBruijn.Expr sigma Gamma -> Expr sigma ^^ Gamma
   \end{code}
-\subsection{Dead Binding Elimination}
+}
+
+\section{Dead Binding Elimination}
+\label{sec:co-de-bruijn-dbe}
+\Draft{
   Co-de-Bruijn expressions enforce that every variable in an expression's context
   must occur somewhere.
   However, there can still be dead bindings:
@@ -824,7 +704,11 @@ as we have to adhere to the (opaque) description.
   No correctness proof yet, but can probably be copied from the strong version
   (with only minimal changes).
   }
-\subsection{Strong Dead Binding Elimination}
+}
+
+\section{Strong Dead Binding Elimination}
+\label{sec:co-de-bruijn-dbe-strong}
+\Draft{
   To avoid this,
   instead of identifying unused bound variables in the input expression,
   we can do the recursive call \emph{first} and check whether the variable is used
@@ -868,7 +752,11 @@ as we have to adhere to the (opaque) description.
       let e' ^ theta' = let-? p
       in eval (Let p) theta env ≡ eval e' (theta' .. theta) env
   \end{code}
-\subsection{Pushing Bindings Inward}
+}
+
+\section{Pushing let-bindings Inwards}
+\label{sec:co-de-bruijn-let-floating}
+\Draft{
   The main differences compared to the de-Bruijn-based implementation are that
   \begin{itemize}
     \item variable usage information is available without querying it repeatedly,
@@ -974,9 +862,24 @@ as we have to adhere to the (opaque) description.
   \OpenEnd{
   Can we get this to work? It seems like the ``right'' way of doing things, but not easy.
   }
+}
 
-\section{Generic de Bruijn Representation}
-\subsection{Syntax Tree}
+\section{Discussion}
+\label{sec:co-de-bruijn-discussion}
+\Outline{This was nice, although (...). Can we generalise this?}
+
+
+
+\chapter{Syntax-generic co-de-Bruijn Representation}
+\label{sec:generic-co-de-bruijn}
+\Outline{Just a short explanation of the general idea.}
+\cite{Allais2018UniverseOfSyntaxes}
+
+\section{Descriptions of Syntax}
+\label{sec:generic-co-de-bruijn-descriptions}
+\Outline{Taken from \texttt{generic-syntax}, mention issues with sized types}
+\Draft{
+  \paragraph{An example language}
   Using the syntax-generic approach,
   we give a description of a language equivalent to the one we used so far.
   \Fixme{describe issues with getting package to compile, especially sized types}
@@ -997,34 +900,11 @@ as we have to adhere to the (opaque) description.
       (`Val tau)        -> \'sigma (interpretU(tau)) lambda _ -> \'# tau
       `Plus             -> \'X [] NAT (\'X [] NAT (\'# NAT))
   \end{code}
-  The evaluation function can be defined either by structural recursion over expressions,
-  or using the provided notion of a |Semantics|.
-\subsection{Conversion From Generic (To Concrete)}
-  Done using |Semantics|. Straight-forward, since the languages are basically the same.
-  \paragraph{Correctness}
-  \OpenEnd{
-  I tried proving it correct using the concept of |Simulation|,
-  which seems to be what I should be using,
-  but I'm kind of stuck.
-  I can probably do it manually by structural recursion,
-  but it would be nice to know what I'm doing wrong here.
-  }
-\subsection{Conversion To Generic (From Concrete)}
-  Done manually using structural recursion.
-  \paragraph{Correctness}
-  Done manually using structural recursion.
-  There is some friction around the different types of environment used for the two representations,
-  as well as how opaque their environment type is.
-\subsection{Transformations}
-  I skipped these and I went straight on to co-de-Bruijn, as it seems to have some advantages.
-  \OpenEnd{
-  Doing one transformation using the |Semantics| approach could be interesting,
-  since I still don't have a good intuition for picking the right type of computation
-  (a bit like a "carrier type").
-  }
+}
 
-\section{Generic co-de-Bruijn Representation}
-\subsection{Generic co-de-Bruijn Terms}
+\section{Terms}
+\label{sec:generic-co-de-bruijn-terms}
+\Draft{
   The \texttt{generic-syntax} package only interprets syntax descriptions into de Bruijn terms.
   McBride shows an interpretation into co-de-Bruijn terms
   \cite{McBride2018EveryBodysGotToBeSomewhere},
@@ -1065,26 +945,24 @@ as we have to adhere to the (opaque) description.
   \end{code}
   Similarly, when deconstructing a term, we get additional thinnings
   and first need to make the fact obvious that they must be the identity and empty thinning.
-\subsection{Generic Semantics}
-  It is not sufficient to slightly tweak the de Bruijn implementation of this,
-  as it relies on |interpretC_| giving rise to traversable functors, which is not true here.
-  \OpenEnd{
-  It would be very nice to get this to work, but my initial attempts didn't get far.
-  Not sure it's impossible, either.
-  }
-\subsection{Syntax Tree}
-  We obtain terms by interpreting the same syntax description we gave in the de Bruijn section.
+  \paragraph{An example language}
+  We obtain terms by interpreting our syntax description we gave before.
   \begin{code}
     Expr : U -Scoped
     Expr = Tm Lang
   \end{code}
-  The evaluation function is just slightly more verbose.
-\subsection{Conversion From/To Generic (From Concrete)}
-  This just shows that the generic representation indeed corresponds
-  to the concrete one.
-  Done using structural recursion, the only slight pain point are the trivial relevant pairs
-  (described above).
-\subsection{Generic Conversion From de Bruijn Representation}
+  The evaluation function can be written in a similar way as in the concrete setting.
+  It is just slightly more verbose.
+  We also convince ourselves that the generic representation of this language
+  indeed corresponds to the concrete one.
+  We can convert between the two using structural recursion,
+  the only slight pain point are the trivial relevant pairs (described above).
+}
+
+\section{Conversion From/To de Bruijn}
+\label{sec:generic-co-de-bruijn-conversion}
+\Draft{
+  \paragraph{Relax}
   This is similar to the concrete implementation.
   Straightforward traversal, composing OPEs as we go.
   \Fixme{Unify terminology: OPE/thinning}
@@ -1094,7 +972,9 @@ as we have to adhere to the (opaque) description.
       CoDeBruijn.Tm d tau Gamma' ->
       DeBruijn.Tm d tau Gamma
   \end{code}
-\subsection{Generic Conversion To de Bruijn Representation}
+}
+\Draft{
+  \paragraph{Tighten}
   This is more involved than the other direction,
   but we have already seen the crucial points in the concrete implementation.
   Relevant contexts, as well as their thinnings and covers,
@@ -1106,7 +986,12 @@ as we have to adhere to the (opaque) description.
     CoDeBruijn.Tm d tau ^^ Gamma
   \end{code}
   Proving correctness would require some definition of semantics (e.g. evaluation).
-\subsection{Dead Binding Elimination}
+}
+
+\section{Dead Binding Elimination}
+\label{sec:generic-co-de-bruijn-dbe}
+\Todo{Note that we cannot simply remove any unused |Scope|, as we have to adhere to the (opaque) description.}
+\Draft{
   We do this generically for any language with let-bindings.
   \OpenEnd{Using this for you own description. How to instantiate?}
   \OpenEnd{What about not moving into a lambda? Currently we do!
@@ -1145,7 +1030,11 @@ as we have to adhere to the (opaque) description.
   The implementation of |dbe| is split into
   a case for constructors of the unknown description |d|
   and a case for let-bindings, where most of the work happens.
-\subsection{Strong Dead Binding Elimination}
+}
+
+\section{Strong Dead Binding Elimination}
+\label{sec:generic-co-de-bruijn-dbe-strong}
+\Draft{
   The type signatures are identical, the implementation only differs in one place:
   Instead of checking for unused bindings before doing recursive calls,
   we do it afterwards.
@@ -1162,6 +1051,62 @@ as we have to adhere to the (opaque) description.
         let-? (thin^^ theta1 (dbe t1)) (thin^^ theta2 (map^^ (map|- psi) (_ \\R dbe t2)))
   \end{code}
   \Fixme{Who's gonna try parsing this? Probably too much detail.}
+}
+
+\section{(Pushing let-bindings Inwards)}
+
+
+
+\chapter{Discussion}
+\section{Related Work}
+\section{Further Work}
+
+
+
+\bibliography{../correct-optimisations}{}
+
+
+
+\appendix
+
+\chapter{Overview of Current Results}
+
+Or what is left of it. Some might be reusable?
+
+\section{Generic de Bruijn Representation}
+\Fixme{Not sure if this section can be re-used}
+\subsection{Conversion From Generic (To Concrete)}
+  Done using |Semantics|. Straight-forward, since the languages are basically the same.
+  \paragraph{Correctness}
+  \OpenEnd{
+  I tried proving it correct using the concept of |Simulation|,
+  which seems to be what I should be using,
+  but I'm kind of stuck.
+  I can probably do it manually by structural recursion,
+  but it would be nice to know what I'm doing wrong here.
+  }
+\subsection{Conversion To Generic (From Concrete)}
+  Done manually using structural recursion.
+  \paragraph{Correctness}
+  Done manually using structural recursion.
+  There is some friction around the different types of environment used for the two representations,
+  as well as how opaque their environment type is.
+\subsection{Transformations}
+  I skipped these and I went straight on to co-de-Bruijn, as it seems to have some advantages.
+  \OpenEnd{
+  Doing one transformation using the |Semantics| approach could be interesting,
+  since I still don't have a good intuition for picking the right type of computation
+  (a bit like a "carrier type").
+  }
+
+\section{Generic co-de-Bruijn Representation}
+\subsection{Generic Semantics}
+  It is not sufficient to slightly tweak the de Bruijn implementation of this,
+  as it relies on |interpretC_| giving rise to traversable functors, which is not true here.
+  \OpenEnd{
+  It would be very nice to get this to work, but my initial attempts didn't get far.
+  Not sure it's impossible, either.
+  }
 
 
 
