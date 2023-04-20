@@ -21,8 +21,8 @@ private
     d d' : Desc I
 
 let-? : Tm (d `+ Let) σ ⇑ Γ → ((σ ∷ []) ⊢ Tm (d `+ Let) τ) ⇑ Γ → Tm (d `+ Let) τ ⇑ Γ
-let-? (t₁ ↑ θ₁) (((oz o') \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
-let-? (t₁ ↑ θ₁) (((oz os) \\ t₂) ↑ θ₂) =
+let-? (t₁ ↑ θ₁) ((oz o' \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
+let-? (t₁ ↑ θ₁) ((oz os \\ t₂) ↑ θ₂) =          -- Assemble constructor.
   let t' ↑ θ' = (t₁ ↑ θ₁) ,ᴿ (×ᴿ-trivial (oz os \\ t₂) ↑ θ₂)
   in `con (injʳ (_ , t')) ↑ θ'
 
