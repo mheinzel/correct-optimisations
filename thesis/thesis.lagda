@@ -20,52 +20,55 @@
 \Fixme{Abstract}
 
 \Fixme{Copied from proposal, adapt}
-When writing a compiler for a programming language,
-an important consideration is the treatment of binders and variables.
-A well-known technique when using dependently typed programming languages such as Agda
-\cite{Norell2008Agda}
-is to define an intrinsically typed syntax tree,
-where expressions are scope- and type-correct by construction and admit a total evaluation function
-\cite{Augustsson1999WellTypedInterpreter}.
-This construction has featured in several papers, exploring
-basic operations like renaming and substitution
-\cite{Allais2018UniverseOfSyntaxes}
-as well as compilation to different target languages
-\cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
+\Draft{
+  When writing a compiler for a programming language,
+  an important consideration is the treatment of binders and variables.
+  A well-known technique when using dependently typed programming languages such as Agda
+  \cite{Norell2008Agda}
+  is to define an intrinsically typed syntax tree,
+  where expressions are scope- and type-correct by construction and admit a total evaluation function
+  \cite{Augustsson1999WellTypedInterpreter}.
+  This construction has featured in several papers, exploring
+  basic operations like renaming and substitution
+  \cite{Allais2018UniverseOfSyntaxes}
+  as well as compilation to different target languages
+  \cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
 
-At the same time, there are large classes of important transformations
-that have not yet received much attention in an intrinsically typed setting.
-Optimisations, for example, play a central role in practical compilers
-and establishing their correctness is often not trivial,
-with ample opportunity for binding-related mistakes
-\cite{SpectorZabusky2019EmbracingFormalizationGap}
-\cite{Maclaurin2022Foil}.
-Letting the type checker keep track of important invariants
-promises to remove common sources of bugs.
-A mechanised proof of semantics preservation can increase confidence further.
+  At the same time, there are large classes of important transformations
+  that have not yet received much attention in an intrinsically typed setting.
+  Optimisations, for example, play a central role in practical compilers
+  and establishing their correctness is often not trivial,
+  with ample opportunity for binding-related mistakes
+  \cite{SpectorZabusky2019EmbracingFormalizationGap}
+  \cite{Maclaurin2022Foil}.
+  Letting the type checker keep track of important invariants
+  promises to remove common sources of bugs.
+  A mechanised proof of semantics preservation can increase confidence further.
 
-In return for the correctness guarantees, some additional work is required.
-Program \emph{analysis} not only needs to identify optimisation opportunities,
-but potentially also provide a proof witness that the optimisation is safe,
-e.g. that some dead code is indeed unused.
-For the \emph{transformation} of the intrinsically typed program,
-the programmer then has to convince the type checker
-that type- and scope-correctness invariants are preserved,
-which can be cumbersome.
-The goal of this thesis is to understand these consequences better and make the following contributions:
+  In return for the correctness guarantees, some additional work is required.
+  Program \emph{analysis} not only needs to identify optimisation opportunities,
+  but potentially also provide a proof witness that the optimisation is safe,
+  e.g. that some dead code is indeed unused.
+  For the \emph{transformation} of the intrinsically typed program,
+  the programmer then has to convince the type checker
+  that type- and scope-correctness invariants are preserved,
+  which can be cumbersome.
+  The goal of this thesis is to understand these consequences better and make the following contributions:
 
-\begin{enumerate}
-  \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
-  \item implement several of these transformations using intrinsically typed expressions in the dependently-typed programming language Agda
-  \item provide machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
-  \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
-  \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
-\end{enumerate}
-
+  \begin{enumerate}
+    \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
+    \item implement several of these transformations using intrinsically typed expressions in the dependently-typed programming language Agda
+    \item provide machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
+    \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
+    \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
+  \end{enumerate}
+}
 \paragraph{Contributions}
-The source code is available online%
-\footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
-\Fixme{write}
+\Draft{
+  The source code is available online%
+  \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
+  \Fixme{write}
+}
 
 \paragraph{Ethics}
 The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
@@ -76,24 +79,27 @@ It classified this research as low-risk with no fuller ethics review or privacy 
 \chapter{Program Analysis and Transformation}
 \label{sec:program-transformations}
 
-As a running example, we will consider a simple expression language with let-bindings,
-variables, primitive values (integers and Booleans), and a few binary operators.
-Since the transformations in this thesis primarily relate to variables and binders,
-the choice of possible values and additional primitive operations on them is mostly arbitrary.
-Extending the language with further values and operators is trivial.
-\begin{align*}
-  P, Q ::=&\ v
-  \\ \big||&\ P + Q
-  \\ \big||&\ \Let{x} P \In Q
-  \\ \big||&\ x
-\end{align*}
+\Draft{
+  As a running example, we will consider a simple expression language with let-bindings,
+  variables, primitive values (integers and Booleans), and a few binary operators.
+  Since the transformations in this thesis primarily relate to variables and binders,
+  the choice of possible values and additional primitive operations on them is mostly arbitrary.
+  Extending the language with further values and operators is trivial.
+  \begin{align*}
+    P, Q ::=&\ v
+    \\ \big||&\ P + Q
+    \\ \big||&\ \Let{x} P \In Q
+    \\ \big||&\ x
+  \end{align*}
 
-An expression can be bound to a variable $x$ using a $\textbf{let}$-binding.
-Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
-where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q)\ P$.
-Encapsulating this pattern as $\Let{x} P \In Q$
-simplifies parts of the analysis and
-avoids the need for allowing functions as values.
+  An expression can be bound to a variable $x$ using a $\textbf{let}$-binding.
+  Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
+  where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q)\ P$.
+  Encapsulating this pattern as $\Let{x} P \In Q$
+  simplifies parts of the analysis and
+  avoids the need for allowing functions as values.
+  \Fixme{We now have $\lambda$-abstractions!}
+}
 
 For now we mainly consider transformations aimed at optimising functional programs.
 A large number of program analyses and optimisations are presented in the literature
@@ -110,23 +116,20 @@ which is explained below.
 
 \section{Dead Binding Elimination}
 \label{sec:program-transformations-dbe}
-
 An expression is not forced to make use of the whole context to which it has access.
 Specifically, a let-binding introduces a new variable, but it might never be used
 in the body.
 Consider for example the following expression:
-
 \begin{align*}
   &\Let{x} 42 \In            \\
   &\ \ \Let{y} x + 6 \In     \\
   &\ \ \ \ \Let{z} y + 7 \In \\
   &\ \ \ \ \ \ x
 \end{align*}
-
 Here, the binding for $z$ is clearly unused, as the variable never occurs in the body.
 Such dead bindings can be identified by \emph{live variable analysis}
 and consequently be removed.
-
+\\
 Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
 Therefore, multiple iterations of live variable analysis and binding elimination might be required.
 Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
@@ -137,13 +140,12 @@ if they are used in declarations of variables that are live themselves.
 
 \section{Moving let-bindings}
 \label{sec:program-transformations-let-floating}
-
 Even when a binding cannot be removed,
 it can still be beneficial to move it to a different location.
 Several such strategies have for example been described and evaluated
 in the context of lazy functional programs
 \cite{Jones1996LetFloating}.
-
+\\
 Of those, we will focus on the \emph{floating-inward} transformation.
 \Fixme{Terminology: floating-inward transformation?}
 Generally, the further inward a let binding is moved, the better:
@@ -155,6 +157,8 @@ and consider some exceptions to the heuristic of pushing as far as possible.
 We do not want to duplicate the binding
 or move it inside a $\lambda$-abstraction, which duplicates work
 if evaluated multiple times.
+
+\vspace{1cm}
 \OpenEnd{Briefly look at implementing inling and local rewrites?}
 
 
@@ -254,7 +258,7 @@ and also combinations of multiple techniques, e.g. the locally nameless represen
 
 
 
-\chapter{de Bruijn representation}
+\chapter{de Bruijn Representation}
 
 Whether we use explicit names or de Bruijn indices,
 the language as seen so far makes it possible to represent expressions
@@ -348,6 +352,7 @@ that is then available in the body of a |Let|.
     Let   : Expr sigma Gamma -> Expr tau (tau :: Gamma) -> Expr tau Gamma
     Var   : Ref sigma Gamma -> Expr sigma Gamma
 \end{code}
+\Fixme{Add |Lam|!}
 
 This allows the definition of a total evaluator
 using an environment that matches the expression's context.
@@ -990,7 +995,7 @@ It would also help with CSE (equality of terms).
 
 \section{Dead Binding Elimination}
 \label{sec:generic-co-de-bruijn-dbe}
-\Todo{Note that we cannot simply remove any unused |Scope|, as we have to adhere to the (opaque) description.}
+\Outline{Note that we cannot simply remove any unused |Scope|, as we have to adhere to the (opaque) description.}
 \Draft{
   We do this generically for any language with let-bindings.
   \OpenEnd{Using this for you own description. How to instantiate?}
