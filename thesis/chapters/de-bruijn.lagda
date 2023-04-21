@@ -271,7 +271,7 @@ follows directly from the correctness of each individual iteration step.
   The remaining algorithm and most of the correctness proof are unaffected.
 }
 
-\section{Pushing let-bindings Inwards}
+\section{Let-floating}
 \label{sec:de-bruijn-let-floating}
 \Draft{
   We want to push a let-binding as far inward as possible,

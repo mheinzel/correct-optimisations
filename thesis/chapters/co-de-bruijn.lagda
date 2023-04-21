@@ -148,7 +148,7 @@
   \end{code}
 }
 
-\section{Pushing let-bindings Inwards}
+\section{Let-floating}
 \label{sec:co-de-bruijn-let-floating}
 \Draft{
   The main differences compared to the de-Bruijn-based implementation are that

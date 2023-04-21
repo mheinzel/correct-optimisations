@@ -191,4 +191,4 @@
   \Fixme{Who's gonna try parsing this? Probably too much detail.}
 }
 
-\section{(Pushing let-bindings Inwards)}
+\section{(Let-floating)}
