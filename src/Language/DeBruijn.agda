@@ -45,3 +45,8 @@ num-bindings (Plus e₁ e₂)  = num-bindings e₁ + num-bindings e₂
 
 rename-Expr : Δ ⊑ Γ → Expr σ Δ → Expr σ Γ
 rename-Expr θ e = {!!}
+
+law-eval-rename-Expr :
+  (e : Expr σ Δ) (θ : Δ ⊑ Γ) (env : Env Γ) →
+  eval (rename-Expr θ e) env ≡ eval e (project-Env θ env)
+law-eval-rename-Expr e θ env = {!!}

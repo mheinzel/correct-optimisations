@@ -3,7 +3,7 @@ module Language.Core where
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong)
 
 data U : Set where
   _⇒_   : U → U → U
