@@ -30,7 +30,7 @@ Expr = Tm Lang
 -- Evaluation
 
 eval : Expr τ Γ' → Env Γ → Γ' ⊑ Γ → Core.⟦ τ ⟧
-eval `var env θ = Core.Ref.lookup (CoDeBruijn.ref-o θ) env
+eval `var env θ = Core.Ref.lookup (Core.Ref.ref-o θ) env
 eval (`con (`App _ _ , pairᴿ (e₁ ↑ θ₁) (pairᴿ (e₂ ↑ θ₂') ((refl , _) ↑ _) _ ↑ θ₂) cover)) env θ =
   eval e₁ env (θ₁ ₒ θ) (eval e₂ env (θ₂' ₒ θ₂ ₒ θ))
 eval (`con (`Lam _ _ , pairᴿ ((ψ \\ e₁) ↑ θ₁) ((refl , _) ↑ _) c)) env θ =

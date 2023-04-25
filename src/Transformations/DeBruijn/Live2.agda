@@ -17,7 +17,6 @@ open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 open import Language.DeBruijn
-open import Language.CoDeBruijn using (o-Ref ; ref-o ; ref-o-Ref≡id ; project-Env)  -- TODO: put somewhere else
 
 private
   variable

@@ -15,7 +15,6 @@ open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 open import Language.DeBruijn
-open import Language.CoDeBruijn using (o-Ref; project-Env)  -- TODO: put somewhere else
 open import Transformations.Recursion
 
 private
