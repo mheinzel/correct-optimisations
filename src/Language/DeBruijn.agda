@@ -1,9 +1,13 @@
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: implement renaming
+
 module Language.DeBruijn where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
 open import Data.List using (List ; _∷_ ; [])
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
+
+open import Data.OPE
 
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
@@ -12,7 +16,7 @@ open Language.Core.Ref {U} {⟦_⟧}
 private
   variable
     σ τ : U
-    Γ : Ctx
+    Δ Γ : Ctx
 
 data Expr : U → Ctx → Set where
   Var   : Ref σ Γ → Expr σ Γ
@@ -38,3 +42,6 @@ num-bindings (Lam e)       = num-bindings e
 num-bindings (Let e₁ e₂)   = Succ (num-bindings e₁ + num-bindings e₂)
 num-bindings (Val v)       = Zero
 num-bindings (Plus e₁ e₂)  = num-bindings e₁ + num-bindings e₂
+
+rename-Expr : Δ ⊑ Γ → Expr σ Δ → Expr σ Γ
+rename-Expr θ e = {!!}

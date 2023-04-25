@@ -9,6 +9,7 @@ open import Function using (_∘_ ; _$_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
+open import Postulates using (extensionality)
 open import Data.OPE
 open import Data.Relevant
 
@@ -16,15 +17,6 @@ open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 import Language.DeBruijn as DeBruijn
-
--- This is needed because our notion of semantical equivalence is "same evaluation result",
--- and values include Agda functions.
--- We might want something different?
-postulate
-  extensionality :
-    {S : Set} {T : S -> Set} (f g : (x : S) -> T x) ->
-    ((x : S) -> f x ≡ g x) ->
-    f ≡ g
 
 private
   variable
@@ -40,6 +32,10 @@ module _ where
   ref-o : (τ ∷ []) ⊑ Γ → Ref τ Γ
   ref-o (θ o') = Pop (ref-o θ)
   ref-o (θ os) = Top
+
+  ref-o-Ref≡id : (x : Ref σ Γ) → ref-o (o-Ref x) ≡ x
+  ref-o-Ref≡id Top = refl
+  ref-o-Ref≡id (Pop x) = cong Pop (ref-o-Ref≡id x)
 
   project-Env : ∀ {Γ₁ Γ₂} → Γ₁ ⊑ Γ₂ → Env Γ₂ → Env Γ₁
   project-Env oz     env          = env

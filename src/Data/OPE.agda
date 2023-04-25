@@ -6,7 +6,7 @@
 module Data.OPE where
 
 open import Data.Empty using (⊥)
-open import Data.Product using (Σ; _,_)
+open import Data.Product using (Σ; _×_; _,_; Σ-syntax)
 open import Data.List using (List; _∷_; []; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
@@ -14,7 +14,7 @@ private
   variable
     I : Set
     σ τ : I
-    Γ Γ' Γ₁ Γ₂ Γ₃ Γ₄ : List I
+    Γ Γ' Γ₁ Γ₂ Γ₃ Γ₄ Δ Δ₁ Δ₂ : List I
 
 infix 21 _o'
 infix 21 _os
@@ -132,3 +132,73 @@ module From⊑ where
   toEnv (θ o') = s <$> toEnv θ
   toEnv (θ os) = (s <$> toEnv θ) ∙ z
   toEnv oz = ε
+
+-- A less powerful version of `cop`.
+{-
+∪-all : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Σ[ Δ ∈ List I ] (Δ₁ ⊑ Δ × Δ₂ ⊑ Δ × Δ ⊑ Γ)
+∪-all (θ₁ o') (θ₂ o') = let _ , ϕ₁ , ϕ₂ , ϕ = ∪-all θ₁ θ₂ in _ , ϕ₁    , ϕ₂    , ϕ o'
+∪-all (θ₁ o') (θ₂ os) = let _ , ϕ₁ , ϕ₂ , ϕ = ∪-all θ₁ θ₂ in _ , ϕ₁ o' , ϕ₂ os , ϕ os
+∪-all (θ₁ os) (θ₂ o') = let _ , ϕ₁ , ϕ₂ , ϕ = ∪-all θ₁ θ₂ in _ , ϕ₁ os , ϕ₂ o' , ϕ os
+∪-all (θ₁ os) (θ₂ os) = let _ , ϕ₁ , ϕ₂ , ϕ = ∪-all θ₁ θ₂ in _ , ϕ₁ os , ϕ₂ os , ϕ os
+∪-all oz oz = [] , oz , oz , oz
+-}
+
+∪-domain : {Δ₁ Δ₂ Γ : List I} (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → List I
+∪-domain (θ₁ o') (θ₂ o') = ∪-domain θ₁ θ₂
+∪-domain {Γ = τ ∷ _} (θ₁ o') (θ₂ os) = τ ∷ ∪-domain θ₁ θ₂
+∪-domain {Γ = τ ∷ _} (θ₁ os) (θ₂ o') = τ ∷ ∪-domain θ₁ θ₂
+∪-domain {Γ = τ ∷ _} (θ₁ os) (θ₂ os) = τ ∷ ∪-domain θ₁ θ₂
+∪-domain oz oz = []
+
+-- aka un-∪₁
+Δ₁⊑∪-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁ ⊑ ∪-domain θ₁ θ₂
+Δ₁⊑∪-domain (θ₁ o') (θ₂ o') = Δ₁⊑∪-domain θ₁ θ₂
+Δ₁⊑∪-domain (θ₁ o') (θ₂ os) = Δ₁⊑∪-domain θ₁ θ₂ o'
+Δ₁⊑∪-domain (θ₁ os) (θ₂ o') = Δ₁⊑∪-domain θ₁ θ₂ os
+Δ₁⊑∪-domain (θ₁ os) (θ₂ os) = Δ₁⊑∪-domain θ₁ θ₂ os
+Δ₁⊑∪-domain oz oz = oz
+
+Δ₂⊑∪-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₂ ⊑ ∪-domain θ₁ θ₂
+Δ₂⊑∪-domain (θ₁ o') (θ₂ o') = Δ₂⊑∪-domain θ₁ θ₂
+Δ₂⊑∪-domain (θ₁ o') (θ₂ os) = Δ₂⊑∪-domain θ₁ θ₂ os
+Δ₂⊑∪-domain (θ₁ os) (θ₂ o') = Δ₂⊑∪-domain θ₁ θ₂ o'
+Δ₂⊑∪-domain (θ₁ os) (θ₂ os) = Δ₂⊑∪-domain θ₁ θ₂ os
+Δ₂⊑∪-domain oz oz = oz
+
+_∪_ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → ∪-domain θ₁ θ₂ ⊑ Γ
+(θ₁ o') ∪ (θ₂ o') = (θ₁ ∪ θ₂) o'
+(θ₁ o') ∪ (θ₂ os) = (θ₁ ∪ θ₂) os
+(θ₁ os) ∪ (θ₂ o') = (θ₁ ∪ θ₂) os
+(θ₁ os) ∪ (θ₂ os) = (θ₁ ∪ θ₂) os
+oz ∪ oz = oz
+
+law-∪₁-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁⊑∪-domain θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₁
+law-∪₁-inv (θ₁ o') (θ₂ o') = cong _o' (law-∪₁-inv θ₁ θ₂)
+law-∪₁-inv (θ₁ o') (θ₂ os) = cong _o' (law-∪₁-inv θ₁ θ₂)
+law-∪₁-inv (θ₁ os) (θ₂ o') = cong _os (law-∪₁-inv θ₁ θ₂)
+law-∪₁-inv (θ₁ os) (θ₂ os) = cong _os (law-∪₁-inv θ₁ θ₂)
+law-∪₁-inv oz oz = refl
+
+law-∪₂-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₂⊑∪-domain θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₂
+law-∪₂-inv (θ₁ o') (θ₂ o') = cong _o' (law-∪₂-inv θ₁ θ₂)
+law-∪₂-inv (θ₁ o') (θ₂ os) = cong _os (law-∪₂-inv θ₁ θ₂)
+law-∪₂-inv (θ₁ os) (θ₂ o') = cong _o' (law-∪₂-inv θ₁ θ₂)
+law-∪₂-inv (θ₁ os) (θ₂ os) = cong _os (law-∪₂-inv θ₁ θ₂)
+law-∪₂-inv oz oz = refl
+
+pop-domain : {Δ Γ : List I} → Δ ⊑ Γ → List I
+pop-domain {Δ = Δ} (θ o') = Δ
+pop-domain {Δ = _ ∷ Δ} (θ os) = Δ
+pop-domain oz = []
+
+pop : (θ : Δ ⊑ (σ ∷ Γ)) → pop-domain θ ⊑ Γ
+pop (θ o') = θ
+pop (θ os) = θ
+
+un-pop : (θ : Δ ⊑ (σ ∷ Γ)) → Δ ⊑ (σ ∷ pop-domain θ)
+un-pop (θ o') = oi o'
+un-pop (θ os) = oi
+
+law-pop-inv : (θ : Δ ⊑ (σ ∷ Γ)) → un-pop θ ₒ pop θ os ≡ θ
+law-pop-inv (θ o') = cong _o' (law-oiₒ θ)
+law-pop-inv (θ os) = cong _os (law-oiₒ θ)

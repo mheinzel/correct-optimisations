@@ -11,10 +11,13 @@ import Transformations.Recursion
 
 import Transformations.DeBruijn.SubCtx
 import Transformations.DeBruijn.Live
-import Transformations.DeBruijn.StronglyLive
+import Transformations.DeBruijn.Live2  -- TODO: replace Live
+import Transformations.DeBruijn.StronglyLive  -- TODO: refactor, similar to Live2
+import Transformations.DeBruijn.DeadBindingDirect
 import Transformations.DeBruijn.DeadBinding
-import Transformations.DeBruijn.DeadBindingStrong
-import Transformations.DeBruijn.LetInward
+import Transformations.DeBruijn.DeadBindingStrong  -- TODO: refactor, like DeadBindingEfficient
+import Transformations.DeBruijn.DeadBindingEfficient  -- TODO: replace DeadBinding
+import Transformations.DeBruijn.LetInward  -- TODO: refactor, use Live2
 
 import Transformations.CoDeBruijn.DeadBinding
 import Transformations.CoDeBruijn.DeadBindingStrong
