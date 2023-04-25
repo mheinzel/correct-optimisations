@@ -148,8 +148,8 @@
   \end{code}
 }
 
-\section{Let-floating}
-\label{sec:co-de-bruijn-let-floating}
+\section{Let-sinking}
+\label{sec:co-de-bruijn-let-sinking}
 \Draft{
   The main differences compared to the de-Bruijn-based implementation are that
   \begin{itemize}

@@ -61,15 +61,15 @@ if they are used in declarations of variables that are live themselves.
 \Fixme{Also mention inlining let-bindings? Not implemented...}
 
 \section{Moving let-bindings}
-\label{sec:program-transformations-let-floating}
+\label{sec:program-transformations-let-sinking}
 Even when a binding cannot be removed,
 it can still be beneficial to move it to a different location.
 Several such strategies have for example been described and evaluated
 in the context of lazy functional programs
 \cite{Jones1996LetFloating}.
 \\
-Of those, we will focus on the \emph{let-floating} transformation.
-\Fixme{Terminology: in the paper, they call it let-floating, but maybe floating-inward is clearer?}
+Of those, we will focus on the \emph{let-sinking} transformation
+(called let-floating in the paper).
 Generally, the further inward a let binding is moved, the better:
 Further optimisations might get unlocked and in the presence of branching,
 the binding it might never be executed.

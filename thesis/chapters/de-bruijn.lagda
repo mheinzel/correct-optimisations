@@ -271,8 +271,8 @@ follows directly from the correctness of each individual iteration step.
   The remaining algorithm and most of the correctness proof are unaffected.
 }
 
-\section{Let-floating}
-\label{sec:de-bruijn-let-floating}
+\section{Let-sinking}
+\label{sec:de-bruijn-let-sinking}
 \Draft{
   We want to push a let-binding as far inward as possible,
   without pushing into a $lambda$-abstraction or duplicating the binding.
@@ -349,7 +349,7 @@ follows directly from the correctness of each individual iteration step.
 \label{sec:de-bruijn-discussion}
 \Outline{
 Usage information is nice, but complicated to maintain.
-Doing it for let-floating caused issues.
+Doing it for let-sinking caused issues.
 Could co-de-Bruijn give us the same benefits by default?
 It would also help with CSE (equality of terms).
 }
