@@ -67,6 +67,6 @@ module _ {I : Set} where
  `Xs : List I → Desc I → Desc I
  `Xs js d = foldr (`X []) d js
 
-Let : Desc I
-Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
+`Let : Desc I
+`Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
   `X [] σ (`X (σ ∷ []) τ (`∎ τ))

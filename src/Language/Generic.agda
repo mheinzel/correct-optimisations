@@ -3,7 +3,7 @@ module Language.Generic where
 open import Data.List using (_∷_ ; [])
 open import Function using (const)
 
-open import Generic.Syntax
+open import Generic.Syntax hiding (`Let)
 open import Data.Environment using (Thinnable)
 open import Data.Var using (_─Scoped)
 

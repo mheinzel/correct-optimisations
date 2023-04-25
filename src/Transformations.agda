@@ -19,3 +19,6 @@ import Transformations.DeBruijn.LetInward
 import Transformations.CoDeBruijn.DeadBinding
 import Transformations.CoDeBruijn.DeadBindingStrong
 import Transformations.CoDeBruijn.LetInward
+
+import Transformations.Generic.CoDeBruijn.DeadBinding
+import Transformations.Generic.CoDeBruijn.DeadBindingStrong

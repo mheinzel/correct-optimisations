@@ -21,9 +21,9 @@ private
     d d' : Desc I
 
 -- Only remove directly dead bindings.
-dbe : Tm (d `+ Let) τ Γ → Tm (d `+ Let) τ ⇑ Γ
-dbe-⟦∙⟧ : ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ Let))) τ ⇑ Γ
-dbe-Scope : (Δ : List I) → Scope (Tm (d `+ Let)) Δ τ Γ → Scope (Tm (d `+ Let)) Δ τ ⇑ Γ
+dbe : Tm (d `+ `Let) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
+dbe-⟦∙⟧ : ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ ⇑ Γ
+dbe-Scope : (Δ : List I) → Scope (Tm (d `+ `Let)) Δ τ Γ → Scope (Tm (d `+ `Let)) Δ τ ⇑ Γ
 
 dbe `var = `var ↑ oi
 dbe (`con (injˡ t)) = map⇑ (`con ∘ injˡ) (dbe-⟦∙⟧ t)
@@ -35,7 +35,7 @@ dbe (`con (injʳ t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) (
     let t' ↑ θ' = thin⇑ θ₁ (dbe t₁) ,ᴿ map⇑ ×ᴿ-trivial (thin⇑ θ₂ ((_ ∷ []) \\ᴿ (dbe t₂))) 
     in `con (injʳ (a , t')) ↑ θ'
     -- This implementation is simpler, but gets rejected by the termination checker:
-    -- map⇑ (`con ∘ injʳ) (dbe-⟦∙⟧ {d = Let} t)
+    -- map⇑ (`con ∘ injʳ) (dbe-⟦∙⟧ {d = `Let} t)
     -- We are forced to basically inline dbe-⟦∙⟧ here.
     -- Otherwise, another option would be to re-use let-?:
     -- mult⇑ (map⇑ dbe (let-?' t))
