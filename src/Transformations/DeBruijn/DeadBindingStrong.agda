@@ -1,6 +1,6 @@
 -- Dead Binding Elimination using strongly live variable analysis
 --
--- Based on DeadBindingEfficient.
+-- Based on DeadBinding.
 module Transformations.DeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)

@@ -1,6 +1,6 @@
 -- Dead Binding Elimination (simple),
--- but ideally without quadratic complexity for renaming.
-module Transformations.DeBruijn.DeadBindingEfficient where
+-- but using liveness annotations to avoid quadratic complexity for renaming.
+module Transformations.DeBruijn.DeadBinding where
 
 open import Data.Nat using (_+_; ℕ)
 open import Data.List using (List ; _∷_ ; [])

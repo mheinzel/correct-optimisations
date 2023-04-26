@@ -12,8 +12,8 @@ import Transformations.Recursion
 import Transformations.DeBruijn.Live
 import Transformations.DeBruijn.StronglyLive
 import Transformations.DeBruijn.DeadBindingDirect
-import Transformations.DeBruijn.DeadBindingEfficient  -- TODO: rename to DeadBindingLive
-import Transformations.DeBruijn.DeadBindingStrong  -- TODO: rename to DeadBindingStronglyLive
+import Transformations.DeBruijn.DeadBinding
+import Transformations.DeBruijn.DeadBindingStrong
 import Transformations.DeBruijn.LetInward
 
 import Transformations.CoDeBruijn.DeadBinding
