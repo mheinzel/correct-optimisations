@@ -134,7 +134,7 @@ evalLive-project-Env θ' θ'' (Lam {θ = θ} e₁) env H =
       (evalLive-project-Env (un-pop θ ₒ θ' os) (θ'' os) e₁ (Cons v env) {!!})
       (cong (evalLive e₁ (Cons v env)) (sym (law-ₒₒ (un-pop θ) (θ' os) (θ'' os))))
 evalLive-project-Env θ' θ'' (Let {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H = {!!}
-evalLive-project-Env θ' θ'' (Val x) env H = {!!}
+evalLive-project-Env θ' θ'' (Val v) env H = {!!}
 evalLive-project-Env θ' θ'' (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H = {!!}
 -}
 

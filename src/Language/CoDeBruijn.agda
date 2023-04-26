@@ -188,8 +188,8 @@ into-correct (DeBruijn.Plus e₁ e₂) env
   ∎
 
 from-correct-Var : (θ : (σ ∷ []) ⊑ Γ) (env : Env Γ) → lookup (ref-o θ) env ≡ lookup Top (project-Env θ env)
-from-correct-Var (θ o') (Cons x env) = from-correct-Var θ env
-from-correct-Var (θ os) (Cons x env) = refl
+from-correct-Var (θ o') (Cons v env) = from-correct-Var θ env
+from-correct-Var (θ os) (Cons v env) = refl
 
 from-correct :
   ∀ {Γ' Γ τ} (e : Expr τ Γ') (env : Env Γ) (θ : Γ' ⊑ Γ) →

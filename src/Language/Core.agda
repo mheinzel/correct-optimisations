@@ -45,7 +45,7 @@ module Env {I : Set} {⟦_⟧ : I → Set} where
 
   law-project-Env-oi : (env : Env Γ) → project-Env oi env ≡ env
   law-project-Env-oi Nil = refl
-  law-project-Env-oi (Cons x env) = cong (Cons x) (law-project-Env-oi env)
+  law-project-Env-oi (Cons v env) = cong (Cons v) (law-project-Env-oi env)
 
   infixr 19 _++ᴱ_
 

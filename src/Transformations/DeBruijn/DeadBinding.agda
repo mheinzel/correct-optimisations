@@ -39,8 +39,8 @@ dbe (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' =
   Let
     (dbe e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
     (dbe e₂ ((Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') os))
-dbe (Val x) θ' =
-  Val x
+dbe (Val v) θ' =
+  Val v
 dbe (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
   Plus
     (dbe e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
@@ -66,7 +66,7 @@ dbe-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' env =
     (dbe-correct e₂ _ (Cons (eval (dbe e₁ _) env) env))
     (cong (λ x → evalLive e₂ (Cons x env) _)
       (dbe-correct e₁ _ env))
-dbe-correct (Val x) θ' env =
+dbe-correct (Val v) θ' env =
   refl
 dbe-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
   cong₂ _+_

@@ -36,7 +36,7 @@ strengthen θ (Var x)      = Maybe.map Var (strengthen-Ref θ x)
 strengthen θ (App e₁ e₂)  = Maybe.zipWith App (strengthen θ e₁) (strengthen θ e₂)
 strengthen θ (Lam e)      = Maybe.map Lam (strengthen (θ os) e)
 strengthen θ (Let e₁ e₂)  = Maybe.zipWith Let (strengthen θ e₁) (strengthen (θ os) e₂)
-strengthen θ (Val x)      = just (Val x)
+strengthen θ (Val v)      = just (Val v)
 strengthen θ (Plus e₁ e₂) = Maybe.zipWith Plus (strengthen θ e₁) (strengthen θ e₂)
 
 pop-at : (Γ : Ctx) → Ref τ Γ → Ctx
