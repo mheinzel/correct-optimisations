@@ -86,11 +86,13 @@ optimise-correct e env =
     eval (dbe le oi) (project-Env θ env)
   ≡⟨ dbe-correct le oi (project-Env θ env) ⟩
     evalLive le (project-Env θ env) oi
-  ≡⟨ evalLive-correct' le env oi θ (sym (law-oiₒ θ)) ⟩
+  ≡⟨ evalLive-correct le env oi θ ⟩
     eval (forget le) env
   ≡⟨ cong (λ x → eval x env) (analyse-preserves e) ⟩
     eval e env
   ∎
+
+-- ITERATION
 
 num-bindings' : Expr σ ⇑ Γ → ℕ
 num-bindings' (e ↑ _) = num-bindings e

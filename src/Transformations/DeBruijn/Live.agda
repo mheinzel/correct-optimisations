@@ -114,6 +114,7 @@ evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
   evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')
     + evalLive e₂ env (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ')
 
+{-
 lookup-ref-o-project-Env :
   {θ : (σ ∷ []) ⊑ Γ} (θ' : (σ ∷ []) ⊑ Γ') (θ'' : Γ' ⊑ Γ) (x : Ref σ Γ) (env : Env Γ) → θ ≡ θ' ₒ θ'' →
   lookup (ref-o θ') (project-Env θ'' env) ≡ lookup (ref-o (o-Ref x)) env
@@ -135,46 +136,24 @@ evalLive-project-Env θ' θ'' (Lam {θ = θ} e₁) env H =
 evalLive-project-Env θ' θ'' (Let {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H = {!!}
 evalLive-project-Env θ' θ'' (Val x) env H = {!!}
 evalLive-project-Env θ' θ'' (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H = {!!}
+-}
 
 -- evalLive ≡ eval ∘ forget
 evalLive-correct :
-  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) → -- (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
-  evalLive e env θ ≡ eval (forget e) env
-  -- evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
-evalLive-correct (Var x) env =
-  cong (λ x₁ → lookup x₁ env) (ref-o-Ref≡id x)
-evalLive-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env =
-  cong₂ _$_
-    (trans (cong (evalLive e₁ env) (law-∪₁-inv θ₁ θ₂)) (evalLive-correct e₁ env))
-    (trans (cong (evalLive e₂ env) (law-∪₂-inv θ₁ θ₂)) (evalLive-correct e₂ env))
-evalLive-correct (Lam {θ = θ} e₁) env =
-  extensionality _ _ λ v →
-    trans (cong (evalLive e₁ (Cons v env)) (law-pop-inv θ)) (evalLive-correct e₁ (Cons v env))
-evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env =
-  trans
-    {!evalLive-project-Env (Δ₂⊑∪-domain θ₁ θ₂ ₒ ?) (oi o') e₂ (Cons ? env) ?!}
-    (evalLive-correct e₂ (Cons (eval (forget e₁) env) env))
-evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env =
-  {!!}
-  {-
-    evalLive e₂ (Cons (evalLive e₁ env _) env) _
-  ≡⟨ trans (cong (evalLive e₂ _) (trans (cong ((un-pop θ₂ ₒ_) ∘ _os) (law-∪₂-inv θ₁ (pop θ₂))) (law-pop-inv θ₂)))
-           (evalLive-correct e₂ (Cons _ env)) ⟩
-    eval (forget e₂) (Cons (evalLive e₁ env _) env)
-  ≡⟨ cong (λ x → eval (forget e₂) (Cons x env)) (trans (cong (evalLive e₁ env) (law-∪₁-inv θ₁ (pop θ₂)))
-                                                       (evalLive-correct e₁ env)) ⟩
+  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
+  evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
+evalLive-correct (Var x) env θ' θ'' = {!!}
+evalLive-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
+evalLive-correct (Lam e₁) env θ' θ'' = {!!}
+evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env θ' θ'' =
+   evalLive-correct e₂ (Cons (eval (forget e₁) env) env) _ (θ'' o')
+evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env θ' θ'' =
+    evalLive e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) (project-Env θ'' env)) _
+  ≡⟨ evalLive-correct e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) env) _ (θ'' os) ⟩
+    eval (forget e₂) (Cons (evalLive e₁ (project-Env θ'' env) _) env)
+  ≡⟨ cong (λ x → eval (forget e₂) (Cons x env)) (evalLive-correct e₁ env _ θ'') ⟩
     eval (forget e₂) (Cons (eval (forget e₁) env) env)
   ∎
-  -}
-evalLive-correct (Val x) env =
+evalLive-correct (Val v) env θ' θ'' =
   refl
-evalLive-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env =
-  cong₂ _+_
-    (trans (cong (evalLive e₁ env) (law-∪₁-inv θ₁ θ₂)) (evalLive-correct e₁ env))
-    (trans (cong (evalLive e₂ env) (law-∪₂-inv θ₁ θ₂)) (evalLive-correct e₂ env))
-
-
-evalLive-correct' :
-  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) → θ ≡ θ' ₒ θ'' →
-  evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
-evalLive-correct' = {!!}
+evalLive-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
