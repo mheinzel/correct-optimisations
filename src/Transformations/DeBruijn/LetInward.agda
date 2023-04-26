@@ -15,7 +15,6 @@ open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 open import Language.DeBruijn
-open import Transformations.DeBruijn.Live
 
 private
   variable
@@ -25,22 +24,6 @@ private
 -- Push the let-binding inwards as far as possible without
 -- - duplicating it
 -- - pushing it into a lambda
-
--- Working with plain OPEs here instead of SubCtx.
--- Let's keep it separate for now and later look for ways to unify.
-
-weaken-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ' → Ref σ Γ
-weaken-Ref (θ os) Top = Top
-weaken-Ref (θ os) (Pop x) = Pop (weaken-Ref θ x)
-weaken-Ref (θ o') x = Pop (weaken-Ref θ x)
-
-weaken : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr τ Γ' → Expr τ Γ
-weaken θ (Var x) = Var (weaken-Ref θ x)
-weaken θ (App e₁ e₂) = App (weaken θ e₁) (weaken θ e₂)
-weaken θ (Lam e) = Lam (weaken (θ os) e)
-weaken θ (Let e₁ e₂) = Let (weaken θ e₁) (weaken (θ os) e₂)
-weaken θ (Val x) = Val x
-weaken θ (Plus e₁ e₂) = Plus (weaken θ e₁) (weaken θ e₂)
   
 strengthen-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ → Maybe (Ref σ Γ')
 strengthen-Ref (θ os) Top     = just Top
@@ -88,13 +71,13 @@ rename-top-Ref (σ' ∷ Γ') i (Pop x) = Pop (rename-top-Ref Γ' i x)  -- just w
 rename-top-Ref [] Top x = x
 rename-top-Ref [] (Pop i) x = flip-Ref (lift-Ref (rename-top-Ref [] i) x)
 
-rename-top : (Γ' : Ctx) (i : Ref σ Γ) → Expr τ (Γ' ++ Γ) → Expr τ (Γ' ++ (σ ∷ pop-at Γ i))
-rename-top Γ' i (Var x) = Var (rename-top-Ref Γ' i x)
-rename-top Γ' i (App e₁ e₂) = App (rename-top Γ' i e₁) (rename-top Γ' i e₂)
-rename-top Γ' i (Lam e) = Lam (rename-top (_ ∷ Γ') i e)
-rename-top Γ' i (Let e₁ e₂) = Let (rename-top Γ' i e₁) (rename-top (_ ∷ Γ') i e₂)
-rename-top Γ' i (Val v) = Val v
-rename-top Γ' i (Plus e₁ e₂) = Plus (rename-top Γ' i e₁) (rename-top Γ' i e₂)
+rename-top-Expr : (Γ' : Ctx) (i : Ref σ Γ) → Expr τ (Γ' ++ Γ) → Expr τ (Γ' ++ (σ ∷ pop-at Γ i))
+rename-top-Expr Γ' i (Var x) = Var (rename-top-Ref Γ' i x)
+rename-top-Expr Γ' i (App e₁ e₂) = App (rename-top-Expr Γ' i e₁) (rename-top-Expr Γ' i e₂)
+rename-top-Expr Γ' i (Lam e) = Lam (rename-top-Expr (_ ∷ Γ') i e)
+rename-top-Expr Γ' i (Let e₁ e₂) = Let (rename-top-Expr Γ' i e₁) (rename-top-Expr (_ ∷ Γ') i e₂)
+rename-top-Expr Γ' i (Val v) = Val v
+rename-top-Expr Γ' i (Plus e₁ e₂) = Plus (rename-top-Expr Γ' i e₁) (rename-top-Expr Γ' i e₂)
 
 -- TODO: can we find a more general type, to allow for reordering and only optionally popping something?
 push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
@@ -102,19 +85,19 @@ push-let {Γ = Γ} i decl (Var x) with rename-top-Ref [] i x
 ... | Top = decl       -- x' was the same as i, so we discover that σ ≡ τ
 ... | Pop x' = Var x'  -- declaration was unused
 push-let i decl e@(App e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | nothing  | nothing  = Let decl (rename-top [] i e)
+... | nothing  | nothing  = Let decl (rename-top-Expr [] i e)
 ... | nothing  | just e₂' = App (push-let i decl e₁) e₂'
 ... | just e₁' | nothing  = App e₁' (push-let i decl e₂)
 ... | just e₁' | just e₂' = App e₁' e₂'
-push-let i decl e@(Lam _) = Let decl (rename-top [] i e)  -- don't push into lambda
+push-let i decl e@(Lam _) = Let decl (rename-top-Expr [] i e)  -- don't push into lambda
 push-let i decl e@(Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
-... | nothing  | nothing  = Let decl (rename-top [] i e)
+... | nothing  | nothing  = Let decl (rename-top-Expr [] i e)
 ... | nothing  | just e₂' = Let (push-let i decl e₁) e₂'
-... | just e₁' | nothing  = Let e₁' (push-let (Pop i) (weaken (oi o') decl) e₂)  -- going under the binder here
+... | just e₁' | nothing  = Let e₁' (push-let (Pop i) (rename-Expr (oi o') decl) e₂)  -- going under the binder here
 ... | just e₁' | just e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
 push-let i decl e@(Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
-... | nothing  | nothing  = Let decl (rename-top [] i e)
+... | nothing  | nothing  = Let decl (rename-top-Expr [] i e)
 ... | nothing  | just e₂' = Plus (push-let i decl e₁) e₂'
 ... | just e₁' | nothing  = Plus e₁' (push-let i decl e₂)
 ... | just e₁' | just e₂' = Plus e₁' e₂'
@@ -132,19 +115,6 @@ Another idea is to use LiveExpr
 -- IDEA: annotations are updated with each transformation, changes bubble up
 -- IDEA/HACK: Also push binding into branches where they're not used, but don't recurse.
 --            Then they can be removed again in a separate pass.
-push-let : LiveExpr Δ Δ₁ σ → LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ → LiveExpr Δ (Δ₁ ∪ pop Δ₂) τ
-push-let e₁ (Var x) = Let e₁ (Var x)
-push-let e₁ (App e₂ e₃) = {!!}
-push-let e₁ (Lam e₂) = Let e₁ (Lam e₂)
-push-let e₁ (Let e₂ e₃) = {!!}
-push-let e₁ (Val v) = Let e₁ (Val v)
-push-let e₁ (Plus {Γ} {Δ₂} {Δ₃} e₂ e₃) with Δ₂ | Δ₃
-... | Drop Δ₂ | Drop Δ₃ = {!!}
-... | Drop Δ₂ | Keep Δ₃ = let e₃' = push-let e₁ e₃
-                              e₂' = Live.Let e₁ e₂  -- hack, we want to strengthen
-                          in {! !}
-... | Keep Δ₂ | Drop Δ₃ = {!!}
-... | Keep Δ₂ | Keep Δ₃ = Let e₁ (Plus e₂ e₃)  -- don't duplicate
 -}
 
 -- NOTE: there is an alternative phrasing:
