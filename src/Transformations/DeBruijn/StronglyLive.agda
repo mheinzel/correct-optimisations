@@ -1,58 +1,68 @@
--- Strongly Live variable analysis
---
--- Based on Live.agda.
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: finish proof
+
+-- Live variable analysis, without SubCtx
 module Transformations.DeBruijn.StronglyLive where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
+open import Function using (_$_ ; _∘_)
+
+open import Postulates using (extensionality)
+open import Data.OPE
 
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 open import Language.DeBruijn
-open import Transformations.DeBruijn.SubCtx
 
 private
   variable
     σ τ : U
-    Γ : Ctx
-    Δ Δ' Δ₁ Δ₂ : SubCtx Γ
+    Γ Γ' Γ₁ Γ₂ Δ Δ₁ Δ₂ : Ctx
 
 -- Free variables from declaration of a binding are only live, if the body uses the binding.
-combine : SubCtx Γ → SubCtx (σ ∷ Γ) → SubCtx Γ
-combine Δ₁ (Drop Δ₂) = Δ₂
-combine Δ₁ (Keep Δ₂) = Δ₁ ∪ Δ₂
+combine-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → Ctx
+combine-domain {Δ₂ = Δ₂} θ₁ (θ₂ o') = Δ₂
+combine-domain θ₁ (θ₂ os) = ∪-domain θ₁ θ₂
+
+combine : (θ₁ : Δ₁ ⊑ Γ) → (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → combine-domain θ₁ θ₂ ⊑ Γ
+combine θ₁ (θ₂ o') = θ₂
+combine θ₁ (θ₂ os) = θ₁ ∪ θ₂
 
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
 -- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?
-data LiveExpr {Γ : Ctx} : (Δ Δ' : SubCtx Γ) → (σ : U) → Set where
+data LiveExpr {Γ : Ctx} : U → {Δ : Ctx} → Δ ⊑ Γ → Set where
   Var :
-    (x : Ref σ ⌊ Δ ⌋) →
-    LiveExpr Δ (sing Δ x) σ
+    (x : Ref σ Γ) →
+    LiveExpr σ (o-Ref x)
   App :
-    LiveExpr Δ Δ₁ (σ ⇒ τ) →
-    LiveExpr Δ Δ₂ σ →
-    LiveExpr Δ (Δ₁ ∪ Δ₂) τ
+    {θ₁ : Δ₁ ⊑ Γ} {θ₂ : Δ₂ ⊑ Γ} →
+    LiveExpr (σ ⇒ τ) θ₁ →
+    LiveExpr σ θ₂ →
+    LiveExpr τ (θ₁ ∪ θ₂)
   Lam :
-    LiveExpr {σ ∷ Γ} (Keep Δ) Δ₁ τ →
-    LiveExpr Δ (pop Δ₁) (σ ⇒ τ)
+    {θ : Δ ⊑ (σ ∷ Γ)} →
+    LiveExpr τ θ →
+    LiveExpr (σ ⇒ τ) (pop θ)
   Let :
-    LiveExpr Δ Δ₁ σ →
-    LiveExpr {σ ∷ Γ} (Keep Δ) Δ₂ τ →
-    LiveExpr Δ (combine Δ₁ Δ₂) τ
+    {θ₁ : Δ₁ ⊑ Γ} {θ₂ : Δ₂ ⊑ (σ ∷ Γ)} →
+    LiveExpr σ θ₁ →
+    LiveExpr τ θ₂ →
+    LiveExpr τ (combine θ₁ θ₂)
   Val :
     ⟦ σ ⟧ →
-    LiveExpr Δ ∅ σ
+    LiveExpr σ oe
   Plus :
-    LiveExpr Δ Δ₁ NAT →
-    LiveExpr Δ Δ₂ NAT →
-    LiveExpr Δ (Δ₁ ∪ Δ₂) NAT
+    {θ₁ : Δ₁ ⊑ Γ} {θ₂ : Δ₂ ⊑ Γ} →
+    LiveExpr NAT θ₁ →
+    LiveExpr NAT θ₂ →
+    LiveExpr NAT (θ₁ ∪ θ₂)
 
 -- forget the information about variable usage
-forget : LiveExpr Δ Δ' σ → Expr σ ⌊ Δ ⌋
+forget : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Expr σ Γ
 forget (Var x) = Var x
 forget (App e₁ e₂) = App (forget e₁) (forget e₂)
 forget (Lam e₁) = Lam (forget e₁)
@@ -61,29 +71,31 @@ forget (Val v) = Val v
 forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
 
 -- decide which variables are used or not
-analyse : ∀ Δ → Expr σ ⌊ Δ ⌋ → Σ[ Δ' ∈ SubCtx Γ ] LiveExpr Δ Δ' σ
-analyse Δ (Var x) = sing Δ x , Var x
-analyse Δ (App e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
-... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , App le₁ le₂
-analyse Δ (Lam e₁) with analyse (Keep Δ) e₁
-... | Δ' , le₁ = pop Δ' , Lam le₁
-analyse Δ (Let e₁ e₂) with analyse Δ e₁ | analyse (Keep Δ) e₂
-... | Δ₁ , le₁ | Δ₂ , le₂ = combine Δ₁ Δ₂ , Let le₁ le₂
-analyse Δ (Val v) = ∅ , Val v
-analyse Δ (Plus e₁ e₂) with analyse Δ e₁ | analyse Δ e₂
-... | Δ₁ , le₁ | Δ₂ , le₂ = (Δ₁ ∪ Δ₂) , Plus le₁ le₂
-
-Δ'⊆Δ : LiveExpr Δ Δ' σ → Δ' ⊆ Δ
-Δ'⊆Δ {Γ} {Δ} (Var x) = sing⊆ Γ Δ x
-Δ'⊆Δ {Γ} {Δ} (App {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
-Δ'⊆Δ {Γ} {Δ} (Lam e₁) = Δ'⊆Δ e₁
-Δ'⊆Δ {Γ} {Δ} (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) = Δ'⊆Δ e₂
-Δ'⊆Δ {Γ} {Δ} (Let {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
-Δ'⊆Δ {Γ} {Δ} (Val v) = ∅⊆ Γ Δ
-Δ'⊆Δ {Γ} {Δ} (Plus {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) = ∪⊆ Γ Δ₁ Δ₂ Δ (Δ'⊆Δ e₁) (Δ'⊆Δ e₂)
+analyse : Expr σ Γ → Σ[ Δ ∈ Ctx ] Σ[ θ ∈ (Δ ⊑ Γ) ] LiveExpr σ θ
+analyse (Var {σ} x) = σ ∷ [] , o-Ref x , Var x
+analyse (App e₁ e₂) =
+  let Δ₁ , θ₁ , le₁ = analyse e₁
+      Δ₂ , θ₂ , le₂ = analyse e₂
+  in ∪-domain θ₁ θ₂ , (θ₁ ∪ θ₂) , App le₁ le₂
+analyse (Lam e₁) =
+  let Δ₁ , θ₁ , le₁ = analyse e₁
+  in pop-domain θ₁ , pop θ₁ , Lam le₁
+analyse (Let e₁ e₂) =
+  let Δ₁ , θ₁ , le₁ = analyse e₁
+      Δ₂ , θ₂ , le₂ = analyse e₂
+  in combine-domain θ₁ θ₂ , combine θ₁ θ₂ , Let le₁ le₂
+analyse (Val v) =
+  [] , oe , Val v
+analyse (Plus e₁ e₂) =
+  let Δ₁ , θ₁ , le₁ = analyse e₁
+      Δ₂ , θ₂ , le₂ = analyse e₂
+  in ∪-domain θ₁ θ₂ , (θ₁ ∪ θ₂) , Plus le₁ le₂
 
 -- forget ∘ analyse ≡ id
-analyse-preserves : (e : Expr σ ⌊ Δ ⌋) → forget (proj₂ (analyse Δ e)) ≡ e
+analyse-preserves :
+  (e : Expr σ Γ) →
+  let _ , _ , le = analyse e
+  in forget le ≡ e
 analyse-preserves (Var x) = refl
 analyse-preserves (App e₁ e₂) = cong₂ App (analyse-preserves e₁) (analyse-preserves e₂)
 analyse-preserves (Lam e₁) = cong Lam (analyse-preserves e₁)
@@ -91,67 +103,41 @@ analyse-preserves (Let e₁ e₂) = cong₂ Let (analyse-preserves e₁) (analys
 analyse-preserves (Val v) = refl
 analyse-preserves (Plus e₁ e₂) = cong₂ Plus (analyse-preserves e₁) (analyse-preserves e₂)
 
--- Now let's try to define a semantics for LiveExpr...
-lookupLive : (Δ Δᵤ : SubCtx Γ) (x : Ref σ ⌊ Δ ⌋) → Env ⌊ Δᵤ ⌋ → .(sing Δ x ⊆ Δᵤ) → ⟦ σ ⟧
-lookupLive (Drop Δ) (Drop Δᵤ) x env H = lookupLive Δ Δᵤ x env H
-lookupLive (Drop Δ) (Keep Δᵤ) x (Cons v env) H = lookupLive Δ Δᵤ x env H
-lookupLive (Keep Δ) (Drop Δᵤ) (Pop x) env H = lookupLive Δ Δᵤ x env H
-lookupLive (Keep Δ) (Keep Δᵤ) Top (Cons v env) H = v
-lookupLive (Keep Δ) (Keep Δᵤ) (Pop x) (Cons v env) H = lookupLive Δ Δᵤ x env H
-
-evalLive : ∀ Δᵤ → LiveExpr Δ Δ' τ → Env ⌊ Δᵤ ⌋ → .(Δ' ⊆ Δᵤ) → ⟦ τ ⟧
-evalLive {Γ} {Δ} Δᵤ (Var x) env H =
-  lookupLive Δ Δᵤ x env H
-evalLive Δᵤ (App {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) env H =
-  (evalLive Δᵤ e₁ env (⊆-trans Δ₁ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₁ Δ₁ Δ₂) H))
-    (evalLive Δᵤ e₂ env (⊆-trans Δ₂ (Δ₁ ∪ Δ₂) Δᵤ (⊆∪₂ Δ₁ Δ₂) H))
-evalLive Δᵤ (Lam e₁) env H =
-  λ v → evalLive (Keep Δᵤ) e₁ (Cons v env) H
-evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) env H =
-  evalLive (Drop Δᵤ) e₂ env H
-evalLive Δᵤ (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) env H =
-  evalLive (Keep Δᵤ) e₂
-    (Cons (evalLive Δᵤ e₁ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H)) env)
-    (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
-evalLive Δᵤ (Val v) env H =
+evalLive : {θ : Δ ⊑ Γ} → LiveExpr τ θ → Env Γ' → Δ ⊑ Γ' → ⟦ τ ⟧
+evalLive (Var x) env θ' =
+  lookup (ref-o θ') env
+evalLive (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
+  evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')
+    (evalLive e₂ env (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
+evalLive (Lam {θ = θ} e₁) env θ' =
+  λ v → evalLive e₁ (Cons v env) (un-pop θ ₒ θ' os)
+evalLive (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env θ' =
+  evalLive e₂ env θ' 
+evalLive (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env θ' =
+  evalLive e₂
+    (Cons (evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')) env)
+    ((Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') os)
+evalLive (Val v) env θ' =
   v
-evalLive Δᵤ (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) env H =
-    evalLive Δᵤ e₁ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H)
- +  evalLive Δᵤ e₂ env (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H)
-
-lookupLive-correct : (x : Ref σ ⌊ Δ ⌋) (Δᵤ : SubCtx Γ) (env : Env ⌊ Δ ⌋) → .(H' : sing Δ x ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
-  lookupLive Δ Δᵤ x (prjEnv Δᵤ Δ H env) H' ≡ lookup x env
-lookupLive-correct {σ} {[]} {Empty} () Δᵤ Nil H' H
-lookupLive-correct {σ} {τ ∷ Γ} {Drop Δ} x (Drop Δᵤ) env H' H = lookupLive-correct x Δᵤ env H' H
-lookupLive-correct {.τ} {τ ∷ Γ} {Keep Δ} Top (Keep Δᵤ) (Cons v env) H' H = refl
-lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Drop Δᵤ) (Cons v env) H' H = lookupLive-correct x Δᵤ env H' H
-lookupLive-correct {σ} {τ ∷ Γ} {Keep Δ} (Pop x) (Keep Δᵤ) (Cons v env) H' H = lookupLive-correct x Δᵤ env H' H
-
--- evalLive ≡ eval ∘ forget
+evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
+  evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')
+    + evalLive e₂ env (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ')
+  
 evalLive-correct :
-  (e : LiveExpr Δ Δ' σ) (Δᵤ : SubCtx Γ) (env : Env ⌊ Δ ⌋) →
-  .(H' : Δ' ⊆ Δᵤ) → .(H : Δᵤ ⊆ Δ) →
-  evalLive Δᵤ e (prjEnv Δᵤ Δ H env) H' ≡ eval (forget e) env
-evalLive-correct (Var x) Δᵤ env H' H =
-  lookupLive-correct x Δᵤ env H' H
-evalLive-correct (App {Δ₁ = Δ₁} {Δ₂ = Δ₂} e₁ e₂) Δᵤ env H' H =
-  cong₂ (λ v → v)
-    (evalLive-correct e₁ Δᵤ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H') H)
-    (evalLive-correct e₂ Δᵤ env (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H') H)
-evalLive-correct (Lam {Δ = Δ} e₁) Δᵤ env H' H =
-  extensionality _ _ λ v →
-    evalLive-correct e₁ (Keep Δᵤ) (Cons v env) H' H
-evalLive-correct (Let {Δ₁ = Δ₁} {Δ₂ = Drop Δ₂} e₁ e₂) Δᵤ env H' H =
-  evalLive-correct e₂ (Drop Δᵤ) (Cons (eval (forget e₁) env) env) H' H
-evalLive-correct (Let {Δ = Δ} {Δ₁ = Δ₁} {Δ₂ = Keep Δ₂} e₁ e₂) Δᵤ env H' H =
-    evalLive (Keep Δᵤ) e₂ (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ Δ H env) _) (prjEnv Δᵤ Δ H env)) _
-  ≡⟨ evalLive-correct e₂ (Keep Δᵤ) (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ Δ H env) _) env) _ _ ⟩
-    eval (forget e₂) (Cons (evalLive Δᵤ e₁ (prjEnv Δᵤ Δ H env) _) env)
-  ≡⟨ cong (λ v → eval (forget e₂) (Cons v env)) (evalLive-correct e₁ Δᵤ env _ _) ⟩
+  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
+  evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
+evalLive-correct (Var x) env θ' θ'' = {!!}
+evalLive-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
+evalLive-correct (Lam e₁) env θ' θ'' = {!!}
+evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env θ' θ'' =
+  evalLive-correct e₂ (Cons (eval (forget e₁) env) env) θ' (θ'' o')
+evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env θ' θ'' =
+    evalLive e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) (project-Env θ'' env)) _
+  ≡⟨ evalLive-correct e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) env) _ (θ'' os) ⟩
+    eval (forget e₂) (Cons (evalLive e₁ (project-Env θ'' env) _) env)
+  ≡⟨ cong (λ x → eval (forget e₂) (Cons x env)) (evalLive-correct e₁ env _ θ'') ⟩
     eval (forget e₂) (Cons (eval (forget e₁) env) env)
   ∎
-evalLive-correct (Val v) Δᵤ env H' H = refl
-evalLive-correct (Plus {Δ} {Δ₁} {Δ₂} e₁ e₂) Δᵤ env H' H =
-  cong₂ _+_
-    (evalLive-correct e₁ Δᵤ env (⊆∪₁-trans Δ₁ Δ₂ Δᵤ H') H)
-    (evalLive-correct e₂ Δᵤ env (⊆∪₂-trans Δ₁ Δ₂ Δᵤ H') H)
+evalLive-correct (Val v) env θ' θ'' =
+  refl
+evalLive-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
