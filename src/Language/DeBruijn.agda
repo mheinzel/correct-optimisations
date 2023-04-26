@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: implement renaming
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: proof for renaming
 
 module Language.DeBruijn where
 

@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: finish proof
 
 -- Let Floating (inwards) using co-de-Bruijn representation
 --

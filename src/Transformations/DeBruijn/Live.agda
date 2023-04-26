@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: finish proof
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: finish (trivial) proof
 
 -- Live variable analysis, without SubCtx
 module Transformations.DeBruijn.Live where

@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: track down all unsolved metas and explain them?
+{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: proof for Semantics generic->concrete
 
 module Language.Generic.DeBruijn where
 

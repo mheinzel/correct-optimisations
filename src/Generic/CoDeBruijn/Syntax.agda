@@ -1,5 +1,3 @@
-{-# OPTIONS --allow-unsolved-metas #-}
-
 module Generic.CoDeBruijn.Syntax where
 
 open import Data.Bool using (true; false)
