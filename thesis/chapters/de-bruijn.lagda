@@ -140,7 +140,7 @@
   For |Let|, note that using the live context of the transformed body
   automatically gives us the strong version.
 
-  Also note that we need to rename at every binary operator
+  Also note that we need to rename at every binary operator.
   We explain why this cannot be avoided with this approach.
   We somehow need to know upfront which context the expression should have in the end.
   This will be shown in the next section.
@@ -150,6 +150,11 @@
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-dbe-live}
+  \Outline{
+    We can use live variable analysis to compute the required context upfront.
+    It is common in compilers to first perform some analysis
+    and use the results to perform transformations (e.g. occurence analysis in GHC).
+  }
   \paragraph{Liveness annotations}
   We can annotate each expression with its \emph{live variables},
   the context |Delta| that is really used and embeds into
@@ -192,6 +197,7 @@
 
   The other is to do strongly live variable analysis with a custom operation |combine|,
   which ignores the declaration's context if it is not used in the body.
+  \Fixme{Is there a better name than |combine|?}
   \begin{code}
     combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
     combine-domain {Delta2 = Delta2} theta1 (theta2 o') = Delta2
@@ -307,25 +313,6 @@
   The interesting one is again |Let|, where we split cases on the variable being used or not
   and need some auxiliary facts about evaluation, renaming and contexts.
 
-  \paragraph{Iterating the Optimisation}
-  As discussed in section \ref{ch:program-transformations},
-  more than one pass of dead binding elimination might be necessary to remove all unused bindings.
-  While in our simple setting all these bindings could be identified in a single pass
-  using strongly live variable analysis,
-  in general it can be useful to simply iterate optimisations until a fixpoint is reached.
-
-  Consequently, we keep applying |dbe| as long as the number of bindings decreases.
-  Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
-  We observe that the algorithm must terminate
-  since the number of bindings decreases with each iteration (but the last) and cannot become negative.
-  This corresponds to the ascending chain condition in program analysis literature
-  \cite{Nielson1999PrinciplesProgramAnalysis}.
-  To convince the termination checker, we use well-founded recursion
-  \cite{Bove2014PartialityRecursion}
-  on the number of bindings.
-
-  The correctness of the iterated implementation
-  follows directly from the correctness of each individual iteration step.
 
 
 \section{Let-sinking}
@@ -400,10 +387,37 @@
   \end{code}
   \paragraph{Correctness}
 }
+\Outline{This could be solved with annotations again, but complicated...}
+\OpenEnd{Separate subsection for annotated version, explain what is complicated?}
 \OpenEnd{No correctness proof yet, how hard is it?}
 
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
+\Outline{
+  Alternative designs:
+  Iteration (e.g. without strong, but also for more complicated analyses)
+}
+\Draft{
+  As discussed in section \ref{ch:program-transformations},
+  more than one pass of dead binding elimination might be necessary to remove all unused bindings.
+  While in our simple setting all these bindings could be identified in a single pass
+  using strongly live variable analysis,
+  in general it can be useful to simply iterate optimisations until a fixpoint is reached.
+
+  Consequently, we keep applying |dbe| as long as the number of bindings decreases.
+  Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+  We observe that the algorithm must terminate
+  since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+  This corresponds to the ascending chain condition in program analysis literature
+  \cite{Nielson1999PrinciplesProgramAnalysis}.
+  To convince the termination checker, we use well-founded recursion
+  \cite{Bove2014PartialityRecursion}
+  on the number of bindings.
+
+  The correctness of the iterated implementation
+  follows directly from the correctness of each individual iteration step.
+}
+\vspace{1cm}
 \Outline{
 Usage information is nice, but complicated to maintain.
 Doing it for let-sinking caused issues.
