@@ -21,18 +21,18 @@ private
     d d' : Desc I
 
 let-? : Tm (d `+ `Let) σ ⇑ Γ → ((σ ∷ []) ⊢ Tm (d `+ `Let) τ) ⇑ Γ → Tm (d `+ `Let) τ ⇑ Γ
-let-? (t₁ ↑ θ₁) ((oz o' \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
-let-? (t₁ ↑ θ₁) ((oz os \\ t₂) ↑ θ₂) =          -- Assemble constructor.
-  let t' ↑ θ' = (t₁ ↑ θ₁) ,ᴿ (×ᴿ-trivial (oz os \\ t₂) ↑ θ₂)
+let-? (t₁ ↑ θ₁) ((o' oz \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
+let-? (t₁ ↑ θ₁) ((os oz \\ t₂) ↑ θ₂) =          -- Assemble constructor.
+  let t' ↑ θ' = (t₁ ↑ θ₁) ,ᴿ (×ᴿ-trivial (os oz \\ t₂) ↑ θ₂)
   in `con (injʳ (_ , t')) ↑ θ'
 
 {-
 let-?' : ⟦ `Let ⟧ (Scope (Tm (d `+ `Let))) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
 let-?' t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)
   with cover-oi-oe⁻¹ c | ψ
-...  | refl | oz o' =
+...  | refl | o' oz =
   t₂ ↑ θ₂
-...  | refl | oz os =
+...  | refl | os oz =
   `con (injʳ t) ↑ oi
 -}
 

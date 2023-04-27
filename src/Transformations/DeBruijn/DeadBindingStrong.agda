@@ -40,13 +40,13 @@ transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
     (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
     (transform e₂ (un-∪₂ θ₁ θ₂ ₒ θ'))
 transform (Lam {θ = θ} e₁) θ' =
-  Lam (transform e₁ (un-pop θ ₒ θ' os))
-transform (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' =
+  Lam (transform e₁ (un-pop θ ₒ os θ'))
+transform (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) θ' =
   transform e₂ θ'
-transform (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' =
+transform (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) θ' =
   Let
     (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
-    (transform e₂ ((un-∪₂ θ₁ θ₂ ₒ θ') os))
+    (transform e₂ (os (un-∪₂ θ₁ θ₂ ₒ θ')))
 transform (Val v) θ' =
   Val v
 transform (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
@@ -66,10 +66,10 @@ transform-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
     (transform-correct e₂ (un-∪₂ θ₁ θ₂ ₒ θ') env)
 transform-correct (Lam {θ = θ} e₁) θ' env =
   extensionality _ _ λ v →
-    transform-correct e₁ (un-pop θ ₒ θ' os) (Cons v env)
-transform-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' env =
+    transform-correct e₁ (un-pop θ ₒ os θ') (Cons v env)
+transform-correct (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) θ' env =
   transform-correct e₂ θ' env
-transform-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' env =
+transform-correct (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) θ' env =
   trans
     (transform-correct e₂ _ (Cons (eval (transform e₁ _) env) env))
     (cong (λ x → evalLive e₂ (Cons x env) _) (transform-correct e₁ _ env))

@@ -82,10 +82,10 @@ lemma-eval (App (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) env θ ϕ =
 lemma-eval (Lam (ψ \\ e)) env θ ϕ =
   extensionality _ _ λ v →
     let h = trans (cong (λ x → x ++⊑ (θ ₒ ϕ)) (sym (law-ₒoi ψ))) (law-commute-ₒ++⊑ ψ oi θ ϕ)
-    in trans (cong (λ x → eval e x (Cons v env)) h) (lemma-eval e (Cons v env) (ψ ++⊑ θ) (ϕ os))
+    in trans (cong (λ x → eval e x (Cons v env)) h) (lemma-eval e (Cons v env) (ψ ++⊑ θ) (os ϕ))
 lemma-eval (Let (pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c)) env θ ϕ =
   let h₁ = lemma-eval e₁ env (θ₁ ₒ θ) ϕ
-      h₂ = lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ θ) (project-Env ϕ env)) env) (ψ ++⊑ (θ₂ ₒ θ)) (ϕ os)
+      h₂ = lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ θ) (project-Env ϕ env)) env) (ψ ++⊑ (θ₂ ₒ θ)) (os ϕ)
       shuffle  = trans (cong₂ _++⊑_ (sym (law-ₒoi ψ)) (law-ₒₒ θ₂ θ ϕ)) (law-commute-ₒ++⊑ ψ oi (θ₂ ₒ θ) ϕ)
       H₁ = cong (λ x → Cons x (project-Env ϕ env)) (trans (cong (λ x → eval e₁ x env) (law-ₒₒ θ₁ θ ϕ)) h₁)
   in  trans
@@ -188,8 +188,8 @@ into-correct (DeBruijn.Plus e₁ e₂) env
   ∎
 
 from-correct-Var : (θ : (σ ∷ []) ⊑ Γ) (env : Env Γ) → lookup (ref-o θ) env ≡ lookup Top (project-Env θ env)
-from-correct-Var (θ o') (Cons v env) = from-correct-Var θ env
-from-correct-Var (θ os) (Cons v env) = refl
+from-correct-Var (o' θ) (Cons v env) = from-correct-Var θ env
+from-correct-Var (os θ) (Cons v env) = refl
 
 from-correct :
   ∀ {Γ' Γ τ} (e : Expr τ Γ') (env : Env Γ) (θ : Γ' ⊑ Γ) →

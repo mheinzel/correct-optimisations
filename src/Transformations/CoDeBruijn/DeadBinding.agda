@@ -26,16 +26,16 @@ private
 -- Only remove directly dead bindings.
 dbe : Expr τ Γ → Expr τ ⇑ Γ
 dbe {τ} .{τ ∷ []} Var =
-  Var ↑ oz os
+  Var ↑ os oz
 dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
   map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
 dbe (Lam {σ} (_\\_ {Γ'} ψ e)) =
   map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
 -- NOTE: We check liveness given based on the the variable usage in the input Expr.
 -- But dbe e₂ might reveal the variable to be dead even if previously marked live!
-dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((oz o' \\ e₂) ↑ ϕ₂) c)) =
+dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((o' oz \\ e₂) ↑ ϕ₂) c)) =
   thin⇑ ϕ₂ (dbe e₂)
-dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((oz os \\ e₂) ↑ ϕ₂) c)) =
+dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((os oz \\ e₂) ↑ ϕ₂) c)) =
   map⇑ Let (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ ((_ ∷ []) \\ᴿ dbe e₂))
 dbe (Val v) =
   Val v ↑ oz
@@ -129,7 +129,7 @@ dbe-correct (App (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
     (dbe-correct e₂ env (θ₂ ₒ θ))
 dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
   dbe-correct-Lam (ψ \\ e₁) env θ  λ v → dbe-correct e₁ (Cons v env) (ψ ++⊑ θ)
-dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) ((oz o' \\ e₂) ↑ θ₂) c)) env θ =
+dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) ((o' oz \\ e₂) ↑ θ₂) c)) env θ =
   let e₂' ↑ θ₂' = dbe e₂
       h₂ = dbe-correct e₂ env (θ₂ ₒ θ)
   in
@@ -140,12 +140,12 @@ dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) ((oz o' \\ e₂) ↑ θ₂) c)) 
     eval e₂ (θ₂ ₒ θ) env
   ≡⟨ cong (λ x → eval e₂ _ x) (sym (law-project-Env-oi env)) ⟩
     eval e₂ (θ₂ ₒ θ) (project-Env oi env)
-  ≡⟨ sym (lemma-eval e₂ (Cons _ env) (θ₂ ₒ θ) (oi o')) ⟩
-    eval e₂ (((θ₂ ₒ θ) ₒ oi) o') (Cons (eval e₁ (θ₁ ₒ θ) env) env)
-  ≡⟨ cong (λ x → eval e₂ (x o') _) (law-ₒoi (θ₂ ₒ θ)) ⟩
-    eval e₂ ((θ₂ ₒ θ) o') (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+  ≡⟨ sym (lemma-eval e₂ (Cons _ env) (θ₂ ₒ θ) (o' oi)) ⟩
+    eval e₂ (o' ((θ₂ ₒ θ) ₒ oi)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂ (o' x) _) (law-ₒoi (θ₂ ₒ θ)) ⟩
+    eval e₂ (o' (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
   ∎
-dbe-correct (Let {σ} p@(pairᴿ (e₁ ↑ θ₁) ((oz os \\ e₂) ↑ θ₂) c)) env θ
+dbe-correct (Let {σ} p@(pairᴿ (e₁ ↑ θ₁) ((os oz \\ e₂) ↑ θ₂) c)) env θ
   -- Would have been nicer to reuse the two proofs above (Let is basically App (Lam _)),
   -- but it turned out to be more cumbersome than expected.
   with dbe e₁    | dbe e₂    | dbe-correct e₁ env (θ₁ ₒ θ) | dbe-correct e₂
@@ -156,17 +156,17 @@ dbe-correct (Let {σ} p@(pairᴿ (e₁ ↑ θ₁) ((oz os \\ e₂) ↑ θ₂) c)
 ...  | coproduct Γ' ψ' θ₁'' θ₂'' p₁ p₂ c =
     eval e₂' (ϕ₁ ++⊑ θ₂'' ₒ ψ' ₒ θ) (Cons (eval e₁' (θ₁'' ₒ ψ' ₒ θ) env) env)
   ≡⟨ cong (λ x → eval e₂' (x ++⊑ _) (Cons _ env)) (sym (law-ₒoi ϕ₁)) ⟩
-    eval e₂' ((ϕ₁ ₒ oz os) ++⊑ θ₂'' ₒ ψ' ₒ θ) (Cons (eval e₁' (θ₁'' ₒ ψ' ₒ θ) env) env)
+    eval e₂' ((ϕ₁ ₒ os oz) ++⊑ θ₂'' ₒ ψ' ₒ θ) (Cons (eval e₁' (θ₁'' ₒ ψ' ₒ θ) env) env)
   ≡⟨ cong (λ x → eval e₂' _ (Cons (eval e₁' x env) env)) (helper-assoc (sym p₁)) ⟩
-    eval e₂' ((ϕ₁ ₒ oz os) ++⊑ θ₂'' ₒ ψ' ₒ θ) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+    eval e₂' ((ϕ₁ ₒ os oz) ++⊑ θ₂'' ₒ ψ' ₒ θ) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
   ≡⟨ cong (λ x → eval e₂' x (Cons _ env)) (trans
-      (cong ((ϕ₁ ₒ oz os) ++⊑_) (helper-assoc (sym p₂)) )
-      (law-commute-ₒ++⊑ ϕ₁ (oz os) ϕ₂ (θ₂ ₒ θ))) ⟩
-    eval e₂' ((ϕ₁ ++⊑ ϕ₂) ₒ (oz os ++⊑ (θ₂ ₒ θ))) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
-  ≡⟨ h₂ (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env) ((θ₂ ₒ θ) os) ⟩
-    eval e₂ ((θ₂ ₒ θ) os) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
-  ≡⟨ cong (λ x → eval e₂ ((θ₂ ₒ θ) os) (Cons x env)) h₁ ⟩
-    eval e₂ ((θ₂ ₒ θ) os) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
+      (cong ((ϕ₁ ₒ os oz) ++⊑_) (helper-assoc (sym p₂)) )
+      (law-commute-ₒ++⊑ ϕ₁ (os oz) ϕ₂ (θ₂ ₒ θ))) ⟩
+    eval e₂' ((ϕ₁ ++⊑ ϕ₂) ₒ (os oz ++⊑ (θ₂ ₒ θ))) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+  ≡⟨ h₂ (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env) (os (θ₂ ₒ θ)) ⟩
+    eval e₂ (os (θ₂ ₒ θ)) (Cons (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env) env)
+  ≡⟨ cong (λ x → eval e₂ (os (θ₂ ₒ θ)) (Cons x env)) h₁ ⟩
+    eval e₂ (os (θ₂ ₒ θ)) (Cons (eval e₁ (θ₁ ₒ θ) env) env)
   ∎
 dbe-correct (Val v) env θ =
   refl

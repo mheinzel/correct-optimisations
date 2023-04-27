@@ -29,9 +29,9 @@ dbe `var = `var ↑ oi
 dbe (`con (injˡ t)) = map⇑ (`con ∘ injˡ) (dbe-⟦∙⟧ t)
 dbe (`con (injʳ t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)))
   with cover-oi-oe⁻¹ c | ψ
-...  | refl | oz o' =
+...  | refl | o' oz =
     thin⇑ θ₂ (dbe t₂)
-...  | refl | oz os =
+...  | refl | os oz =
     let t' ↑ θ' = thin⇑ θ₁ (dbe t₁) ,ᴿ map⇑ ×ᴿ-trivial (thin⇑ θ₂ ((_ ∷ []) \\ᴿ (dbe t₂))) 
     in `con (injʳ (a , t')) ↑ θ'
     -- This implementation is simpler, but gets rejected by the termination checker:

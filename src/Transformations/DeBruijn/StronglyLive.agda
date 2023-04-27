@@ -25,12 +25,12 @@ private
 
 -- Free variables from declaration of a binding are only live, if the body uses the binding.
 combine-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → Ctx
-combine-domain {Δ₂ = Δ₂} θ₁ (θ₂ o') = Δ₂
-combine-domain θ₁ (θ₂ os) = ∪-domain θ₁ θ₂
+combine-domain {Δ₂ = Δ₂} θ₁ (o' θ₂) = Δ₂
+combine-domain           θ₁ (os θ₂) = ∪-domain θ₁ θ₂
 
 combine : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → combine-domain θ₁ θ₂ ⊑ Γ
-combine θ₁ (θ₂ o') = θ₂
-combine θ₁ (θ₂ os) = θ₁ ∪ θ₂
+combine θ₁ (o' θ₂) = θ₂
+combine θ₁ (os θ₂) = θ₁ ∪ θ₂
 
 -- TODO: bind implicit variables explicitly in an order that makes pattern matching on them nicer?
 -- IDEA: in Let, add explicit KeepBinding/RemBinding field to match on instead of Δ₂?
@@ -110,13 +110,13 @@ evalLive (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
   evalLive e₁ env (un-∪₁ θ₁ θ₂ ₒ θ')
     (evalLive e₂ env (un-∪₂ θ₁ θ₂ ₒ θ'))
 evalLive (Lam {θ = θ} e₁) env θ' =
-  λ v → evalLive e₁ (Cons v env) (un-pop θ ₒ θ' os)
-evalLive (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env θ' =
+  λ v → evalLive e₁ (Cons v env) (un-pop θ ₒ os θ')
+evalLive (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) env θ' =
   evalLive e₂ env θ' 
-evalLive (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env θ' =
+evalLive (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) env θ' =
   evalLive e₂
     (Cons (evalLive e₁ env (un-∪₁ θ₁ θ₂ ₒ θ')) env)
-    ((un-∪₂ θ₁ θ₂ ₒ θ') os)
+    (os (un-∪₂ θ₁ θ₂ ₒ θ'))
 evalLive (Val v) env θ' =
   v
 evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
@@ -129,11 +129,11 @@ evalLive-correct :
 evalLive-correct (Var x) env θ' θ'' = {!!}
 evalLive-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
 evalLive-correct (Lam e₁) env θ' θ'' = {!!}
-evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env θ' θ'' =
-  evalLive-correct e₂ (Cons (eval (forget e₁) env) env) θ' (θ'' o')
-evalLive-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env θ' θ'' =
+evalLive-correct (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) env θ' θ'' =
+  evalLive-correct e₂ (Cons (eval (forget e₁) env) env) θ' (o' θ'')
+evalLive-correct (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) env θ' θ'' =
     evalLive e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) (project-Env θ'' env)) _
-  ≡⟨ evalLive-correct e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) env) _ (θ'' os) ⟩
+  ≡⟨ evalLive-correct e₂ (Cons (evalLive e₁ (project-Env θ'' env) _) env) _ (os θ'') ⟩
     eval (forget e₂) (Cons (evalLive e₁ (project-Env θ'' env) _) env)
   ≡⟨ cong (λ x → eval (forget e₂) (Cons x env)) (evalLive-correct e₁ env _ θ'') ⟩
     eval (forget e₂) (Cons (eval (forget e₁) env) env)

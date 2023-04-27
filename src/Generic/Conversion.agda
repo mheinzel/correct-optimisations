@@ -20,12 +20,12 @@ private
     T : I ─Scoped
 
 Var-from-⊑ : (τ ∷ []) ⊑ Γ → Var τ Γ
-Var-from-⊑ (θ o') = s (Var-from-⊑ θ)
-Var-from-⊑ (θ os) = z
+Var-from-⊑ (o' θ) = s (Var-from-⊑ θ)
+Var-from-⊑ (os θ) = z
 
 ⊑-from-Var : Var τ Γ → (τ ∷ []) ⊑ Γ
-⊑-from-Var z = oe os
-⊑-from-Var (s k) = (⊑-from-Var k) o'
+⊑-from-Var z = os oe
+⊑-from-Var (s k) = o' (⊑-from-Var k)
 
 module Relax where
   relax :

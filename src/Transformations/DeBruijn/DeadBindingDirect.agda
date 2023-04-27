@@ -37,10 +37,10 @@ dbe (Lam e₁) =
   let e₁' ↑ θ = dbe e₁
   in Lam (rename-Expr (un-pop θ) e₁') ↑ pop θ
 dbe (Let e₁ e₂) with dbe e₁ | dbe e₂
-... | e₁' ↑ θ₁  | e₂' ↑ θ₂ o' =
+... | e₁' ↑ θ₁  | e₂' ↑ o' θ₂ =
   e₂' ↑ θ₂
-... | e₁' ↑ θ₁  | e₂' ↑ θ₂ os =
-  Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (rename-Expr (un-∪₂ θ₁ θ₂ os) e₂') ↑ (θ₁ ∪ θ₂)
+... | e₁' ↑ θ₁  | e₂' ↑ os θ₂ =
+  Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (rename-Expr (os (un-∪₂ θ₁ θ₂)) e₂') ↑ (θ₁ ∪ θ₂)
 dbe (Val v) =
   (Val v) ↑ oe
 dbe (Plus e₁ e₂) =
@@ -84,19 +84,19 @@ dbe-correct (Lam e₁) env =
   in
   extensionality _ _ λ v →
     trans
-      (law-eval-rename-Expr e₁' (un-pop θ₁) (project-Env (pop θ₁ os) (Cons v env)))
+      (law-eval-rename-Expr e₁' (un-pop θ₁) (project-Env (os (pop θ₁)) (Cons v env)))
       (trans
         (cong (eval e₁') (trans
-                           (sym (law-project-Env-ₒ (un-pop θ₁) (pop θ₁ os) (Cons v env)))
+                           (sym (law-project-Env-ₒ (un-pop θ₁) (os (pop θ₁)) (Cons v env)))
                            (cong (λ x → project-Env x (Cons v env)) (law-pop-inv θ₁))))
         (dbe-correct e₁ (Cons v env)))
 dbe-correct (Let e₁ e₂) env with dbe e₁ | dbe e₂ | dbe-correct e₁ | dbe-correct e₂
-... | e₁' ↑ θ₁ | e₂' ↑ θ₂ o' | h₁ | h₂ =
+... | e₁' ↑ θ₁ | e₂' ↑ o' θ₂ | h₁ | h₂ =
   h₂ (Cons (eval e₁ env) env)
-... | e₁' ↑ θ₁  | e₂' ↑ θ₂ os | h₁ | h₂ =
+... | e₁' ↑ θ₁  | e₂' ↑ os θ₂ | h₁ | h₂ =
   let v = eval (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (project-Env (θ₁ ∪ θ₂) env)
   in
-    eval (rename-Expr (un-∪₂ θ₁ θ₂ os) e₂') (Cons v (project-Env (θ₁ ∪ θ₂) env))
+    eval (rename-Expr (os (un-∪₂ θ₁ θ₂)) e₂') (Cons v (project-Env (θ₁ ∪ θ₂) env))
   ≡⟨ law-eval-rename-Expr e₂' _ _ ⟩
     eval e₂' (Cons _ (project-Env (un-∪₂ θ₁ θ₂) (project-Env (θ₁ ∪ θ₂) env)))
   ≡⟨ cong (λ x → eval e₂' (Cons v x)) (sym (law-project-Env-ₒ (un-∪₂ θ₁ θ₂) (θ₁ ∪ θ₂) env)) ⟩

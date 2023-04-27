@@ -24,18 +24,18 @@ private
     Γ : List U
 
 let-? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
-let-?   (pairᴿ _ ((oz o' \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂  -- remove binding
-let-? p@(pairᴿ _ ((oz os \\ _)  ↑ _)  _) = Let p ↑ oi
+let-?   (pairᴿ _ ((o' oz \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂  -- remove binding
+let-? p@(pairᴿ _ ((os oz \\ _)  ↑ _)  _) = Let p ↑ oi
 
 lemma-let-? :
   (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
   let e' ↑ θ' = let-? p
   in eval (Let p) oi env ≡ eval e' θ' env
-lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((oz o') \\ e₂) ↑ θ₂) c) env =
+lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((o' oz) \\ e₂) ↑ θ₂) c) env =
   trans
-    (lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ oi) env) env) θ₂ (oi o'))
+    (lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ oi) env) env) θ₂ (o' oi))
     (cong (eval e₂ θ₂) (law-project-Env-oi env))
-lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((oz os) \\ e₂) ↑ θ₂) c) env = refl
+lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((os oz) \\ e₂) ↑ θ₂) c) env = refl
 
 lemma-let-?' :
   {Γₑ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
@@ -69,7 +69,7 @@ mutual
   -- but where the body is revealed to not use the top variable after the recursive call.
   dbe : Expr τ Γ → Expr τ ⇑ Γ
   dbe Var =
-    Var ↑ oz os
+    Var ↑ os oz
   dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
     map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
   dbe (Lam (_\\_ {bound = Γ'} ψ e)) =

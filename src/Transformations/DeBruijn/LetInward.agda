@@ -26,16 +26,16 @@ private
 -- - pushing it into a lambda
   
 strengthen-Ref : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Ref σ Γ → Maybe (Ref σ Γ')
-strengthen-Ref (θ os) Top     = just Top
-strengthen-Ref (θ os) (Pop x) = Maybe.map Pop (strengthen-Ref θ x)
-strengthen-Ref (θ o') Top     = nothing -- ref became invalid by strengthening
-strengthen-Ref (θ o') (Pop x) = strengthen-Ref θ x
+strengthen-Ref (os θ) Top     = just Top
+strengthen-Ref (os θ) (Pop x) = Maybe.map Pop (strengthen-Ref θ x)
+strengthen-Ref (o' θ) Top     = nothing -- ref became invalid by strengthening
+strengthen-Ref (o' θ) (Pop x) = strengthen-Ref θ x
 
 strengthen : {Γ' Γ : Ctx} → Γ' ⊑ Γ → Expr τ Γ → Maybe (Expr τ Γ')
 strengthen θ (Var x)      = Maybe.map Var (strengthen-Ref θ x)
 strengthen θ (App e₁ e₂)  = Maybe.zipWith App (strengthen θ e₁) (strengthen θ e₂)
-strengthen θ (Lam e)      = Maybe.map Lam (strengthen (θ os) e)
-strengthen θ (Let e₁ e₂)  = Maybe.zipWith Let (strengthen θ e₁) (strengthen (θ os) e₂)
+strengthen θ (Lam e)      = Maybe.map Lam (strengthen (os θ) e)
+strengthen θ (Let e₁ e₂)  = Maybe.zipWith Let (strengthen θ e₁) (strengthen (os θ) e₂)
 strengthen θ (Val v)      = just (Val v)
 strengthen θ (Plus e₁ e₂) = Maybe.zipWith Plus (strengthen θ e₁) (strengthen θ e₂)
 
@@ -44,14 +44,14 @@ pop-at (σ ∷ Γ) Top = Γ
 pop-at (σ ∷ Γ) (Pop i) = σ ∷ pop-at Γ i
 
 o-pop-at : (i : Ref τ Γ) → pop-at Γ i ⊑ Γ
-o-pop-at Top = oi o'
-o-pop-at (Pop i) = (o-pop-at i) os
+o-pop-at Top = o' oi
+o-pop-at (Pop i) = os (o-pop-at i)
 
 strengthen-pop-at : (i : Ref σ Γ) → Expr τ Γ → Maybe (Expr τ (pop-at Γ i))
 strengthen-pop-at i = strengthen (o-pop-at i)
 
 strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr τ (σ' ∷ Γ) → Maybe (Expr τ (σ' ∷ pop-at Γ i))
-strengthen-keep-pop-at i = strengthen ((o-pop-at i) os)
+strengthen-keep-pop-at i = strengthen (os (o-pop-at i))
 
 -- NOTE: The following code feels like it requires more different operations than it should.
 -- But it's kind of expected: We are dealing with ordering preserving embeddings, but reordering the bindings.
@@ -93,7 +93,7 @@ push-let i decl e@(Lam _) = Let decl (rename-top-Expr [] i e)  -- don't push int
 push-let i decl e@(Let e₁ e₂) with strengthen-pop-at i e₁ | strengthen-keep-pop-at i e₂
 ... | nothing  | nothing  = Let decl (rename-top-Expr [] i e)
 ... | nothing  | just e₂' = Let (push-let i decl e₁) e₂'
-... | just e₁' | nothing  = Let e₁' (push-let (Pop i) (rename-Expr (oi o') decl) e₂)  -- going under the binder here
+... | just e₁' | nothing  = Let e₁' (push-let (Pop i) (rename-Expr (o' oi) decl) e₂)  -- going under the binder here
 ... | just e₁' | just e₂' = Let e₁' e₂'
 push-let i decl (Val v) = Val v
 push-let i decl e@(Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-pop-at i e₂
