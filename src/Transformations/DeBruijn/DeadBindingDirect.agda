@@ -31,8 +31,8 @@ dbe (App e₁ e₂) =
   let e₁' ↑ θ₁ = dbe e₁
       e₂' ↑ θ₂ = dbe e₂
   in App
-       (rename-Expr (Δ₁⊑∪-domain θ₁ θ₂) e₁')
-       (rename-Expr (Δ₂⊑∪-domain θ₁ θ₂) e₂') ↑ (θ₁ ∪ θ₂)
+       (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
+       (rename-Expr (un-∪₂ θ₁ θ₂) e₂') ↑ (θ₁ ∪ θ₂)
 dbe (Lam e₁) =
   let e₁' ↑ θ = dbe e₁
   in Lam (rename-Expr (un-pop θ) e₁') ↑ pop θ
@@ -40,15 +40,15 @@ dbe (Let e₁ e₂) with dbe e₁ | dbe e₂
 ... | e₁' ↑ θ₁  | e₂' ↑ θ₂ o' =
   e₂' ↑ θ₂
 ... | e₁' ↑ θ₁  | e₂' ↑ θ₂ os =
-  Let (rename-Expr (Δ₁⊑∪-domain θ₁ θ₂) e₁') (rename-Expr (Δ₂⊑∪-domain θ₁ θ₂ os) e₂') ↑ (θ₁ ∪ θ₂)
+  Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (rename-Expr (un-∪₂ θ₁ θ₂ os) e₂') ↑ (θ₁ ∪ θ₂)
 dbe (Val v) =
   (Val v) ↑ oe
 dbe (Plus e₁ e₂) =
   let e₁' ↑ θ₁ = dbe e₁
       e₂' ↑ θ₂ = dbe e₂
   in Plus
-       (rename-Expr (Δ₁⊑∪-domain θ₁ θ₂) e₁')
-       (rename-Expr (Δ₂⊑∪-domain θ₁ θ₂) e₂') ↑ (θ₁ ∪ θ₂)
+       (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
+       (rename-Expr (un-∪₂ θ₁ θ₂) e₂') ↑ (θ₁ ∪ θ₂)
 
 dbe-correct-Var :
   (x : Ref σ Γ) (env : Env Γ) →
@@ -70,13 +70,13 @@ dbe-correct (App e₁ e₂) env =
       (trans
         (law-eval-rename-Expr e₁' _ _)
         (trans
-          (cong (eval e₁') (trans (sym (law-project-Env-ₒ (Δ₁⊑∪-domain θ₁ θ₂) (θ₁ ∪ θ₂) env))
+          (cong (eval e₁') (trans (sym (law-project-Env-ₒ (un-∪₁ θ₁ θ₂) (θ₁ ∪ θ₂) env))
                                   (cong (λ x → project-Env x env) (law-∪₁-inv θ₁ θ₂))))
           (dbe-correct e₁ env)))
       (trans
         (law-eval-rename-Expr e₂' _ _)
         (trans
-          (cong (eval e₂') (trans (sym (law-project-Env-ₒ (Δ₂⊑∪-domain θ₁ θ₂) (θ₁ ∪ θ₂) env))
+          (cong (eval e₂') (trans (sym (law-project-Env-ₒ (un-∪₂ θ₁ θ₂) (θ₁ ∪ θ₂) env))
                                   (cong (λ x → project-Env x env) (law-∪₂-inv θ₁ θ₂))))
           (dbe-correct e₂ env)))
 dbe-correct (Lam e₁) env =
@@ -94,23 +94,23 @@ dbe-correct (Let e₁ e₂) env with dbe e₁ | dbe e₂ | dbe-correct e₁ | db
 ... | e₁' ↑ θ₁ | e₂' ↑ θ₂ o' | h₁ | h₂ =
   h₂ (Cons (eval e₁ env) env)
 ... | e₁' ↑ θ₁  | e₂' ↑ θ₂ os | h₁ | h₂ =
-  let v = eval (rename-Expr (Δ₁⊑∪-domain θ₁ θ₂) e₁') (project-Env (θ₁ ∪ θ₂) env)
+  let v = eval (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (project-Env (θ₁ ∪ θ₂) env)
   in
-    eval (rename-Expr (Δ₂⊑∪-domain θ₁ θ₂ os) e₂') (Cons v (project-Env (θ₁ ∪ θ₂) env))
+    eval (rename-Expr (un-∪₂ θ₁ θ₂ os) e₂') (Cons v (project-Env (θ₁ ∪ θ₂) env))
   ≡⟨ law-eval-rename-Expr e₂' _ _ ⟩
-    eval e₂' (Cons _ (project-Env (Δ₂⊑∪-domain θ₁ θ₂) (project-Env (θ₁ ∪ θ₂) env)))
-  ≡⟨ cong (λ x → eval e₂' (Cons v x)) (sym (law-project-Env-ₒ (Δ₂⊑∪-domain θ₁ θ₂) (θ₁ ∪ θ₂) env)) ⟩
-    eval e₂' (Cons _ (project-Env (Δ₂⊑∪-domain θ₁ θ₂ ₒ (θ₁ ∪ θ₂)) env))
+    eval e₂' (Cons _ (project-Env (un-∪₂ θ₁ θ₂) (project-Env (θ₁ ∪ θ₂) env)))
+  ≡⟨ cong (λ x → eval e₂' (Cons v x)) (sym (law-project-Env-ₒ (un-∪₂ θ₁ θ₂) (θ₁ ∪ θ₂) env)) ⟩
+    eval e₂' (Cons _ (project-Env (un-∪₂ θ₁ θ₂ ₒ (θ₁ ∪ θ₂)) env))
   ≡⟨ cong (λ x → eval e₂' (Cons v (project-Env x env))) (law-∪₂-inv θ₁ θ₂) ⟩
     eval e₂' (Cons _ (project-Env θ₂ env))
   ≡⟨ h₂ (Cons _ env) ⟩
     eval e₂ (Cons _ env)
   ≡⟨ refl ⟩
-    eval e₂ (Cons (eval (rename-Expr (Δ₁⊑∪-domain θ₁ θ₂) e₁') (project-Env (θ₁ ∪ θ₂) env)) env)
+    eval e₂ (Cons (eval (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (project-Env (θ₁ ∪ θ₂) env)) env)
   ≡⟨ cong (λ x → eval e₂ (Cons x env)) (law-eval-rename-Expr e₁' _ _) ⟩
-    eval e₂ (Cons (eval e₁' (project-Env (Δ₁⊑∪-domain θ₁ θ₂) (project-Env (θ₁ ∪ θ₂) env))) env)
-  ≡⟨ cong (λ x → eval e₂ (Cons (eval e₁' x) env)) (sym (law-project-Env-ₒ (Δ₁⊑∪-domain θ₁ θ₂) (θ₁ ∪ θ₂) env)) ⟩
-    eval e₂ (Cons (eval e₁' (project-Env (Δ₁⊑∪-domain θ₁ θ₂ ₒ (θ₁ ∪ θ₂)) env)) env)
+    eval e₂ (Cons (eval e₁' (project-Env (un-∪₁ θ₁ θ₂) (project-Env (θ₁ ∪ θ₂) env))) env)
+  ≡⟨ cong (λ x → eval e₂ (Cons (eval e₁' x) env)) (sym (law-project-Env-ₒ (un-∪₁ θ₁ θ₂) (θ₁ ∪ θ₂) env)) ⟩
+    eval e₂ (Cons (eval e₁' (project-Env (un-∪₁ θ₁ θ₂ ₒ (θ₁ ∪ θ₂)) env)) env)
   ≡⟨ cong (λ x → eval e₂ (Cons (eval e₁' (project-Env x env)) env)) (law-∪₁-inv θ₁ θ₂) ⟩
     eval e₂ (Cons (eval e₁' (project-Env θ₁ env)) env)
   ≡⟨ cong (λ x → eval e₂ (Cons x env)) (h₁ env) ⟩
@@ -126,12 +126,12 @@ dbe-correct (Plus e₁ e₂) env =
       (trans
         (law-eval-rename-Expr e₁' _ _)
         (trans
-          (cong (eval e₁') (trans (sym (law-project-Env-ₒ (Δ₁⊑∪-domain θ₁ θ₂) (θ₁ ∪ θ₂) env))
+          (cong (eval e₁') (trans (sym (law-project-Env-ₒ (un-∪₁ θ₁ θ₂) (θ₁ ∪ θ₂) env))
                                   (cong (λ x → project-Env x env) (law-∪₁-inv θ₁ θ₂))))
           (dbe-correct e₁ env)))
       (trans
         (law-eval-rename-Expr e₂' _ _)
         (trans
-          (cong (eval e₂') (trans (sym (law-project-Env-ₒ (Δ₂⊑∪-domain θ₁ θ₂) (θ₁ ∪ θ₂) env))
+          (cong (eval e₂') (trans (sym (law-project-Env-ₒ (un-∪₂ θ₁ θ₂) (θ₁ ∪ θ₂) env))
                                   (cong (λ x → project-Env x env) (law-∪₂-inv θ₁ θ₂))))
           (dbe-correct e₂ env)))

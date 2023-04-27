@@ -107,21 +107,21 @@ evalLive : {θ : Δ ⊑ Γ} → LiveExpr τ θ → Env Γ' → Δ ⊑ Γ' → �
 evalLive (Var x) env θ' =
   lookup (ref-o θ') env
 evalLive (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
-  evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')
-    (evalLive e₂ env (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
+  evalLive e₁ env (un-∪₁ θ₁ θ₂ ₒ θ')
+    (evalLive e₂ env (un-∪₂ θ₁ θ₂ ₒ θ'))
 evalLive (Lam {θ = θ} e₁) env θ' =
   λ v → evalLive e₁ (Cons v env) (un-pop θ ₒ θ' os)
 evalLive (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) env θ' =
   evalLive e₂ env θ' 
 evalLive (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) env θ' =
   evalLive e₂
-    (Cons (evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')) env)
-    ((Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') os)
+    (Cons (evalLive e₁ env (un-∪₁ θ₁ θ₂ ₒ θ')) env)
+    ((un-∪₂ θ₁ θ₂ ₒ θ') os)
 evalLive (Val v) env θ' =
   v
 evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
-  evalLive e₁ env (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ')
-    + evalLive e₂ env (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ')
+  evalLive e₁ env (un-∪₁ θ₁ θ₂ ₒ θ')
+    + evalLive e₂ env (un-∪₂ θ₁ θ₂ ₒ θ')
   
 evalLive-correct :
   {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →

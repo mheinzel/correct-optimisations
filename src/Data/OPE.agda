@@ -151,19 +151,19 @@ module From⊑ where
 ∪-domain oz oz = []
 
 -- aka un-∪₁
-Δ₁⊑∪-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁ ⊑ ∪-domain θ₁ θ₂
-Δ₁⊑∪-domain (θ₁ o') (θ₂ o') = Δ₁⊑∪-domain θ₁ θ₂
-Δ₁⊑∪-domain (θ₁ o') (θ₂ os) = Δ₁⊑∪-domain θ₁ θ₂ o'
-Δ₁⊑∪-domain (θ₁ os) (θ₂ o') = Δ₁⊑∪-domain θ₁ θ₂ os
-Δ₁⊑∪-domain (θ₁ os) (θ₂ os) = Δ₁⊑∪-domain θ₁ θ₂ os
-Δ₁⊑∪-domain oz oz = oz
+un-∪₁ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁ ⊑ ∪-domain θ₁ θ₂
+un-∪₁ (θ₁ o') (θ₂ o') = un-∪₁ θ₁ θ₂
+un-∪₁ (θ₁ o') (θ₂ os) = un-∪₁ θ₁ θ₂ o'
+un-∪₁ (θ₁ os) (θ₂ o') = un-∪₁ θ₁ θ₂ os
+un-∪₁ (θ₁ os) (θ₂ os) = un-∪₁ θ₁ θ₂ os
+un-∪₁ oz oz = oz
 
-Δ₂⊑∪-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₂ ⊑ ∪-domain θ₁ θ₂
-Δ₂⊑∪-domain (θ₁ o') (θ₂ o') = Δ₂⊑∪-domain θ₁ θ₂
-Δ₂⊑∪-domain (θ₁ o') (θ₂ os) = Δ₂⊑∪-domain θ₁ θ₂ os
-Δ₂⊑∪-domain (θ₁ os) (θ₂ o') = Δ₂⊑∪-domain θ₁ θ₂ o'
-Δ₂⊑∪-domain (θ₁ os) (θ₂ os) = Δ₂⊑∪-domain θ₁ θ₂ os
-Δ₂⊑∪-domain oz oz = oz
+un-∪₂ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₂ ⊑ ∪-domain θ₁ θ₂
+un-∪₂ (θ₁ o') (θ₂ o') = un-∪₂ θ₁ θ₂
+un-∪₂ (θ₁ o') (θ₂ os) = un-∪₂ θ₁ θ₂ os
+un-∪₂ (θ₁ os) (θ₂ o') = un-∪₂ θ₁ θ₂ o'
+un-∪₂ (θ₁ os) (θ₂ os) = un-∪₂ θ₁ θ₂ os
+un-∪₂ oz oz = oz
 
 _∪_ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → ∪-domain θ₁ θ₂ ⊑ Γ
 (θ₁ o') ∪ (θ₂ o') = (θ₁ ∪ θ₂) o'
@@ -172,14 +172,14 @@ _∪_ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → ∪-domain θ₁ θ₂
 (θ₁ os) ∪ (θ₂ os) = (θ₁ ∪ θ₂) os
 oz ∪ oz = oz
 
-law-∪₁-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁⊑∪-domain θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₁
+law-∪₁-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → un-∪₁ θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₁
 law-∪₁-inv (θ₁ o') (θ₂ o') = cong _o' (law-∪₁-inv θ₁ θ₂)
 law-∪₁-inv (θ₁ o') (θ₂ os) = cong _o' (law-∪₁-inv θ₁ θ₂)
 law-∪₁-inv (θ₁ os) (θ₂ o') = cong _os (law-∪₁-inv θ₁ θ₂)
 law-∪₁-inv (θ₁ os) (θ₂ os) = cong _os (law-∪₁-inv θ₁ θ₂)
 law-∪₁-inv oz oz = refl
 
-law-∪₂-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₂⊑∪-domain θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₂
+law-∪₂-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → un-∪₂ θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₂
 law-∪₂-inv (θ₁ o') (θ₂ o') = cong _o' (law-∪₂-inv θ₁ θ₂)
 law-∪₂-inv (θ₁ o') (θ₂ os) = cong _os (law-∪₂-inv θ₁ θ₂)
 law-∪₂-inv (θ₁ os) (θ₂ o') = cong _o' (law-∪₂-inv θ₁ θ₂)

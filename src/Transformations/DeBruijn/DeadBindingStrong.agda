@@ -37,22 +37,22 @@ transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
 transform (Var x) θ' = Var (ref-o θ')
 transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
   App
-    (transform e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
-    (transform e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
+    (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
+    (transform e₂ (un-∪₂ θ₁ θ₂ ₒ θ'))
 transform (Lam {θ = θ} e₁) θ' =
   Lam (transform e₁ (un-pop θ ₒ θ' os))
 transform (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' =
   transform e₂ θ'
 transform (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' =
   Let
-    (transform e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
-    (transform e₂ ((Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') os))
+    (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
+    (transform e₂ ((un-∪₂ θ₁ θ₂ ₒ θ') os))
 transform (Val v) θ' =
   Val v
 transform (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
   Plus
-    (transform e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
-    (transform e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
+    (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
+    (transform e₂ (un-∪₂ θ₁ θ₂ ₒ θ'))
 
 -- eval ∘ transform ≡ evalLive
 transform-correct :
@@ -62,8 +62,8 @@ transform-correct (Var x) θ' env =
   refl
 transform-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
   cong₂ _$_
-    (transform-correct e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ') env)
-    (transform-correct e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₁ (un-∪₁ θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₂ (un-∪₂ θ₁ θ₂ ₒ θ') env)
 transform-correct (Lam {θ = θ} e₁) θ' env =
   extensionality _ _ λ v →
     transform-correct e₁ (un-pop θ ₒ θ' os) (Cons v env)
@@ -77,8 +77,8 @@ transform-correct (Val v) θ' env =
   refl
 transform-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
   cong₂ _+_
-    (transform-correct e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ') env)
-    (transform-correct e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₁ (un-∪₁ θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₂ (un-∪₂ θ₁ θ₂ ₒ θ') env)
 
 dbe : Expr σ Γ → Expr σ ⇑ Γ
 dbe e = let Δ , θ , le = analyse e in transform le oi ↑ θ
