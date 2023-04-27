@@ -25,6 +25,14 @@ private
     σ τ : U
     Γ Γ' Δ : Ctx
 
+-- NOTE: we could also stay in the annotated setting, something like:
+-- transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → (θ' : Δ ⊑ Γ') → LiveExpr σ θ'
+-- But this requires us to show a lot of equalities about operations on OPEs.
+-- This could probably be avoided with something like
+-- transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Σ[ θ' ∈ (Δ ⊑ Γ') ] LiveExpr σ θ'
+-- but that doesn't seem super elegant.
+-- However, we don't need this in the first place for our story.
+
 transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
 transform (Var x) θ' = Var (ref-o θ')
 transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
