@@ -25,65 +25,65 @@ private
     σ τ : U
     Γ Γ' Δ : Ctx
 
-dbe : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
-dbe (Var x) θ' = Var (ref-o θ')
-dbe (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
+transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
+transform (Var x) θ' = Var (ref-o θ')
+transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
   App
-    (dbe e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
-    (dbe e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
-dbe (Lam {θ = θ} e₁) θ' =
-  Lam (dbe e₁ (un-pop θ ₒ θ' os))
-dbe (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' =
-  dbe e₂ θ'
-dbe (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' =
+    (transform e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
+    (transform e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
+transform (Lam {θ = θ} e₁) θ' =
+  Lam (transform e₁ (un-pop θ ₒ θ' os))
+transform (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' =
+  transform e₂ θ'
+transform (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' =
   Let
-    (dbe e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
-    (dbe e₂ ((Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') os))
-dbe (Val v) θ' =
+    (transform e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
+    (transform e₂ ((Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') os))
+transform (Val v) θ' =
   Val v
-dbe (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
+transform (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
   Plus
-    (dbe e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
-    (dbe e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
+    (transform e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ'))
+    (transform e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ'))
 
--- eval ∘ dbe ≡ evalLive
-dbe-correct :
+-- eval ∘ transform ≡ evalLive
+transform-correct :
   {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (θ' : Δ ⊑ Γ') (env : Env Γ') →
-  eval (dbe e θ') env ≡ evalLive e env θ'
-dbe-correct (Var x) θ' env =
+  eval (transform e θ') env ≡ evalLive e env θ'
+transform-correct (Var x) θ' env =
   refl
-dbe-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
+transform-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
   cong₂ _$_
-    (dbe-correct e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ') env)
-    (dbe-correct e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') env)
-dbe-correct (Lam {θ = θ} e₁) θ' env =
+    (transform-correct e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') env)
+transform-correct (Lam {θ = θ} e₁) θ' env =
   extensionality _ _ λ v →
-    dbe-correct e₁ (un-pop θ ₒ θ' os) (Cons v env)
-dbe-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' env =
-  dbe-correct e₂ θ' env
-dbe-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' env =
+    transform-correct e₁ (un-pop θ ₒ θ' os) (Cons v env)
+transform-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ o'} e₁ e₂) θ' env =
+  transform-correct e₂ θ' env
+transform-correct (Let {θ₁ = θ₁} {θ₂ = θ₂ os} e₁ e₂) θ' env =
   trans
-    (dbe-correct e₂ _ (Cons (eval (dbe e₁ _) env) env))
-    (cong (λ x → evalLive e₂ (Cons x env) _) (dbe-correct e₁ _ env))
-dbe-correct (Val v) θ' env =
+    (transform-correct e₂ _ (Cons (eval (transform e₁ _) env) env))
+    (cong (λ x → evalLive e₂ (Cons x env) _) (transform-correct e₁ _ env))
+transform-correct (Val v) θ' env =
   refl
-dbe-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
+transform-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' env =
   cong₂ _+_
-    (dbe-correct e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ') env)
-    (dbe-correct e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₁ (Δ₁⊑∪-domain θ₁ θ₂ ₒ θ') env)
+    (transform-correct e₂ (Δ₂⊑∪-domain θ₁ θ₂ ₒ θ') env)
 
-optimise : Expr σ Γ → Expr σ ⇑ Γ
-optimise e = let Δ , θ , e' = analyse e in dbe e' oi ↑ θ
+dbe : Expr σ Γ → Expr σ ⇑ Γ
+dbe e = let Δ , θ , le = analyse e in transform le oi ↑ θ
 
-optimise-correct :
+dbe-correct :
   (e : Expr σ Γ) (env : Env Γ) →
-  let e' ↑ θ = optimise e
+  let e' ↑ θ = dbe e
   in eval e' (project-Env θ env) ≡ eval e env
-optimise-correct e env =
+dbe-correct e env =
   let Δ , θ , le = analyse e
   in
-    eval (dbe le oi) (project-Env θ env)
-  ≡⟨ dbe-correct le oi (project-Env θ env) ⟩
+    eval (transform le oi) (project-Env θ env)
+  ≡⟨ transform-correct le oi (project-Env θ env) ⟩
     evalLive le (project-Env θ env) oi
   ≡⟨ evalLive-correct le env oi θ ⟩
     eval (forget le) env
