@@ -4,6 +4,7 @@
 %format (Exists (e) (t)) = "\Sigma[\ " e "\in" t "\ ]"
 %format (At(x)(p)) = x "@(" p ")"
 %format lambda = "\lambda"
+%format _=>_ = "\_{\Rightarrow}\_"
 %format e' = "\Varid{e}^{\prime}"
 %format e1 = "\Varid{e}_1"
 %format e2 = "\Varid{e}_2"

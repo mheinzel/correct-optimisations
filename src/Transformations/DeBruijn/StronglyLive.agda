@@ -28,7 +28,7 @@ combine-domain : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → Ctx
 combine-domain {Δ₂ = Δ₂} θ₁ (θ₂ o') = Δ₂
 combine-domain θ₁ (θ₂ os) = ∪-domain θ₁ θ₂
 
-combine : (θ₁ : Δ₁ ⊑ Γ) → (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → combine-domain θ₁ θ₂ ⊑ Γ
+combine : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → combine-domain θ₁ θ₂ ⊑ Γ
 combine θ₁ (θ₂ o') = θ₂
 combine θ₁ (θ₂ os) = θ₁ ∪ θ₂
 

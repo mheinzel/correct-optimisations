@@ -3,279 +3,336 @@
 
 \chapter{de Bruijn Representation}
 \label{ch:de-bruijn}
+  Whether we use explicit names or de Bruijn indices,
+  the language as seen so far makes it possible to represent expressions
+  that are ill-typed (e.g. performing addition on Booleans)
+  or accidentally open (containing free variables).
+  Evaluating such an expression leads to a runtime error;
+  the evaluation function is partial.
 
-Whether we use explicit names or de Bruijn indices,
-the language as seen so far makes it possible to represent expressions
-that are ill-typed (e.g. adding Booleans)
-or accidentally open (containing free variables).
-Evaluating such an expression leads to a runtime error;
-the evaluation function is partial.
+  When implementing a compiler in a dependently typed programming language,
+  we can define \emph{intrinsically typed syntax trees} with de Bruijn indices,
+  where type- and scope-correctness invariants are specified on the type level
+  and verified by the type checker.
+  \Fixme{mention inductive families (Dybjer)?}
+  This allows for a total evaluation function
+  \cite{Augustsson1999WellTypedInterpreter}.
+  As a consequence, transformations on the syntax tree 
+  only typecheck if they preserve the invariants.
+  While the semantics of the expression could still change,
+  guaranteeing type- and scope-correctness rules out
+  a large class of mistakes.
 
-When implementing a compiler in a dependently typed programming language,
-we can define \emph{intrinsically typed syntax trees} with de Bruijn indices,
-where type- and scope-correctness invariants are specified on the type level
-and verified by the type checker.
-\Fixme{mention inductive families (Dybjer)?}
-This makes the evaluation function total
-\cite{Augustsson1999WellTypedInterpreter}.
-Similarly, transformations on the syntax tree need to preserve the invariants.
-While the semantics of the expression could still change,
-guaranteeing type- and scope-correctness rules out
-a large class of mistakes.
 
 \section{Intrinsically Typed Syntax}
 \label{sec:de-bruijn-intrinsically-typed}
+  To demonstrate this approach in Agda, 
+  let us start by defining the types that expressions can have.
+  \Fixme{rename to \emph{sorts}?}
 
-To demonstrate this approach in Agda, 
-let us start by defining the types that expressions can have.
-\Fixme{rename to \emph{sorts}?}
+  \begin{code}
+    data U : Set where
+      _=>_  : U
+      BOOL  : U
+      NAT   : U
 
-\begin{code}
-  data U : Set where
-    BOOL  : U
-    NAT   : U
+    interpretU_ : U -> Set
+    (interpretU(sigma => tau))  = (interpretU(sigma)) -> (interpretU(tau))
+    (interpretU(BOOL))          = Bool
+    (interpretU(NAT))           = Nat
+  \end{code}
 
-  interpretU_ : U -> Set
-  (interpretU(BOOL))  = Bool
-  (interpretU(NAT))   = Nat
-\end{code}
+  To know if a variable occurence is valid, one must consider its \emph{context},
+  the bindings that are in scope.
+  With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
+  In a typed setting, it is also necessary to know the type of each binding,
+  so we represent the context by a list of types: One for each binding in scope, from innermost to outermost.
+  % MAYBE: Say that we use Agda's variable feature to make things more concise?
 
-To know if a variable occurence is valid, one must consider its \emph{context},
-the bindings that are in scope.
-With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
-In a typed setting, it is also necessary to know the type of each binding,
-so we represent the context by a list of types: One for each binding in scope, from innermost to outermost.
-% MAYBE: Say that we use Agda's variable feature to make things more concise?
+  \begin{code}
+    Ctx = List U
 
-\begin{code}
-  Ctx = List U
+    variable
+      Gamma : Ctx
+      sigma tau : U
+  \end{code}
 
-  variable
-    Gamma : Ctx
-    sigma tau : U
-\end{code}
+  During evaluation, each variable in scope has a value.
+  Together, these are called an \emph{environment} in a given context.
 
-During evaluation, each variable in scope has a value.
-Together, these are called an \emph{environment} in a given context.
+  \begin{code}
+    data Env : Ctx -> Set where
+      Nil   : Env []
+      Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
+  \end{code}
 
-\begin{code}
-  data Env : Ctx -> Set where
-    Nil   : Env []
-    Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
-\end{code}
+  A variable then is an index into its context,
+  also guaranteeing that its type matches that of the binding.
+  Since variable |Ref sigma Gamma| acts as a proof that
+  the environment |Env Gamma| contains an element of type |sigma|,
+  variable lookup is total.
 
-A variable then is an index into its context,
-also guaranteeing that its type matches that of the binding.
-Since variable |Ref sigma Gamma| acts as a proof that
-the environment |Env Gamma| contains an element of type |sigma|,
-variable lookup is total.
+  \begin{code}
+    data Ref (sigma : U) : Ctx -> Set where
+      Top  : Ref sigma (sigma :: Gamma)
+      Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
+  \end{code}
 
-\begin{code}
-  data Ref (sigma : U) : Ctx -> Set where
-    Top  : Ref sigma (sigma :: Gamma)
-    Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
-\end{code}
+  \begin{code}
+    lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
+    lookup Top      (Cons v env)   = v
+    lookup (Pop i)  (Cons v env)   = lookup i env
+  \end{code}
 
-\begin{code}
-  lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
-  lookup Top      (Cons v env)   = v
-  lookup (Pop i)  (Cons v env)   = lookup i env
-\end{code}
+  Now follows the definition of intrinsically typed expressions,
+  where an |Expr| is indexed by both
+  its type (|sigma : U|)
+  and context (|Gamma : Ctx|).
+  We can see how the context changes when introducing a new binding
+  that is then available in the body of a |Let|.
 
-Now follows the definition of intrinsically typed expressions,
-where an |Expr| is indexed by both
-its type (|sigma : U|)
-and context (|Gamma : Ctx|).
-We can see how the context changes when introducing a new binding
-that is then available in the body of a |Let|.
+  \begin{code}
+    data Expr : (Gamma : Ctx) (tau : U) -> Set where
+      Var   : Ref sigma Gamma -> Expr sigma Gamma
+      App   : Expr (sigma => tau) Gamma -> Expr sigma Gamma -> Expr tau Gamma
+      Lam   : Expr tau (sigma :: Gamma) -> Expr (sigma => tau) Gamma
+      Let   : Expr sigma Gamma -> Expr tau (tau :: Gamma) -> Expr tau Gamma
+      Val   : (interpretU(sigma)) -> Expr sigma Gamma
+      Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
+  \end{code}
 
-\begin{code}
-  data Expr : (Gamma : Ctx) (tau : U) -> Set where
-    Val   : (interpretU(sigma)) -> Expr sigma Gamma
-    Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
-    Let   : Expr sigma Gamma -> Expr tau (tau :: Gamma) -> Expr tau Gamma
-    Var   : Ref sigma Gamma -> Expr sigma Gamma
-\end{code}
-\Fixme{Add |Lam|!}
+  This allows the definition of a total evaluator
+  using an environment that matches the expression's context.
 
-This allows the definition of a total evaluator
-using an environment that matches the expression's context.
+  \begin{code}
+    eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
+    eval (Var x)       env  = lookup x env
+    eval (App e1 e2)   env  = eval e1 env (eval e2 env)
+    eval (Lam e)       env  = lambda v -> eval e (Cons v env)
+    eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
+    eval (Val v)       env  = v
+    eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
+  \end{code}
 
-\begin{code}
-  eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
-  eval (Val v)       env  = v
-  eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
-  eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
-  eval (Var x)       env  = lookup x env
-\end{code}
+
+\section{Order-preserving Embeddings}
+\Outline{
+  We use \emph{order-preserving embedding} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
+  e.g. to reason about the part of a context that is live (actually used).
+  Show definition, composition, laws.
+  These can be used to specify operations on |Env|, |Ref|, |Expr| (which we also show).
+  We can prove lemmas about how they relate,
+  e.g. |eval (rename-Expr theta e) env == eval e (project-Env theta env)|.
+}
+\Fixme{terminology: OPE vs thinning?}
+\Fixme{Have a separate chapter for Expr-independent operations on OPE, Ref, Env? (basically |Language.Core|)}
+
 
 \section{Dead Binding Elimination}
 \label{sec:de-bruijn-dbe}
 
-\paragraph{Sub-contexts}
-To reason about the part of a context that is live (actually used),
-we introduce \emph{sub-contexts}.
-Conceptually, these are contexts that admit an
-\emph{order-preserving embedding} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
-into the original context, and we capture this notion in a single data type.
-For each element of a context, a sub-context specifies whether to |Keep| or |Drop| it.
+\subsection{Direct Approach}
+\label{sec:de-bruijn-dbe-direct}
+\Outline{
+  The transformation returns |Expr sigma ^^ Gamma|,
+  indicating that only part of the context is used.
 
-\begin{code}
-  data SubCtx : Ctx -> Set where
-    Empty  : SubCtx []
-    Drop   : SubCtx Gamma -> SubCtx (tau :: Gamma)
-    Keep   : SubCtx Gamma -> SubCtx (tau :: Gamma)
-\end{code}
+  For |Let|, note that using the live context of the transformed body
+  automatically gives us the strong version.
 
-The context uniquely described by a sub-context is
-then given by a function |floor_ : SubCtx Gamma -> Ctx|,
-and we further know its embedding.
+  Also note that we need to rename at every binary operator
+  We explain why this cannot be avoided with this approach.
+  We somehow need to know upfront which context the expression should have in the end.
+  This will be shown in the next section.
 
-We now define |_c=_ : SubCtx Gamma -> SubCtx Gamma -> Set|,
-stating that one sub-context is a subset of the other.
-Its witnesses are unique, which simplifies the correctness proofs.
-A similar relation on |Ctx| does not have this property
-(e.g. |[NAT]| can be embedded into |[NAT, NAT]| either by keeping the first element or the second),
-which would complicate equality proofs on terms including witnesses of |_c=_|.
-
-From now on, we will only consider expressions
-|Expr tau (floor(Delta))| in some sub-context.
-Initially, we take |Delta = all Gamma : SubCtx Gamma|,
-the complete sub-context of the original context.
-
-\paragraph{Analysis}
-Now we can annotate each expression with its \emph{live variables},
-the sub-context |Delta' c= Delta| that is really used.
-To that end, we define annotated expressions |LiveExpr Delta Delta' tau|.
-While |Delta| is treated as |Gamma| was before, |Delta'| now only contains live variables,
-starting with a singleton sub-context at the variable usage sites.
-
-\begin{code}
-  data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
-    Let : LiveExpr Delta Delta1 sigma ->
-    LiveExpr (Keep Delta) Delta2 tau ->
-    LiveExpr Delta (Delta2 \/ pop Delta2) tau
-    (dots)
-\end{code}
-
-To create such annotated expressions, we need to perform
-some static analysis of our source programs.
-The function |analyse| computes an existentially qualified live sub-context |Delta'|
-together with a matching annotated expression.
-The only requirement we have for it is that we can forget the annotations again,
-with |forget . analyse == id|.
-
-\begin{code}
-  analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
-  forget  : LiveExpr Delta Delta' tau -> Expr tau (floor(Delta))
-\end{code}
-
-% NOTE:
-% Maybe add a note that LiveExpr is overspecified.
-% Instead of |Delta1 \/ Delta2| we could have any |Delta'| containing |Delta1| and |Delta2|.
-
-\paragraph{Transformation}
-Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
-in the |Let|-case, where we match on |Delta2| to distinguish whether the bound variable is live.
-If it is not, we directly evaluate the body, ignoring the bound declaration.
-Another important detail is that evaluation works under any environment containing (at least) the live context.
-
-\begin{code}
-  evalLive : LiveExpr Delta Delta' tau -> Env (floor(DeltaU)) -> (Irrelevant(Delta c= DeltaU)) -> (interpretU(tau))
-\end{code}
-
-This \emph{optimised semantics} shows that we can do a similar program transformation
-and will be useful in its correctness proof.
-The implementation simply maps each constructor to its counterpart in |Expr|,
-with some renaming
-(e.g. from |(floor(Delta1))| to |(floor(Delta1 \/ Delta2)|)
-and the abovementioned case distinction.
-
-\begin{code}
-  dbe : LiveExpr Delta Delta' tau -> Expr tau (floor(Delta'))
-  dbe (Let {Delta1} {Drop Delta2} e1 e2) = injExpr2 Delta1 Delta2 (dbe e2)
-  (dots)
-\end{code}
-
-As opposed to |forget|, which stays in the original context,
-here we remove unused variables, only keeping |(floor(Delta'))|.
-
-\paragraph{Correctness}
-We want to show that dead binding elimination preserves semantics:
-|eval . dbe . analyse == eval|.
-Since we know that |forget . analyse == id|,
-it is sufficient to show the following:
-
-\begin{code}
-  eval . dbe == eval . forget
-\end{code}
-
-The proof gets simpler if we split it up using the optimised semantics.
-
-\begin{code}
-  evalLive == eval . dbe
-  evalLive == eval . forget
-\end{code}
-
-The actual proof statements in Agda are more involved,
-since they quantify over the expression and environment used for evaluation.
-As foreshadowed in the definition of |evalLive|, the statements are also generalised
-to evaluation under any |Env (floor(DeltaU))|,
-as long as it contains the live sub-context.
-This gives us more flexibility when using the inductive hypothesis.
-
-Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
-The interesting one is again |Let|, where we split cases on the variable being used or not
-and need some auxiliary facts about evaluation, renaming and sub-contexts.
-
-\paragraph{Iterating the Optimisation}
-As discussed in section \ref{ch:program-transformations},
-more than one pass of dead binding elimination might be necessary to remove all unused bindings.
-While in our simple setting all these bindings could be identified in a single pass
-using strongly live variable analysis,
-in general it can be useful to simply iterate optimisations until a fixpoint is reached.
-
-Consequently, we keep applying |dbe . analyse| as long as the number of bindings decreases.
-Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
-We observe that the algorithm must terminate
-since the number of bindings decreases with each iteration (but the last) and cannot become negative.
-This corresponds to the ascending chain condition in program analysis literature
-\cite{Nielson1999PrinciplesProgramAnalysis}.
-To convince the termination checker, we use well-founded recursion
-\cite{Bove2014PartialityRecursion}
-on the number of bindings.
-
-The correctness of the iterated implementation
-follows directly from the correctness of each individual iteration step.
-
-\section{Strong Dead Binding Elimination}
-\label{sec:de-bruijn-dbe-strong}
-\Question{Merge this into previous section? Or, since strong version is so similar, do that immediately?}
-\Draft{
-  To avoid the need for iterating the transformation,
-  we employ the more precise \emph{strongly live variable analysis}.
-  The main difference is that we only consider variable usages in a declaration
-  if that declaration itself is live.
-  \begin{code}
-    combine : SubCtx Gamma -> SubCtx (sigma :: Gamma) -> SubCtx Gamma
-    combine Delta1 (Drop Delta2) = Delta2
-    combine Delta1 (Keep Delta2) = Delta1 \/ Delta2
-  \end{code}
-  \begin{code}
-    data LiveExpr : (Delta Delta' : SubCtx Gamma) (tau : U) -> Set where
-      Let : LiveExpr Delta Delta1 sigma ->
-            LiveExpr (Keep Delta) Delta2 tau ->
-            LiveExpr Delta (Delta2 \/ pop Delta2) tau
-      (dots)
-  \end{code}
-  The remaining algorithm and most of the correctness proof are unaffected.
+  We prove correctness (semantics-preservation).
 }
+
+\subsection{Using Live Variable Analysis}
+\label{sec:de-bruijn-dbe-live}
+  \paragraph{Liveness annotations}
+  We can annotate each expression with its \emph{live variables},
+  the context |Delta| that is really used and embeds into
+  the original context with OPE such as |theta : Delta C= Gamma|.
+  To that end, we define annotated expressions |LiveExpr tau theta|.
+
+  \begin{code}
+    data LiveExpr {Gamma : Ctx} : U -> {Delta : Ctx} -> Delta C= Gamma -> Set where
+      Var :
+        (x : Ref sigma Gamma) ->
+        LiveExpr sigma (o-Ref x)
+      App :
+        {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
+        LiveExpr (sigma => tau) theta1 ->
+        LiveExpr sigma theta2 ->
+        LiveExpr tau (theta1 ∪ theta2)
+      Lam :
+        {theta : Delta C= (sigma :: Gamma)} ->
+        LiveExpr tau theta ->
+        LiveExpr (sigma => tau) (pop theta)
+  \end{code}
+  \Outline{
+    Explain for some constructors, e.g.
+    for variables we start with a singleton context using |o-Ref|.
+    Also make sure the necessary operations like |pop| and |\/| are introduced.
+  }
+
+  For |Let|, one way is to handle it using a combination of the operations for
+  |App| and |Lam|.
+  This corresponds to a non-strong live variable analysis,
+  since even if the body is dead, we end up considering the declaration
+  for the live context.
+  \begin{code}
+      Let :
+        {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
+        LiveExpr sigma theta1 ->
+        LiveExpr tau theta2 ->
+        LiveExpr tau (theta1 ∪ pop theta2)
+  \end{code}
+
+  The other is to do strongly live variable analysis with a custom operation |combine|,
+  which ignores the declaration's context if it is not used in the body.
+  \begin{code}
+    combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
+    combine-domain {Delta2 = Delta2} theta1 (theta2 o') = Delta2
+    combine-domain theta1 (theta2 os) = ∪-domain theta1 theta2
+
+    combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> combine-domain theta1 theta2 C= Gamma
+    combine theta1 (theta2 o') = theta2
+    combine theta1 (theta2 os) = theta1 ∪ theta2
+  \end{code}
+  \begin{code}
+      Let :
+        {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
+        LiveExpr sigma theta1 ->
+        LiveExpr tau theta2 ->
+        LiveExpr tau (combine theta1 theta2)
+  \end{code}
+
+  We will use the latter version, but later show how to achieve the same result
+  by iterating the non-strong version.
+
+  \paragraph{Analysis}
+  To create an annotated expressions, we need to perform
+  some static analysis of our source programs.
+  The function |analyse| computes an existentially qualified live context and OPE,
+  together with a matching annotated expression.
+  \begin{code}
+    analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
+  \end{code}
+
+  It is sensible to assume that analysis does not change the expression,
+  which we capture by stating that we can always forget the annotations
+  to obtain the original expression (|forget . analyse == id|).
+  \begin{code}
+    forget : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Expr tau Gamma
+
+    analyse-preserves :
+      (e : Expr tau Gamma) ->
+      let _ , _ , le = analyse e
+      in forget le == e
+  \end{code}
+
+  Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
+  in the |Let|-case, where we match on |theta2| to distinguish whether the bound variable is live.
+  If it is not, we directly evaluate the body, ignoring the bound declaration.
+  Another important detail is that evaluation works under any environment containing (at least) the live context.
+
+  \begin{code}
+    evalLive : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Env Gamma' -> Delta C= Gamma' -> (interpretU(tau))
+    evalLive (Let {theta2 = theta2 o'} e1 e2) env theta' =
+      evalLive e2 env theta' 
+    (dots)
+  \end{code}
+
+  \paragraph{Transformation}
+  The \emph{optimised semantics} above indicates that
+  we can do a similar program transformation
+  and will be useful in its correctness proof.
+  The implementation simply maps each constructor to its counterpart in |Expr|,
+  again distinguishing the cases for live and dead let-bindings.
+
+  \begin{code}
+    transform : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Delta C= Gamma' -> Expr tau Gamma'
+    transform (Let {theta2 = theta2 o'} e1 e2) theta' =
+      transform e2 theta' 
+    (dots)
+  \end{code}
+
+  As opposed to |forget|, which stays in the original context,
+  here we remove unused variables, only keeping |Gamma'|.
+  \Outline{
+    We avoid renaming here, because we know the required context upfront
+    and can pass it into the recursive call.
+  }
+  We can now compose analysis and transformation into an operation
+  with the same signature as the direct implementation
+  in section \ref{sec:de-bruijn-dbe-direct}.
+
+  \begin{code}
+    dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
+    dbe e = let _ , theta , le = analyse e in transform le oi ^ theta
+  \end{code}
+
+  \paragraph{Correctness}
+  We want to show that dead binding elimination preserves semantics,
+  which we can conceptually express as
+  |eval . dbe == eval|.
+  % |eval . transform . analyse == eval|.
+  For that, it is sufficient to show the following:
+
+  \begin{code}
+    eval . transform == eval . forget
+  \end{code}
+
+  We can then pre-compose |analyse| on both sides and remove
+  |forget . analyse| (which we know forms an identity)
+  to obtain the desired |eval . transform . analyse == eval|.
+  The proof gets simpler if we split it up using the optimised semantics:
+
+  \begin{code}
+    evalLive == eval . transform
+    evalLive == eval . forget
+  \end{code}
+
+  The actual proof statements in Agda are more involved,
+  since they quantify over the expression and environment used for evaluation.
+  As foreshadowed in the definition of |evalLive|, the statements are also generalised
+  to evaluation under any |Env Gamma'|,
+  as long as it contains the live context.
+  This gives us more flexibility when using the inductive hypothesis.
+  \Fixme{show exact proof statements}
+
+  Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
+  The interesting one is again |Let|, where we split cases on the variable being used or not
+  and need some auxiliary facts about evaluation, renaming and contexts.
+
+  \paragraph{Iterating the Optimisation}
+  As discussed in section \ref{ch:program-transformations},
+  more than one pass of dead binding elimination might be necessary to remove all unused bindings.
+  While in our simple setting all these bindings could be identified in a single pass
+  using strongly live variable analysis,
+  in general it can be useful to simply iterate optimisations until a fixpoint is reached.
+
+  Consequently, we keep applying |dbe| as long as the number of bindings decreases.
+  Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+  We observe that the algorithm must terminate
+  since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+  This corresponds to the ascending chain condition in program analysis literature
+  \cite{Nielson1999PrinciplesProgramAnalysis}.
+  To convince the termination checker, we use well-founded recursion
+  \cite{Bove2014PartialityRecursion}
+  on the number of bindings.
+
+  The correctness of the iterated implementation
+  follows directly from the correctness of each individual iteration step.
+
 
 \section{Let-sinking}
 \label{sec:de-bruijn-let-sinking}
 \Draft{
   We want to push a let-binding as far inward as possible,
-  without pushing into a $lambda$-abstraction or duplicating the binding.
+  without pushing into a $\lambda$-abstraction or duplicating the binding.
   This seemingly simple transformation shows some unexpected complications.
   \paragraph{Signature}
   While we initially deal with a binding for the topmost entry in the context
@@ -308,7 +365,7 @@ follows directly from the correctness of each individual iteration step.
     the declaration is eliminated
     and we  only need to strengthen the variable into the smaller context.
   \paragraph{Creating the binding}
-  Once we stop pushing the let-binding (e.g. when we reach a $lambda$-abstraction),
+  Once we stop pushing the let-binding (e.g. when we reach a $\lambda$-abstraction),
   it is still necessary to rename the expression in its body,
   since it makes use of the newly created binding,
   but expects it at a different de Bruijn index.
