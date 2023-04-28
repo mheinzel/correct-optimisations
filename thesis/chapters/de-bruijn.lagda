@@ -116,10 +116,42 @@
 
 
 \section{Order-preserving Embeddings}
-\Outline{
-  We use \emph{order-preserving embedding} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
+  We use \emph{order-preserving embeddings} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
   e.g. to reason about the part of a context that is live (actually used).
-  Show definition, composition, laws.
+  We closely follow the syntactic conventions of McBride
+  \cite{McBride2018EveryBodysGotToBeSomewhere},
+  but grow our lists towards the left
+  instead of using backwards lists and postfix operators.
+  \begin{code}
+    data _C=_ {I : Set} : List I -> List I -> Set where
+      o' : Gamma1 C= Gamma2 ->          Gamma1   C= (tau :: Gamma2)
+      os : Gamma1 C= Gamma2 -> (tau ::  Gamma1)  C= (tau :: Gamma2)
+      oz : [] C= []
+  \end{code}
+  As an example of how we can construct OPEs,
+  we can embed a context into itself (identity OPE)
+  or embed the empty context into any other (empty OPE).
+  \begin{code}
+    oi : Gamma C= Gamma
+    oi {Gamma = []} = oz
+    oi {Gamma = _ :: _} = os oi
+
+    oe : {Gamma : List I} -> [] C= Gamma
+    oe {Gamma = []} = oz
+    oe {Gamma = _ :: _} = o' oe
+  \end{code}
+  Crucially, OPEs can be composed sequentially, and follow the expected laws.
+  \begin{code}
+    _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
+
+    law-..oi  :  (theta : Gamma1 C= Gamma2) -> theta .. oi == theta
+    law-oi..  :  (theta : Gamma1 C= Gamma2) -> oi .. theta == theta
+    law-....  :  (theta : Gamma1 C= Gamma2) (phi : Gamma2 C= Gamma3) (psi : Gamma3 C= Gamma4) ->
+                 theta .. (phi .. psi) == (theta .. phi) .. psi
+  \end{code}
+  \begin{code}
+  \end{code}
+\Outline{
   These can be used to specify operations on |Env|, |Ref|, |Expr| (which we also show).
   We can prove lemmas about how they relate,
   e.g. |eval (rename-Expr theta e) env == eval e (project-Env theta env)|.
