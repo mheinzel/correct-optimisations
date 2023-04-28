@@ -23,14 +23,14 @@ module Env {I : Set} {⟦_⟧ : I → Set} where
 
   private
     variable
-      Γ Γ₁ Γ₂ : List I
+      Γ Γ₁ Γ₂ Δ : List I
       σ τ : I
 
   data Env : List I → Set where
     Nil   : Env []
     Cons  : ⟦ σ ⟧ → Env Γ → Env (σ ∷ Γ)
 
-  project-Env : ∀ {Γ₁ Γ₂} → Γ₁ ⊑ Γ₂ → Env Γ₂ → Env Γ₁
+  project-Env : Δ ⊑ Γ → Env Γ → Env Δ
   project-Env oz     env          = env
   project-Env (os θ) (Cons v env) = Cons v (project-Env θ env)
   project-Env (o' θ) (Cons v env) = project-Env θ env
@@ -60,7 +60,7 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   open Env {I} {⟦_⟧}
   private
     variable
-      Γ Γ₁ Γ₂ : List I
+      Γ Γ₁ Γ₂ Δ : List I
       σ τ : I
 
   data Ref (σ : I) : List I → Set where
@@ -70,6 +70,11 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
   lookup Top      (Cons v env)   = v
   lookup (Pop i)  (Cons v env)   = lookup i env
+
+  rename-Ref : Δ ⊑ Γ → Ref σ Δ → Ref σ Γ
+  rename-Ref (os θ) Top = Top
+  rename-Ref (os θ) (Pop x) = Pop (rename-Ref θ x)
+  rename-Ref (o' θ) x = Pop (rename-Ref θ x)
 
   -- Thinnings from a singleton context are isomorphic to Ref.
   o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ

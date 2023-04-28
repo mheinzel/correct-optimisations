@@ -43,11 +43,6 @@ num-bindings (Let e₁ e₂)   = Succ (num-bindings e₁ + num-bindings e₂)
 num-bindings (Val v)       = Zero
 num-bindings (Plus e₁ e₂)  = num-bindings e₁ + num-bindings e₂
 
-rename-Ref : Δ ⊑ Γ → Ref σ Δ → Ref σ Γ
-rename-Ref (os θ) Top = Top
-rename-Ref (os θ) (Pop x) = Pop (rename-Ref θ x)
-rename-Ref (o' θ) x = Pop (rename-Ref θ x)
-
 rename-Expr : Δ ⊑ Γ → Expr σ Δ → Expr σ Γ
 rename-Expr θ (Var x) = Var (rename-Ref θ x)
 rename-Expr θ (App e₁ e₂) = App (rename-Expr θ e₁) (rename-Expr θ e₂)

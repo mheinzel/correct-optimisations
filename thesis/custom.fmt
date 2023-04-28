@@ -37,6 +37,7 @@
 %format _c=_ = "\_{\subseteq}\_"
 %format c= = "\subseteq"
 %format \/ = "\cup"
+%format _\/_ = "\_{\cup}\_"
 % TODO: distinguish?
 % interpretU : U -> Set
 %format interpretU_ = "\llbracket \_ \rrbracket"
@@ -62,6 +63,7 @@
 %format ++C= = ++ "_{\sqsubseteq}"
 %format ^^ = "\Uparrow"
 %format _^^_ = "\_{\Uparrow}\_"
+%format ^^_ = "{\Uparrow}\_"
 %format _^_ = "\_{\uparrow}\_"
 %format thin^^ = "\Varid{thin}{\Uparrow}"
 %format map^^ = "\Varid{map}{\Uparrow}"

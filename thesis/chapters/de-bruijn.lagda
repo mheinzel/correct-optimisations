@@ -129,6 +129,8 @@
       os : Gamma1 C= Gamma2 -> (tau ::  Gamma1)  C= (tau :: Gamma2)
       oz : [] C= []
   \end{code}
+  \Fixme{explain the intuition a bit?}
+  \paragraph{Operations and laws}
   As an example of how we can construct thinnings,
   we can embed a context into itself (identity thinning)
   or embed the empty context into any other (empty thinning).
@@ -150,14 +152,40 @@
     law-....  :  (theta : Gamma1 C= Gamma2) (phi : Gamma2 C= Gamma3) (psi : Gamma3 C= Gamma4) ->
                  theta .. (phi .. psi) == (theta .. phi) .. psi
   \end{code}
+  \Fixme{could be prettier}
+  \paragraph{Things with thinnings}
+  For types indexed by a context, we have been careful to pass it as the last argument.
+  This allows us talk about things in some existential scope, but with a thinning
+  into a fixed one.
   \begin{code}
+    record _^^_ (T : List I -> Set) (Gamma : List I) : Set where
+      constructor _^_
+      field
+        {support} : List I
+        thing : T support
+        thinning : support C= Gamma
   \end{code}
-\Outline{
-  These can be used to specify operations on |Env|, |Ref|, |Expr| (which we also show).
-  We can prove lemmas about how they relate,
-  e.g. |eval (rename-Expr theta e) env == eval e (project-Env theta env)|.
-}
-\Fixme{Have a separate chapter for |Expr|-independent thinning operations on |Ref|, |Env|? (basically |Language.Core|)}
+  \begin{code}
+    map^^   : (forall {Delta} -> S Delta -> T Delta) -> S ^^ Gamma -> T ^^ Gamma
+    mult^^  : ((T ^^_) ^^_) Gamma -> T ^^ Gamma
+    thin^^  : Delta ⊑ Gamma -> T ^^ Delta -> T ^^ Gamma
+  \end{code}
+  % map^^ f (s ^ theta) = f s ^ theta
+  % mult^^ ((t ^ theta) ^ phi) = t ^ (theta .. phi)
+  % thin^^ phi (t ^ theta) = t ^ (theta .. phi)
+  \paragraph{Language-related operations}
+  Thinnings can be used to specify operations on the datatypes we defined for our language,
+  such as environments, references and expressions.
+  \Fixme{Also show laws that |_.._| commutes with operations?}
+  \begin{code}
+    project-Env  : Delta C= Gamma -> Env Gamma         -> Env Delta
+    rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
+    rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
+  \end{code}
+  Furthermore, we can prove laws about how they relate to each other under evaluation,
+  such as |eval (rename-Expr theta e) env == eval e (project-Env theta env)|.
+\Fixme{Move |Expr|-independent thinning operations on |Ref|, |Env| to a separate chapter? (basically |Language.Core|)}
+\Fixme{Show |_\/_| and |pop| on thinnings? Or in DBE section?}
 
 
 \section{Dead Binding Elimination}

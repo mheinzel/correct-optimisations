@@ -105,12 +105,12 @@ private
   variable
     S T : I ─Indexed
 
-record _⇑_ (T : I ─Indexed) (scope : List I) : Set where
+record _⇑_ (T : I ─Indexed) (Γ : List I) : Set where
   constructor _↑_
   field
     {support} : List I
     thing : T support
-    thinning : support ⊑ scope
+    thinning : support ⊑ Γ
 
 map⇑ : (∀ {Γ'} → S Γ' → T Γ') → S ⇑ Γ → T ⇑ Γ
 map⇑ f (s ↑ θ) = f s ↑ θ
@@ -138,7 +138,6 @@ module From⊑ where
 ∪-domain {Γ = τ ∷ _} (os θ₁) (os θ₂) = τ ∷ ∪-domain θ₁ θ₂
 ∪-domain oz oz = []
 
--- aka un-∪₁
 un-∪₁ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁ ⊑ ∪-domain θ₁ θ₂
 un-∪₁ (o' θ₁) (o' θ₂) = un-∪₁ θ₁ θ₂
 un-∪₁ (o' θ₁) (os θ₂) = o' (un-∪₁ θ₁ θ₂)
