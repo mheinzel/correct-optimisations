@@ -11,7 +11,7 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_$_ ; _∘_)
 
 open import Postulates using (extensionality)
-open import Data.OPE
+open import Data.Thinning
 
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}

@@ -13,7 +13,7 @@ open import Function using (_∘_ ; _$_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Data.OPE
+open import Data.Thinning
 
 private
   variable

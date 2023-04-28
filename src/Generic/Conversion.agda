@@ -6,7 +6,7 @@ open import Function using (_$_; _∘_)
 open import Relation.Binary.PropositionalEquality
 
 open import Data.Relevant as Relevant using (pairᴿ; _,ᴿ_; _\\_; _\\ᴿ_)
-open import Data.OPE
+open import Data.Thinning
 open import Data.Var using (_─Scoped; Var; z; s; injectˡ; injectʳ)
 open import Generic.Syntax
 open import Generic.DeBruijn.Syntax as DeBruijn

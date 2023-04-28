@@ -9,7 +9,7 @@ open import Data.Maybe.Base as Maybe using (Maybe ; just ; nothing)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
-open import Data.OPE
+open import Data.Thinning
 
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}

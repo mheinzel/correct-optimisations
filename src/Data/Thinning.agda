@@ -3,7 +3,7 @@
 -- Based on:
 -- Everybody's Got To Be Somewhere
 -- (https://arxiv.org/abs/1807.04085)
-module Data.OPE where
+module Data.Thinning where
 
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ; _×_; _,_; Σ-syntax)
@@ -96,7 +96,7 @@ law-commute-ₒ++⊑ (o' θ₁) (os θ₂) ϕ₁ ϕ₂ = cong o' (law-commute-�
 law-commute-ₒ++⊑ (os θ₁) (os θ₂) ϕ₁ ϕ₂ = cong os (law-commute-ₒ++⊑ θ₁ θ₂ ϕ₁ ϕ₂)
 law-commute-ₒ++⊑ oz oz ϕ₁ ϕ₂ = refl
 
--- THINGS WITH OPEs
+-- THINGS WITH THINNINGS
 
 _─Indexed : Set → Set₁
 I ─Indexed = List I → Set

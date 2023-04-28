@@ -7,7 +7,7 @@ open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 open import Function using (_∘_)
 
-open import Data.OPE
+open import Data.Thinning
 open import Data.Relevant
 
 open import Generic.Syntax

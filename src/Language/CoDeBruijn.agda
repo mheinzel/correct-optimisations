@@ -10,7 +10,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 
 open import Postulates using (extensionality)
-open import Data.OPE
+open import Data.Thinning
 open import Data.Relevant
 
 open import Language.Core

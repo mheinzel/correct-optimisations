@@ -9,7 +9,7 @@ open import Data.Unit using (⊤; tt)
 
 open import Stdlib using (∀[_]; _⇒_)
 open import Data.Var using (_─Scoped)
-open import Data.OPE using (_⊑_; oz; oi; oe; _ₒ_; _++⊑_; _↑_)
+open import Data.Thinning using (_⊑_; oz; oi; oe; _ₒ_; _++⊑_; _↑_)
 open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 open import Generic.Syntax hiding (`Let)
 open import Generic.CoDeBruijn.Syntax

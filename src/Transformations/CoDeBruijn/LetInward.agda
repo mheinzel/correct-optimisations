@@ -19,7 +19,7 @@ open import Function using (_$_)
 
 open import Postulates using (extensionality)
 open import Stdlib using (coerce)
-open import Data.OPE
+open import Data.Thinning
 open import Data.Relevant
 
 open import Language.Core

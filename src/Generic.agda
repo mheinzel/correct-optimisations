@@ -62,8 +62,8 @@ import Generic.DeBruijn.Simulation
 -- SYNTAX (co de Bruijn)
 --------------------------------------------------------------------------------
 
--- Order-Preserving Embeddings
-import Data.OPE
+-- Thinnings, also called Order-Preserving Embeddings
+import Data.Thinning
 
 -- Relevant Pairs and Scopes
 import Data.Relevant

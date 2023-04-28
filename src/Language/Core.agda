@@ -19,7 +19,7 @@ Ctx = List U
 
 -- TODO: move to Data.Env, as an alternative to their Environment?
 module Env {I : Set} {⟦_⟧ : I → Set} where
-  open import Data.OPE
+  open import Data.Thinning
 
   private
     variable
@@ -55,7 +55,7 @@ module Env {I : Set} {⟦_⟧ : I → Set} where
 
 -- TODO: replace with Data.Var?
 module Ref {I : Set} {⟦_⟧ : I → Set} where
-  open import Data.OPE
+  open import Data.Thinning
 
   open Env {I} {⟦_⟧}
   private
@@ -71,7 +71,7 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   lookup Top      (Cons v env)   = v
   lookup (Pop i)  (Cons v env)   = lookup i env
 
-  -- OPEs from a singleton context are isomorphic to Ref.
+  -- Thinnings from a singleton context are isomorphic to Ref.
   o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
   o-Ref Top     = os oe
   o-Ref (Pop x) = o' (o-Ref x)

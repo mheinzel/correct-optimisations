@@ -7,7 +7,7 @@ open import Data.Bool using (Bool)
 open import Data.List using (List ; _∷_ ; [])
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 
-open import Data.OPE
+open import Data.Thinning
 
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}

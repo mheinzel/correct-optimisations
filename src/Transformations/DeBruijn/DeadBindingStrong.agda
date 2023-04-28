@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; c
 open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Function using (_$_)
 
-open import Data.OPE
+open import Data.Thinning
 open import Postulates using (extensionality)
 
 open import Language.Core
@@ -27,7 +27,7 @@ private
 
 -- NOTE: we could also stay in the annotated setting, something like:
 -- transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → (θ' : Δ ⊑ Γ') → LiveExpr σ θ'
--- But this requires us to show a lot of equalities about operations on OPEs.
+-- But this requires us to show a lot of equalities about operations on Thinnings.
 -- This could probably be avoided with something like
 -- transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Σ[ θ' ∈ (Δ ⊑ Γ') ] LiveExpr σ θ'
 -- but that doesn't seem super elegant.

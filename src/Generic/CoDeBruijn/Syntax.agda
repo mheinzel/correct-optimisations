@@ -8,7 +8,7 @@ open import Function using (_∋_)
 
 open import Stdlib using (∀[_]; _⇒_)
 open import Data.Var using (_─Scoped)
-open import Data.OPE using (oi; oe; _↑_)
+open import Data.Thinning using (oi; oe; _↑_)
 open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
 open import Generic.Syntax
 

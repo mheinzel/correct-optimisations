@@ -7,7 +7,7 @@ open import Data.Product using (_,_)
 
 open import Data.Var
 open import Data.Var.Varlike using (VarLike; base)
-open import Data.OPE
+open import Data.Thinning
 open import Data.Relevant using (pairᴿ; _⊢_; _\\_)
 open import Data.Relation
 open import Relation.Unary
