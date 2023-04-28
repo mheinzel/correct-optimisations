@@ -102,8 +102,7 @@
 \Draft{
   \paragraph{Relax}
   This is similar to the concrete implementation.
-  Straightforward traversal, composing OPEs as we go.
-  \Fixme{Unify terminology: OPE/thinning}
+  Straightforward traversal, composing thinnings as we go.
   \begin{code}
     relax :
       (d : Desc I) -> Gamma' C= Gamma ->

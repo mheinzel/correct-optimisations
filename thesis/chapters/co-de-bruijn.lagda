@@ -9,7 +9,7 @@
 \Draft{
   We follow McBride's work on co-de-Bruijn representation
   \cite{McBride2018EveryBodysGotToBeSomewhere}
-  and use OPEs |_C=_| to define the type of relevant pairs |_><R_|
+  and use thinnings |_C=_| to define the type of relevant pairs |_><R_|
   where each variable in the context must be in the context of one of the two subexpressions,
   as well as bound variables |_||-_|.
   \begin{code}
@@ -32,16 +32,16 @@
   but discarded at the earliest opportunity.
   More concretely,
   in de Bruijn representation, subexpressions keep the full context of available bindings,
-  while in co-de-Bruijn representation an OPE selects the subset that occurs.
+  while in co-de-Bruijn representation an thinning selects the subset that occurs.
   A converted expression will therefore generally be required to have a larger context than before,
-  indicated by an OPE.
+  indicated by an thinning.
   \begin{code}
     from :  Gamma' C= Gamma -> Expr sigma Gamma' -> DeBruijn.Expr sigma Gamma
   \end{code}
   The implementation proceeds by induction over the syntax,
-  composes OPEs on the way
+  composes thinnings on the way
   and finally at the variable makes use of the fact
-  that an OPE from a singleton list is isomorphic to a de Bruijn reference.
+  that an thinning from a singleton list is isomorphic to a de Bruijn reference.
   The proof of semantic equivalence mainly consists of congruences.
 }
 \Draft{
@@ -49,7 +49,7 @@
   In the opposite direction,
   the resulting co-de-Bruijn expression will generally have a smaller context
   that is not known upfront.
-  This can be expressed conveniently by returning an expression together with an OPE
+  This can be expressed conveniently by returning an expression together with an thinning
   into the original context.
   \begin{code}
     record _^^_ (T : List I -> Set) (scope : List I) : Set where
@@ -136,7 +136,7 @@
   For bound variables,
   to even be able to apply the induction hypothesis,
   we need to make available some equalities about |_\\R_|.
-  It then remains to use that composition and concatenation of OPEs commute:
+  It then remains to use that composition and concatenation of thinnings commute:
   | (theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2) |.
   \\
   For let-bindings, we additionally use the semantics-preserving nature of |let-?|.
@@ -155,10 +155,10 @@
   \begin{itemize}
     \item variable usage information is available without querying it repeatedly,
     \item we can enforce that pushed declaration is used,
-    \item the changes in context (and thus OPEs and covers) require laborious bookkeeping.
+    \item the changes in context (and thus thinnings and covers) require laborious bookkeeping.
   \end{itemize}
   \paragraph{Signature}
-  Since there are many properties and operations for OPEs and covers
+  Since there are many properties and operations for thinnings and covers
   related to concatenation of contexts,
   we phrase the reordering of context differently than before:
   Instead of using a |Ref| to specify a particular binding in the context we want to move,
@@ -172,7 +172,7 @@
       Expr tau (Gamma1 ++ Gamma2)
   \end{code}
   But here, declaration and binding form a relevant pair,
-  each in their own context with an OPE into the overall context.
+  each in their own context with an thinning into the overall context.
   \begin{code}
     push-let :
       (Gamma1 Gamma2 : Ctx) ->
@@ -241,7 +241,7 @@
   \paragraph{Correctness}
   \OpenEnd{
   Work on the proof is in progress, but it's messy.
-  There are many lemmas about splitting OPEs, reordering the context etc.
+  There are many lemmas about splitting thinnings, reordering the context etc.
   It seems like some of the complications could be avoided
   if we manage to avoid the usage of |_,R_| as explained in the next paragraph.
   }

@@ -115,8 +115,9 @@
   \end{code}
 
 
-\section{Order-preserving Embeddings}
-  We use \emph{order-preserving embeddings} (OPE) \cite{Chapman2009TypeCheckingNormalisation}
+\section{Thinnings}
+  We use \emph{thinnings}, also called \emph{order-preserving embeddings} (OPE)
+  \cite{Chapman2009TypeCheckingNormalisation},
   e.g. to reason about the part of a context that is live (actually used).
   We closely follow the syntactic conventions of McBride
   \cite{McBride2018EveryBodysGotToBeSomewhere},
@@ -128,9 +129,9 @@
       os : Gamma1 C= Gamma2 -> (tau ::  Gamma1)  C= (tau :: Gamma2)
       oz : [] C= []
   \end{code}
-  As an example of how we can construct OPEs,
-  we can embed a context into itself (identity OPE)
-  or embed the empty context into any other (empty OPE).
+  As an example of how we can construct thinnings,
+  we can embed a context into itself (identity thinning)
+  or embed the empty context into any other (empty thinning).
   \begin{code}
     oi : Gamma C= Gamma
     oi {Gamma = []} = oz
@@ -140,7 +141,7 @@
     oe {Gamma = []} = oz
     oe {Gamma = _ :: _} = o' oe
   \end{code}
-  Crucially, OPEs can be composed sequentially, and follow the expected laws.
+  Crucially, thinnings can be composed sequentially, and follow the expected laws.
   \begin{code}
     _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
 
@@ -156,8 +157,7 @@
   We can prove lemmas about how they relate,
   e.g. |eval (rename-Expr theta e) env == eval e (project-Env theta env)|.
 }
-\Fixme{terminology: OPE vs thinning?}
-\Fixme{Have a separate chapter for Expr-independent operations on OPE, Ref, Env? (basically |Language.Core|)}
+\Fixme{Have a separate chapter for |Expr|-independent thinning operations on |Ref|, |Env|? (basically |Language.Core|)}
 
 
 \section{Dead Binding Elimination}
@@ -190,7 +190,7 @@
   \paragraph{Liveness annotations}
   We can annotate each expression with its \emph{live variables},
   the context |Delta| that is really used and embeds into
-  the original context with OPE such as |theta : Delta C= Gamma|.
+  the original context with thinning such as |theta : Delta C= Gamma|.
   To that end, we define annotated expressions |LiveExpr tau theta|.
 
   \begin{code}
@@ -253,7 +253,7 @@
   \paragraph{Analysis}
   To create an annotated expressions, we need to perform
   some static analysis of our source programs.
-  The function |analyse| computes an existentially qualified live context and OPE,
+  The function |analyse| computes an existentially qualified live context and thinning,
   together with a matching annotated expression.
   \begin{code}
     analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
