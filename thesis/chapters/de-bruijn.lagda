@@ -168,7 +168,7 @@
   \begin{code}
     map^^   : (forall {Delta} -> S Delta -> T Delta) -> S ^^ Gamma -> T ^^ Gamma
     mult^^  : ((T ^^_) ^^_) Gamma -> T ^^ Gamma
-    thin^^  : Delta ⊑ Gamma -> T ^^ Delta -> T ^^ Gamma
+    thin^^  : Delta C= Gamma -> T ^^ Delta -> T ^^ Gamma
   \end{code}
   % map^^ f (s ^ theta) = f s ^ theta
   % mult^^ ((t ^ theta) ^ phi) = t ^ (theta .. phi)
@@ -215,12 +215,57 @@
     It is common in compilers to first perform some analysis
     and use the results to perform transformations (e.g. occurence analysis in GHC).
   }
-  \paragraph{Liveness annotations}
-  We can annotate each expression with its \emph{live variables},
-  the context |Delta| that is really used and embeds into
-  the original context with thinning such as |theta : Delta C= Gamma|.
-  To that end, we define annotated expressions |LiveExpr tau theta|.
+  We use thinnings |Delta C= Gamma| to indicate the \emph{live variables} |Delta|
+  within the context |Gamma|.
+  For that, we need operations to e.g. merge live contexts of multiple subexpressions
+  or remove bound variables.
+  \begin{code}
+    \/-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
+    \/-domain                       (o' theta1) (o' theta2) = \/-domain theta1 theta2
+    \/-domain {Gamma = sigma :: _}  (o' theta1) (os theta2) = sigma :: \/-domain theta1 theta2
+    \/-domain {Gamma = sigma :: _}  (os theta1) (o' theta2) = sigma :: \/-domain theta1 theta2
+    \/-domain {Gamma = sigma :: _}  (os theta1) (os theta2) = sigma :: \/-domain theta1 theta2
+    \/-domain oz oz = []
+  \end{code}
+  Variables from the context are live if they are live in one the subexpressions
+  (i.e. not both thinnings are |o'|).
+  We can also construct the thinning from this combined live context.
+  \Fixme{This is basically |Coproduct| as used for co-de-Bruijn. Can we avoid the duplication?}
+  \begin{code}
+    _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-domain theta1 theta2 C= Gamma
+    o' theta1 \/ o' theta2 = o' (theta1 \/ theta2)
+    o' theta1 \/ os theta2 = os (theta1 \/ theta2)
+    os theta1 \/ o' theta2 = os (theta1 \/ theta2)
+    os theta1 \/ os theta2 = os (theta1 \/ theta2)
+    oz \/ oz = oz
+  \end{code}
+  Furthermore, we can construct the two thinnings \emph{into} the combined live context
+  and show that this is exactly what we need to obtain the original thinnings.
+  \begin{code}
+    un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-domain theta1 theta2
+    un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-domain theta1 theta2
 
+    law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) ≡ theta1
+    law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) ≡ theta2
+  \end{code}
+  We need similar operator to pop the top element of the context.
+  \begin{code}
+    pop-domain : {Delta Gamma : List I} -> Delta C= Gamma -> List I
+    pop-domain {Delta = Delta}     (o' theta) = Delta
+    pop-domain {Delta = _ :: Delta} (os theta) = Delta
+    pop-domain oz = []
+
+    pop : (theta : Delta C= (sigma :: Gamma)) -> pop-domain theta C= Gamma
+    pop (o' theta) = theta
+    pop (os theta) = theta
+
+    un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-domain theta)
+    law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) ≡ theta
+  \end{code}
+
+  \paragraph{Liveness annotations}
+  We can now annotate each part of the expression with its live context,
+  To that end, we define annotated expressions |LiveExpr tau theta|.
   \begin{code}
     data LiveExpr {Gamma : Ctx} : U -> {Delta : Ctx} -> Delta C= Gamma -> Set where
       Var :
@@ -230,7 +275,7 @@
         {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
         LiveExpr (sigma => tau) theta1 ->
         LiveExpr sigma theta2 ->
-        LiveExpr tau (theta1 ∪ theta2)
+        LiveExpr tau (theta1 \/ theta2)
       Lam :
         {theta : Delta C= (sigma :: Gamma)} ->
         LiveExpr tau theta ->
@@ -252,7 +297,7 @@
         {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
         LiveExpr sigma theta1 ->
         LiveExpr tau theta2 ->
-        LiveExpr tau (theta1 ∪ pop theta2)
+        LiveExpr tau (theta1 \/ pop theta2)
   \end{code}
 
   The other is to do strongly live variable analysis with a custom operation |combine|,
@@ -261,11 +306,11 @@
   \begin{code}
     combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
     combine-domain {Delta2 = Delta2} theta1 (theta2 o') = Delta2
-    combine-domain theta1 (theta2 os) = ∪-domain theta1 theta2
+    combine-domain theta1 (theta2 os) = \/-domain theta1 theta2
 
     combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> combine-domain theta1 theta2 C= Gamma
     combine theta1 (theta2 o') = theta2
-    combine theta1 (theta2 os) = theta1 ∪ theta2
+    combine theta1 (theta2 os) = theta1 \/ theta2
   \end{code}
   \begin{code}
       Let :

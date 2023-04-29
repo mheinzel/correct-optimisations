@@ -130,6 +130,7 @@ module From⊑ where
   toEnv (os θ) = (s <$> toEnv θ) ∙ z
   toEnv oz = ε
 
+-- SYNTAX-RELATED OPERATIONS: UNION
 
 ∪-domain : {Δ₁ Δ₂ Γ : List I} (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → List I
 ∪-domain             (o' θ₁) (o' θ₂) = ∪-domain θ₁ θ₂
@@ -137,6 +138,13 @@ module From⊑ where
 ∪-domain {Γ = τ ∷ _} (os θ₁) (o' θ₂) = τ ∷ ∪-domain θ₁ θ₂
 ∪-domain {Γ = τ ∷ _} (os θ₁) (os θ₂) = τ ∷ ∪-domain θ₁ θ₂
 ∪-domain oz oz = []
+
+_∪_ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → ∪-domain θ₁ θ₂ ⊑ Γ
+o' θ₁ ∪ o' θ₂ = o' (θ₁ ∪ θ₂)
+o' θ₁ ∪ os θ₂ = os (θ₁ ∪ θ₂)
+os θ₁ ∪ o' θ₂ = os (θ₁ ∪ θ₂)
+os θ₁ ∪ os θ₂ = os (θ₁ ∪ θ₂)
+oz ∪ oz = oz
 
 un-∪₁ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → Δ₁ ⊑ ∪-domain θ₁ θ₂
 un-∪₁ (o' θ₁) (o' θ₂) = un-∪₁ θ₁ θ₂
@@ -152,13 +160,6 @@ un-∪₂ (os θ₁) (o' θ₂) = o' (un-∪₂ θ₁ θ₂)
 un-∪₂ (os θ₁) (os θ₂) = os (un-∪₂ θ₁ θ₂)
 un-∪₂ oz oz = oz
 
-_∪_ : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → ∪-domain θ₁ θ₂ ⊑ Γ
-o' θ₁ ∪ o' θ₂ = o' (θ₁ ∪ θ₂) 
-o' θ₁ ∪ os θ₂ = os (θ₁ ∪ θ₂) 
-os θ₁ ∪ o' θ₂ = os (θ₁ ∪ θ₂) 
-os θ₁ ∪ os θ₂ = os (θ₁ ∪ θ₂) 
-oz ∪ oz = oz
-
 law-∪₁-inv : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ Γ) → un-∪₁ θ₁ θ₂ ₒ (θ₁ ∪ θ₂) ≡ θ₁
 law-∪₁-inv (o' θ₁) (o' θ₂) = cong o' (law-∪₁-inv θ₁ θ₂)
 law-∪₁-inv (o' θ₁) (os θ₂) = cong o' (law-∪₁-inv θ₁ θ₂)
@@ -172,6 +173,8 @@ law-∪₂-inv (o' θ₁) (os θ₂) = cong os (law-∪₂-inv θ₁ θ₂)
 law-∪₂-inv (os θ₁) (o' θ₂) = cong o' (law-∪₂-inv θ₁ θ₂)
 law-∪₂-inv (os θ₁) (os θ₂) = cong os (law-∪₂-inv θ₁ θ₂)
 law-∪₂-inv oz oz = refl
+
+-- SYNTAX-RELATED OPERATIONS: POP
 
 pop-domain : {Δ Γ : List I} → Δ ⊑ Γ → List I
 pop-domain {Δ = Δ}     (o' θ) = Δ
