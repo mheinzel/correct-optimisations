@@ -53,9 +53,6 @@ strengthen-pop-at i = strengthen (o-pop-at i)
 strengthen-keep-pop-at : {σ' : U} (i : Ref σ Γ) → Expr τ (σ' ∷ Γ) → Maybe (Expr τ (σ' ∷ pop-at Γ i))
 strengthen-keep-pop-at i = strengthen (os (o-pop-at i))
 
--- NOTE: The following code feels like it requires more different operations than it should.
--- But it's kind of expected: We are dealing with ordering preserving embeddings, but reordering the bindings.
-
 lift-Ref : {Γ₁ Γ₂ : Ctx} (f : Ref τ Γ₁ → Ref τ Γ₂) → Ref τ (σ ∷ Γ₁) → Ref τ (σ ∷ Γ₂)
 lift-Ref f Top = Top
 lift-Ref f (Pop x) = Pop (f x)
@@ -104,7 +101,7 @@ push-let i decl e@(Plus e₁ e₂) with strengthen-pop-at i e₁ | strengthen-po
 
 -- This is the same signature as for `Let` itself.
 push-let' : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ
-push-let' decl e = push-let Top decl e
+push-let' = push-let Top
 
 
 {- NOTE: `strengthen` traverses the AST every time, which is inefficient.

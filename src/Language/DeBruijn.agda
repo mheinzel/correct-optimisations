@@ -51,6 +51,9 @@ rename-Expr θ (Let e₁ e₂) = Let (rename-Expr θ e₁) (rename-Expr (os θ) 
 rename-Expr θ (Val v) = Val v
 rename-Expr θ (Plus e₁ e₂) = Plus (rename-Expr θ e₁) (rename-Expr θ e₂)
 
+weaken : Expr σ Γ → Expr σ (τ ∷ Γ)
+weaken = rename-Expr (o' oi)
+
 law-eval-rename-Expr :
   (e : Expr σ Δ) (θ : Δ ⊑ Γ) (env : Env Γ) →
   eval (rename-Expr θ e) env ≡ eval e (project-Env θ env)

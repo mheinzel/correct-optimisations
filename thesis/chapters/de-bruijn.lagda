@@ -422,6 +422,9 @@
 
 \section{Let-sinking}
 \label{sec:de-bruijn-let-sinking}
+
+\subsection{Direct Approach}
+\label{sec:de-bruijn-let-sinking-direct}
 \Draft{
   We want to push a let-binding as far inward as possible,
   without pushing into a $\lambda$-abstraction or duplicating the binding.
@@ -492,14 +495,17 @@
   \end{code}
   \paragraph{Correctness}
 }
-\Outline{This could be solved with annotations again, but complicated...}
-\OpenEnd{Separate subsection for annotated version, explain what is complicated?}
 \OpenEnd{No correctness proof yet, how hard is it?}
+
+\subsection{Using Live Variable Analysis}
+\label{sec:de-bruijn-let-sinking-live}
+\Outline{This could be solved with annotations again (how does it help?)}
+\Outline{But it's complicated... (what exactly?)}
 
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
+\paragraph{Alternative designs}
 \Outline{
-  Alternative designs:
   Iteration (e.g. without strong, but also for more complicated analyses)
 }
 \Draft{
@@ -522,7 +528,11 @@
   The correctness of the iterated implementation
   follows directly from the correctness of each individual iteration step.
 }
-\vspace{1cm}
+\Outline{
+  More flexible |LiveExpr|, not required to be tight.
+}
+\OpenEnd{Let-sinking multiple bindings at once?}
+\paragraph{Usefulness of variable usage annotations}
 \Outline{
 Usage information is nice, but complicated to maintain.
 Doing it for let-sinking caused issues.
