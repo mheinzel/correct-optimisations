@@ -14,7 +14,7 @@ import Transformations.DeBruijn.StronglyLive
 import Transformations.DeBruijn.DeadBindingDirect
 import Transformations.DeBruijn.DeadBinding
 import Transformations.DeBruijn.DeadBindingStrong
-import Transformations.DeBruijn.LetInward
+import Transformations.DeBruijn.LetInwardDirect
 
 import Transformations.CoDeBruijn.DeadBinding
 import Transformations.CoDeBruijn.DeadBindingStrong

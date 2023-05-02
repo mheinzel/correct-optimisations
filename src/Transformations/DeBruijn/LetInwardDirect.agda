@@ -1,5 +1,5 @@
 -- Let Floating (inwards)
-module Transformations.DeBruijn.LetInward where
+module Transformations.DeBruijn.LetInwardDirect where
 
 open import Data.Nat using (_+_)
 open import Data.List using (List ; _∷_ ; [] ; _++_)
