@@ -40,12 +40,12 @@ transform {Γ₁ = Γ₁} decl e@(App {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with 
 -- declaration not used at all
 ... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl) =
   App (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (DBE.transform e₂ (ϕ₁ ++⊑ ϕ₂))
--- declaration used in right subexpression
-... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
-  App (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform decl e₂)
 -- declaration used in left subexpression
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl) =
   App (transform decl e₁) (DBE.transform e₂ (ϕ₁ ++⊑ ϕ₂))
+-- declaration used in right subexpression
+... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
+  App (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform decl e₂)
 -- declaration used in both subexpressions (don't push further!)
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
   Let decl (rename-top-Expr [] (DBE.transform e (θ ∪ ϕ)))
@@ -55,12 +55,12 @@ transform {Γ₁ = Γ₁} decl e@(Let {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with 
 -- declaration not used at all
 ... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (p , q) =
   Let (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (DBE.transform e₂ (un-pop ϕ ₒ os (coerce (_⊑ (Γ₁ ++ _)) (sym p) (ϕ₁ ++⊑ ϕ₂))))
--- declaration used in right subexpression
-... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (p , q) =
-  Let (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform {Γ₁ = _ ∷ Γ₁} (weaken decl) e₂)
 -- declaration used in left subexpression
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (p , q) =
   Let (transform decl e₁) (DBE.transform e₂ (un-pop ϕ ₒ os (coerce (_⊑ (Γ₁ ++ _)) (sym p) (ϕ₁ ++⊑ ϕ₂))))
+-- declaration used in right subexpression
+... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (p , q) =
+  Let (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform {Γ₁ = _ ∷ Γ₁} (weaken decl) e₂)
 -- declaration used in both subexpressions (don't push further!)
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (p , q) =
   Let decl (rename-top-Expr [] (DBE.transform e (θ ∪ pop ϕ)))
@@ -70,12 +70,12 @@ transform {Γ₁ = Γ₁} decl e@(Plus {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with
 -- declaration not used at all
 ... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl) =
   Plus (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (DBE.transform e₂ (ϕ₁ ++⊑ ϕ₂))
--- declaration used in right subexpression
-... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
-  Plus (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform decl e₂)
 -- declaration used in left subexpression
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl) =
   Plus (transform decl e₁) (DBE.transform e₂ (ϕ₁ ++⊑ ϕ₂))
+-- declaration used in right subexpression
+... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
+  Plus (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform decl e₂)
 -- declaration used in both subexpressions (don't push further!)
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
   Let decl (rename-top-Expr [] (DBE.transform e (θ ∪ ϕ)))
@@ -94,3 +94,5 @@ push-let' = push-let {Γ₁ = []}
 -- IDEA: annotations are updated with each transformation, changes bubble up
 -- IDEA/HACK: Also push binding into branches where they're not used, but don't recurse.
 --            Then they can be removed again in a separate pass.
+
+-- TODO: Correctness?

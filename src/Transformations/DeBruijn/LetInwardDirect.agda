@@ -29,7 +29,6 @@ strengthen-Ref {Γ₁ = _ ∷ Γ₁} (Pop x) = Maybe.map Pop (strengthen-Ref x)
 strengthen-Ref {Γ₁ = []} Top = nothing
 strengthen-Ref {Γ₁ = []} (Pop x) = just x
 
--- TODO: Make Γ₁ an explicit argument?
 strengthen : Expr τ (Γ₁ ++ σ ∷ Γ₂) → Maybe (Expr τ (Γ₁ ++ Γ₂))
 strengthen (Var x) = Maybe.map Var (strengthen-Ref x)
 strengthen (App e₁ e₂) = Maybe.zipWith App (strengthen e₁) (strengthen e₂)
@@ -66,30 +65,42 @@ push-let : Expr σ (Γ₁ ++ Γ₂) → Expr τ (Γ₁ ++ σ ∷ Γ₂) → Expr
 push-let decl (Var x) with rename-top-Ref [] x
 ... | Top = decl
 ... | Pop x' = Var x'
--- TODO: reverse order of cases, add comments
 push-let decl e@(App e₁ e₂) with strengthen e₁ | strengthen e₂
-... | nothing  | nothing  = Let decl (rename-top-Expr [] e)
-... | nothing  | just e₂' = App (push-let decl e₁) e₂'
-... | just e₁' | nothing  = App e₁' (push-let decl e₂)
+-- declaration not used at all
 ... | just e₁' | just e₂' = App e₁' e₂'
+-- declaration used in left subexpression
+... | nothing  | just e₂' = App (push-let decl e₁) e₂'
+-- declaration used in right subexpression
+... | just e₁' | nothing  = App e₁' (push-let decl e₂)
+-- declaration used in both subexpressions (don't push further!)
+... | nothing  | nothing  = Let decl (rename-top-Expr [] e)
 push-let decl e@(Lam e₁) =
   Let decl (rename-top-Expr [] e) -- Don't push into Lam!
 push-let {Γ₁ = Γ₁} decl e@(Let e₁ e₂) with strengthen e₁ | strengthen {Γ₁ = _ ∷ Γ₁} e₂ 
-... | nothing  | nothing  = Let decl (rename-top-Expr [] e)
-... | nothing  | just e₂' = Let (push-let decl e₁) e₂'
-                            -- Weakening declaration as we go under the binder.
-... | just e₁' | nothing  = Let e₁' (push-let {Γ₁ = _ ∷ Γ₁} (weaken decl) e₂)
+-- declaration not used at all
 ... | just e₁' | just e₂' = Let e₁' e₂'
+-- declaration used in left subexpression
+... | nothing  | just e₂' = Let (push-let decl e₁) e₂'
+-- declaration used in right subexpression, weakening declaration as we go under the binder.
+... | just e₁' | nothing  = Let e₁' (push-let {Γ₁ = _ ∷ Γ₁} (weaken decl) e₂)
+-- declaration used in both subexpressions (don't push further!)
+... | nothing  | nothing  = Let decl (rename-top-Expr [] e)
 push-let decl (Val v) =
   Val v
 push-let decl e@(Plus e₁ e₂) with strengthen e₁ | strengthen e₂
-... | nothing  | nothing  = Let decl (rename-top-Expr [] e)
-... | nothing  | just e₂' = Plus (push-let decl e₁) e₂'
-... | just e₁' | nothing  = Plus e₁' (push-let decl e₂)
+-- declaration not used at all
 ... | just e₁' | just e₂' = Plus e₁' e₂'
+-- declaration used in left subexpression
+... | nothing  | just e₂' = Plus (push-let decl e₁) e₂'
+-- declaration used in right subexpression
+... | just e₁' | nothing  = Plus e₁' (push-let decl e₂)
+-- declaration used in both subexpressions (don't push further!)
+... | nothing  | nothing  = Let decl (rename-top-Expr [] e)
 
 -- This is the same signature as for `Let` itself.
 push-let' : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ
 push-let' = push-let {Γ₁ = []}
 
 -- TODO: what would it look like to push multiple bindings simultaneously?
+
+-- TODO: Correctness?
