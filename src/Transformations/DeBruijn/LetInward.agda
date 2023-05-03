@@ -18,7 +18,7 @@ open Language.Core.Ref {U} {⟦_⟧}
 open import Language.DeBruijn
 open import Transformations.DeBruijn.Live
 import Transformations.DeBruijn.DeadBinding as DBE
-open import Transformations.DeBruijn.LetInwardDirect using (flip-Ref ; lift-Ref ; rename-top-Ref ; rename-top-Expr)
+open import Transformations.DeBruijn.LetInwardDirect using (flip-Ref ; lift-Ref ; rename-top-Ref ; rename-top)
 
 private
   variable
@@ -48,9 +48,9 @@ transform {Γ₁ = Γ₁} decl e@(App {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with 
   App (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform decl e₂)
 -- declaration used in both subexpressions (don't push further!)
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
-  Let decl (rename-top-Expr [] (DBE.transform e (θ ∪ ϕ)))
+  Let decl (rename-top (forget e))
 transform decl e@(Lam {θ = θ} _) =
-  Let decl (rename-top-Expr [] (DBE.transform e (pop θ)))
+  Let decl (rename-top (forget e))
 transform {Γ₁ = Γ₁} decl e@(Let {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with Γ₁ ⊣ θ | Γ₁ ⊣ pop ϕ
 -- declaration not used at all
 ... | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (p , q) =
@@ -63,7 +63,7 @@ transform {Γ₁ = Γ₁} decl e@(Let {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with 
   Let (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform {Γ₁ = _ ∷ Γ₁} (weaken decl) e₂)
 -- declaration used in both subexpressions (don't push further!)
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (p , q) =
-  Let decl (rename-top-Expr [] (DBE.transform e (θ ∪ pop ϕ)))
+  Let decl (rename-top (forget e))
 transform decl (Val v) =
   Val v
 transform {Γ₁ = Γ₁} decl e@(Plus {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
@@ -78,10 +78,8 @@ transform {Γ₁ = Γ₁} decl e@(Plus {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with
   Plus (DBE.transform e₁ (θ₁ ++⊑ θ₂)) (transform decl e₂)
 -- declaration used in both subexpressions (don't push further!)
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
-  Let decl (rename-top-Expr [] (DBE.transform e (θ ∪ ϕ)))
+  Let decl (rename-top (forget e))
  
--- push-let : (i : Ref σ Γ) → Expr σ (pop-at Γ i) → Expr τ Γ → Expr τ (pop-at Γ i)
--- push-let : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ ⇑ Γ
 push-let : Expr σ (Γ₁ ++ Γ₂)  → Expr τ (Γ₁ ++ σ ∷ Γ₂) → Expr τ (Γ₁ ++ Γ₂)
 push-let decl e = let _ , θ , le = analyse e in transform decl le
 
