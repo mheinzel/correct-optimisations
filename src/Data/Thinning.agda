@@ -42,12 +42,12 @@ o' θ ₒ os ϕ = o' (θ ₒ ϕ)
 os θ ₒ os ϕ = os (θ ₒ ϕ)
 oz   ₒ oz   = oz
 
-law-ₒoi : (θ : Γ₁ ⊑ Γ₂) → θ ₒ oi ≡ θ
+law-ₒoi : (θ : Δ ⊑ Γ) → θ ₒ oi ≡ θ
 law-ₒoi oz     = refl
 law-ₒoi (o' θ) = cong o' (law-ₒoi θ)
 law-ₒoi (os θ) = cong os (law-ₒoi θ)
 
-law-oiₒ : (θ : Γ₁ ⊑ Γ₂) → oi ₒ θ ≡ θ
+law-oiₒ : (θ : Δ ⊑ Γ) → oi ₒ θ ≡ θ
 law-oiₒ oz     = refl
 law-oiₒ (o' θ) = cong o' (law-oiₒ θ)
 law-oiₒ (os θ) = cong os (law-oiₒ θ)
@@ -64,27 +64,26 @@ law-ₒₒ oz oz oz = refl
 infixr 19 _++⊑_
 
 _++⊑_ :
-  {Γ₁ Γ₂ Γ₁' Γ₂' : List I} →
-  Γ₁ ⊑ Γ₂ → Γ₁' ⊑ Γ₂' →
-  (Γ₁ ++ Γ₁') ⊑ (Γ₂ ++ Γ₂')
+  {Δ₁ Δ₂ Γ₁ Γ₂ : List I} →
+  Δ₁ ⊑ Γ₁ → Δ₂ ⊑ Γ₂ → (Δ₁ ++ Δ₂) ⊑ (Γ₁ ++ Γ₂)
 o' θ ++⊑ ϕ = o' (θ ++⊑ ϕ)
 os θ ++⊑ ϕ = os (θ ++⊑ ϕ)
 oz   ++⊑ ϕ = ϕ
 
-record Split (Γ₁ : List I) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) : Set where
+record Split (Γ₁ : List I) (ψ : Δ ⊑ (Γ₁ ++ Γ₂)) : Set where
   constructor split
   field
     {used₁} : List I
     {used₂} : List I
     thinning₁ : (used₁ ⊑ Γ₁)
     thinning₂ : (used₂ ⊑ Γ₂)
-    eq : Σ (Γ ≡ used₁ ++ used₂) λ { refl → ψ ≡ thinning₁ ++⊑ thinning₂ }
+    eq : Σ (Δ ≡ used₁ ++ used₂) λ { refl → ψ ≡ thinning₁ ++⊑ thinning₂ }
 
-_⊣_ : (Γ₁ : List I) (ψ : Γ ⊑ (Γ₁ ++ Γ₂)) → Split Γ₁ ψ
-[] ⊣ ψ = split oz ψ (refl , refl)
-(τ ∷ Γ₁) ⊣ o' ψ         with Γ₁ ⊣ ψ
+_⊣_ : (Γ₁ : List I) (ψ : Δ ⊑ (Γ₁ ++ Γ₂)) → Split Γ₁ ψ
+[]       ⊣ ψ                                           = split oz ψ (refl , refl)
+(τ ∷ Γ₁) ⊣ o' ψ            with Γ₁ ⊣ ψ
 (τ ∷ Γ₁) ⊣ o' .(ϕ₁ ++⊑ ϕ₂) | split ϕ₁ ϕ₂ (refl , refl) = split (o' ϕ₁) ϕ₂ (refl , refl)
-(τ ∷ Γ₁) ⊣ os ψ         with Γ₁ ⊣ ψ
+(τ ∷ Γ₁) ⊣ os ψ            with Γ₁ ⊣ ψ
 (τ ∷ Γ₁) ⊣ os .(ϕ₁ ++⊑ ϕ₂) | split ϕ₁ ϕ₂ (refl , refl) = split (os ϕ₁) ϕ₂ (refl , refl)
 
 law-commute-ₒ++⊑ :

@@ -130,7 +130,7 @@
       oz : [] C= []
   \end{code}
   \Fixme{explain the intuition a bit?}
-  \paragraph{Operations and laws}
+  \paragraph{Identity and composition}
   As an example of how we can construct thinnings,
   we can embed a context into itself (identity thinning)
   or embed the empty context into any other (empty thinning).
@@ -143,7 +143,7 @@
     oe {Gamma = []} = oz
     oe {Gamma = _ :: _} = o' oe
   \end{code}
-  Crucially, thinnings can be composed sequentially, and follow the expected laws.
+  Crucially, thinnings can be composed in sequence, and follow the expected laws.
   \begin{code}
     _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
 
@@ -153,6 +153,37 @@
                  theta .. (phi .. psi) == (theta .. phi) .. psi
   \end{code}
   \Fixme{could be prettier}
+  \paragraph{Concatenating thinnings}
+  Thinnings can not just be composed in sequence, but also concatenated.
+  \begin{code}
+    _++C=_ : Delta1 C= Gamma1 -> Delta2 C= Gamma2 -> (Delta1 ++ Delta2) C= (Gamma1 ++ Gamma2)
+    o' theta  ++C= phi = o'  (theta ++C= phi)
+    os theta  ++C= phi = os  (theta ++C= phi)
+    oz        ++C= phi = phi
+  \end{code}
+  This commutes nicely, i.e. 
+  |(theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2)|
+  \paragraph{Splitting thinnings}
+  If we have a thinning into a concatenated context,
+  we can also split the thinning itself accordingly.
+  \begin{code}
+    record Split (Gamma1 : List I) (psi : Delta C= (Gamma1 ++ Gamma2)) : Set where
+      constructor split
+      field
+        {used1} : List I
+        {used2} : List I
+        thinning1 : (used1 C= Gamma1)
+        thinning2 : (used2 C= Gamma2)
+        eq : Sigma (Delta ≡ used1 ++ used2) lambda { refl -> psi ≡ thinning1 ++C= thinning2 }
+  \end{code}
+  \begin{code}
+    _-|_ : (Gamma1 : List I) (psi : Delta C= (Gamma1 ++ Gamma2)) -> Split Gamma1 psi
+    []               -| psi                                                    = split oz psi (refl , refl)
+    (tau :: Gamma1)  -| o' psi                with Gamma1 -| psi
+    (tau :: Gamma1)  -| o' .(phi1 ++C= phi2)  | split phi1 phi2 (refl , refl)  = split (o' phi1) phi2 (refl , refl)
+    (tau :: Gamma1)  -| os psi                with Gamma1 -| psi
+    (tau :: Gamma1)  -| os .(phi1 ++C= phi2)  | split phi1 phi2 (refl , refl)  = split (os phi1) phi2 (refl , refl)
+  \end{code}
   \paragraph{Things with thinnings}
   For types indexed by a context, we have been careful to pass it as the last argument.
   This allows us talk about things in some existential scope, but with a thinning
@@ -495,7 +526,6 @@
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-let-sinking-live}
-  \Fixme{Need to introduce |_++C=_| and |Split|.} % TODO
   \Outline{
     We can solve repeated-querying-problem with liveness annotations again.
     First |analyse| and then (instead of strengthening), just look at thinning.
