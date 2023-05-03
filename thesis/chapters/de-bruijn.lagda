@@ -424,7 +424,6 @@
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-let-sinking-direct}
-\Draft{
   We want to push a let-binding as far inward as possible,
   without pushing into a $\lambda$-abstraction or duplicating the binding.
   This seemingly simple transformation shows some unexpected complications.
@@ -432,25 +431,26 @@
   While we initially deal with a binding for the topmost entry in the context
   (|Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|),
   recursively applying this function under binders requires more flexibility.
-  The solution chosen here allows the position of that binding to be specified
-  by a reference.
-  \Fixme{We use |++| now!}
+  The solution chosen here use list concatenation on the context
+  to allow |sigma| to occur at any position.
   \begin{code}
-  pop-at : (Gamma : Ctx) -> Ref tau Gamma -> Ctx
-  pop-at (sigma :: Gamma) Top = Gamma
-  pop-at (sigma :: Gamma) (Pop i) = sigma :: pop-at Gamma i
-  \end{code}
-  \begin{code}
-  sink-let : (i : Ref sigma Gamma) -> Expr sigma (pop-at Gamma i) -> Expr tau Gamma -> Expr tau (pop-at Gamma i)
+    sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
   \end{code}
   Supplying |Top| as the first argument results in the same signature
   as the |Let| constructor itself.
-  Note that we could have alternatively used list concatenation or insertion, e.g.
+  Note that we could alternatively have used other ways, such as
+  insertion at a position |n : Fin (length Gamma)|
+  or removal of |sigma| at a position |i : Ref sigma Gamma|.
   \Fixme{Isn't this also an alternative design?}
   \begin{code}
-  Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
-  Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
-  Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
+    pop-at : (Gamma : Ctx) -> Ref sigma Gamma -> Ctx
+    pop-at (sigma :: Gamma) Top = Gamma
+    pop-at (tau   :: Gamma) (Pop i) = tau :: pop-at Gamma i
+  \end{code}
+  \begin{code}
+    Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+    Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
+    Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
   \end{code}
   \paragraph{Variables}
   When pushing a binding into a variable, there are two possible cases:
@@ -466,7 +466,7 @@
   since it makes use of the newly created binding,
   but expects it at a different de Bruijn index.
   \begin{code}
-  rename-top : (i : Ref sigma Gamma) -> Expr tau Gamma -> Expr tau (sigma :: pop-at Gamma i)
+    rename-top : Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (sigma :: Gamma1 ++ Gamma2)
   \end{code}
   \paragraph{Binary constructors}
   For binary operators, we need to check which subexpressions make use of the declaration.
@@ -476,13 +476,9 @@
   we need to obtain a strengthened version of that expression,
   so we combine this into a single operation.
   \begin{code}
-    strengthen-pop-at : (i : Ref sigma Gamma) -> Expr tau Gamma -> Maybe (Expr tau (pop-at Gamma i))
+    strengthen :  Expr tau (Gamma1 ++ sigma :: Gamma2) -> Maybe (Expr tau (Gamma1 ++ Gamma2))
   \end{code}
-  \OpenEnd{
-  Repeated querying is not ideal. This problem goes away with co-de-Bruijn representation,
-  but could it also be avoided here using annotations (as with |LiveExpr|)
-  or carrying additional information bottom-up?
-  }
+  \Outline{Repeated querying is not ideal, but is hard to avoid, because\ldots}
   If one of the subexpressions can be strengthened, we only need to recurse into the other.
   If both subexpressions use the declaration, we do not push further,
   but create a let-binding at the current location (see above).
@@ -495,8 +491,7 @@
     weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
   \end{code}
   \paragraph{Correctness}
-}
-\OpenEnd{No correctness proof yet, how hard is it?}
+  \OpenEnd{No correctness proof yet, how hard is it?}
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-let-sinking-live}
