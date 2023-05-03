@@ -55,6 +55,7 @@
 %format law-oi.. = "\Varid{law}-\Varid{oi}\fatsemi"
 %format law-.... = "\Varid{law}-\fatsemi\fatsemi"
 %format ++C= = ++ "_{\sqsubseteq}"
+%format _++C=_ = "\_{" ++ "_{\sqsubseteq}}\_"
 %format ^^ = "\Uparrow"
 %format _^^_ = "\_{\Uparrow}\_"
 %format ^^_ = "{\Uparrow}\_"
