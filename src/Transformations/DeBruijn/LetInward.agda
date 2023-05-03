@@ -80,12 +80,12 @@ transform {Γ₁ = Γ₁} decl e@(Plus {θ₁ = θ} {θ₂ = ϕ} e₁ e₂) with
 ... | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
   Let decl (rename-top (forget e))
  
-push-let : Expr σ (Γ₁ ++ Γ₂)  → Expr τ (Γ₁ ++ σ ∷ Γ₂) → Expr τ (Γ₁ ++ Γ₂)
-push-let decl e = let _ , θ , le = analyse e in transform decl le
+sink-let : Expr σ (Γ₁ ++ Γ₂)  → Expr τ (Γ₁ ++ σ ∷ Γ₂) → Expr τ (Γ₁ ++ Γ₂)
+sink-let decl e = let _ , θ , le = analyse e in transform decl le
 
 -- This is the same signature as for `Let` itself.
-push-let' : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ
-push-let' = push-let {Γ₁ = []}
+sink-let' : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ
+sink-let' = sink-let {Γ₁ = []}
 
 -- Another idea is to return a LiveExpr.
 -- This would be easier with a less restrictive version of LiveExpr.

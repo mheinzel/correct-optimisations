@@ -441,7 +441,7 @@
   pop-at (sigma :: Gamma) (Pop i) = sigma :: pop-at Gamma i
   \end{code}
   \begin{code}
-  push-let : (i : Ref sigma Gamma) -> Expr sigma (pop-at Gamma i) -> Expr tau Gamma -> Expr tau (pop-at Gamma i)
+  sink-let : (i : Ref sigma Gamma) -> Expr sigma (pop-at Gamma i) -> Expr tau Gamma -> Expr tau (pop-at Gamma i)
   \end{code}
   Supplying |Top| as the first argument results in the same signature
   as the |Let| constructor itself.
@@ -519,10 +519,9 @@
         Expr tau (Gamma1 ++ Gamma2)
     \end{code}
     \begin{code}
-      push-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
-      push-let decl e = let _ , theta , le = analyse e in transform decl le
+      sink-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+      sink-let decl e = let _ , theta , le = analyse e in transform decl le
     \end{code}
-    \Fixme{Rename |push-let| to something like |sink-let|?}
   \paragraph{Creating the binding}
     This is almost identical to before,
     but we now need to |forget| the annotations before calling |rename-top|.
