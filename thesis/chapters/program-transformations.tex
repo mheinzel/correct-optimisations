@@ -74,7 +74,7 @@ Generally, the further inward a let binding is moved, the better:
 Further optimisations might get unlocked and in the presence of branching,
 the binding it might never be executed.
 Of course, we must be careful that the binding remains in scope
-for all of the variable's occurences
+for all of the variable's occurrences
 and consider some exceptions to the heuristic of pushing as far as possible.
 We do not want to duplicate the binding
 or move it inside a $\lambda$-abstraction, which duplicates work

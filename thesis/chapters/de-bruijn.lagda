@@ -26,7 +26,7 @@
 
 \section{Intrinsically Typed Syntax}
 \label{sec:de-bruijn-intrinsically-typed}
-  To demonstrate this approach in Agda, 
+  To demonstrate this approach in Agda \cite{Norell2008Agda},
   let us start by defining the types that expressions can have.
   \Fixme{rename to \emph{sorts}?}
 
@@ -42,7 +42,7 @@
     (interpretU(NAT))           = Nat
   \end{code}
 
-  To know if a variable occurence is valid, one must consider its \emph{context},
+  To know if a variable occurrence is valid, one must consider its \emph{context},
   the bindings that are in scope.
   With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
   In a typed setting, it is also necessary to know the type of each binding,
@@ -66,7 +66,7 @@
       Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
   \end{code}
 
-  A variable then is an index into its context,
+  A variable occurrence then is an index into its context,
   also guaranteeing that its type matches that of the binding.
   Since variable |Ref sigma Gamma| acts as a proof that
   the environment |Env Gamma| contains an element of type |sigma|,
@@ -96,7 +96,7 @@
       Var   : Ref sigma Gamma -> Expr sigma Gamma
       App   : Expr (sigma => tau) Gamma -> Expr sigma Gamma -> Expr tau Gamma
       Lam   : Expr tau (sigma :: Gamma) -> Expr (sigma => tau) Gamma
-      Let   : Expr sigma Gamma -> Expr tau (tau :: Gamma) -> Expr tau Gamma
+      Let   : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma
       Val   : (interpretU(sigma)) -> Expr sigma Gamma
       Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
   \end{code}
@@ -108,7 +108,7 @@
     eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
     eval (Var x)       env  = lookup x env
     eval (App e1 e2)   env  = eval e1 env (eval e2 env)
-    eval (Lam e)       env  = lambda v -> eval e (Cons v env)
+    eval (Lam e1)      env  = lambda v -> eval e1 (Cons v env)
     eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
     eval (Val v)       env  = v
     eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
@@ -125,8 +125,8 @@
   instead of using backwards lists and postfix operators.
   \begin{code}
     data _C=_ {I : Set} : List I -> List I -> Set where
-      o' : Gamma1 C= Gamma2 ->          Gamma1   C= (tau :: Gamma2)
-      os : Gamma1 C= Gamma2 -> (tau ::  Gamma1)  C= (tau :: Gamma2)
+      o' : Delta C= Gamma ->          Delta   C= (tau :: Gamma)
+      os : Delta C= Gamma -> (tau ::  Delta)  C= (tau :: Gamma)
       oz : [] C= []
   \end{code}
   \Fixme{explain the intuition a bit?}
@@ -139,22 +139,27 @@
     oi {Gamma = []} = oz
     oi {Gamma = _ :: _} = os oi
 
-    oe : {Gamma : List I} -> [] C= Gamma
+    oe : [] C= Gamma
     oe {Gamma = []} = oz
     oe {Gamma = _ :: _} = o' oe
   \end{code}
   Crucially, thinnings can be composed in sequence, and follow the expected laws.
   \begin{code}
     _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
-
-    law-..oi  :  (theta : Gamma1 C= Gamma2) -> theta .. oi == theta
-    law-oi..  :  (theta : Gamma1 C= Gamma2) -> oi .. theta == theta
+    theta     .. o' phi  = o' (theta .. phi)
+    o' theta  .. os phi  = o' (theta .. phi)
+    os theta  .. os phi  = os (theta .. phi)
+    oz        .. oz      = oz
+  \end{code}
+  \begin{code}
+    law-..oi  :  (theta : Delta C= Gamma) -> theta .. oi == theta
+    law-oi..  :  (theta : Delta C= Gamma) -> oi .. theta == theta
     law-....  :  (theta : Gamma1 C= Gamma2) (phi : Gamma2 C= Gamma3) (psi : Gamma3 C= Gamma4) ->
                  theta .. (phi .. psi) == (theta .. phi) .. psi
   \end{code}
-  \Fixme{could be prettier}
+  \Fixme{Rendering of names could be prettier.}
   \paragraph{Concatenating thinnings}
-  Thinnings can not just be composed in sequence, but also concatenated.
+  Thinnings cannot just be composed in sequence, but also concatenated.
   \begin{code}
     _++C=_ : Delta1 C= Gamma1 -> Delta2 C= Gamma2 -> (Delta1 ++ Delta2) C= (Gamma1 ++ Gamma2)
     o' theta  ++C= phi = o'  (theta ++C= phi)
@@ -166,6 +171,7 @@
   \paragraph{Splitting thinnings}
   If we have a thinning into a concatenated context,
   we can also split the thinning itself accordingly.
+  \Fixme{Is this the best place? Only needed for let-sinking.}
   \begin{code}
     record Split (Gamma1 : List I) (psi : Delta C= (Gamma1 ++ Gamma2)) : Set where
       constructor split
@@ -174,7 +180,7 @@
         {used2} : List I
         thinning1 : (used1 C= Gamma1)
         thinning2 : (used2 C= Gamma2)
-        eq : Sigma (Delta ≡ used1 ++ used2) lambda { refl -> psi ≡ thinning1 ++C= thinning2 }
+        eq : Sigma (Delta == used1 ++ used2) lambda { refl -> psi == thinning1 ++C= thinning2 }
   \end{code}
   \begin{code}
     _-|_ : (Gamma1 : List I) (psi : Delta C= (Gamma1 ++ Gamma2)) -> Split Gamma1 psi
@@ -213,10 +219,31 @@
     rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
     rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
   \end{code}
+  Note that we can only \emph{remove} elements from environments,
+  but \emph{add} further elements to the context of references and expressions.
   Furthermore, we can prove laws about how they relate to each other under evaluation,
-  such as |eval (rename-Expr theta e) env == eval e (project-Env theta env)|.
+  such as
+  |eval (rename-Expr theta e) env == eval e (project-Env theta env)|
+  and
+  |lookup (rename-Ref theta x) env == lookup x (project-Env theta env)|.
+  \paragraph{Thinnings as references}
+  Thinning from a singleton object are isomorphic to references.
+  We provide functions to convert between the two.
+  \begin{code}
+    o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
+    o-Ref Top      = os oe
+    o-Ref (Pop x)  = o' (o-Ref x)
+  \end{code}
+  \begin{code}
+    ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
+    ref-o (o' theta)  = Pop (ref-o theta)
+    ref-o (os theta)  = Top
+  \end{code}
+  \begin{code}
+    law-ref-o-Ref : (x : Ref sigma Gamma) -> ref-o (o-Ref x) == x
+  \end{code}
+
 \Fixme{Move |Expr|-independent thinning operations on |Ref|, |Env| to a separate chapter? (basically |Language.Core|)}
-\Fixme{Show |_\/_| and |pop| on thinnings? Or in DBE section?}
 
 
 \section{Dead Binding Elimination}
@@ -225,6 +252,8 @@
 \subsection{Direct Approach}
 \label{sec:de-bruijn-dbe-direct}
 \Outline{
+  We need to know which bindings are used.
+  Here, we return that information in the result.
   The transformation returns |Expr sigma ^^ Gamma|,
   indicating that only part of the context is used.
 
@@ -244,19 +273,19 @@
   \Outline{
     We can use live variable analysis to compute the required context upfront.
     It is common in compilers to first perform some analysis
-    and use the results to perform transformations (e.g. occurence analysis in GHC).
+    and use the results to perform transformations (e.g. occurrence analysis in GHC).
   }
   We use thinnings |Delta C= Gamma| to indicate the \emph{live variables} |Delta|
   within the context |Gamma|.
-  For that, we need operations to e.g. merge live contexts of multiple subexpressions
-  or remove bound variables.
+  For that, we need operations to merge live contexts of multiple subexpressions
+  and remove bound variables.
   \begin{code}
     \/-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
-    \/-domain                       (o' theta1) (o' theta2) = \/-domain theta1 theta2
-    \/-domain {Gamma = sigma :: _}  (o' theta1) (os theta2) = sigma :: \/-domain theta1 theta2
-    \/-domain {Gamma = sigma :: _}  (os theta1) (o' theta2) = sigma :: \/-domain theta1 theta2
-    \/-domain {Gamma = sigma :: _}  (os theta1) (os theta2) = sigma :: \/-domain theta1 theta2
-    \/-domain oz oz = []
+    \/-domain                       (o' theta1)  (o' theta2)  = \/-domain theta1 theta2
+    \/-domain {Gamma = sigma :: _}  (o' theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
+    \/-domain {Gamma = sigma :: _}  (os theta1)  (o' theta2)  = sigma :: \/-domain theta1 theta2
+    \/-domain {Gamma = sigma :: _}  (os theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
+    \/-domain                       oz           oz           = []
   \end{code}
   Variables from the context are live if they are live in one the subexpressions
   (i.e. not both thinnings are |o'|).
@@ -264,11 +293,11 @@
   \Fixme{This is basically |Coproduct| as used for co-de-Bruijn. Can we avoid the duplication?}
   \begin{code}
     _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-domain theta1 theta2 C= Gamma
-    o' theta1 \/ o' theta2 = o' (theta1 \/ theta2)
-    o' theta1 \/ os theta2 = os (theta1 \/ theta2)
-    os theta1 \/ o' theta2 = os (theta1 \/ theta2)
-    os theta1 \/ os theta2 = os (theta1 \/ theta2)
-    oz \/ oz = oz
+    o' theta1  \/ o' theta2  = o'  (theta1 \/ theta2)
+    o' theta1  \/ os theta2  = os  (theta1 \/ theta2)
+    os theta1  \/ o' theta2  = os  (theta1 \/ theta2)
+    os theta1  \/ os theta2  = os  (theta1 \/ theta2)
+    oz         \/ oz         = oz
   \end{code}
   Furthermore, we can construct the two thinnings \emph{into} the combined live context
   and show that this is exactly what we need to obtain the original thinnings.
@@ -276,22 +305,23 @@
     un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-domain theta1 theta2
     un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-domain theta1 theta2
 
-    law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) ≡ theta1
-    law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) ≡ theta2
+    law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
+    law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
   \end{code}
   We need similar operator to pop the top element of the context.
   \begin{code}
     pop-domain : {Delta Gamma : List I} -> Delta C= Gamma -> List I
-    pop-domain {Delta = Delta}     (o' theta) = Delta
-    pop-domain {Delta = _ :: Delta} (os theta) = Delta
-    pop-domain oz = []
+    pop-domain {Delta = Delta}       (o' theta)  = Delta
+    pop-domain {Delta = _ :: Delta}  (os theta)  = Delta
+    pop-domain                       oz          = []
 
     pop : (theta : Delta C= (sigma :: Gamma)) -> pop-domain theta C= Gamma
-    pop (o' theta) = theta
-    pop (os theta) = theta
+    pop (o' theta)  = theta
+    pop (os theta)  = theta
 
     un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-domain theta)
-    law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) ≡ theta
+
+    law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
   \end{code}
 
   \paragraph{Liveness annotations}
@@ -315,7 +345,6 @@
   \Outline{
     Explain for some constructors, e.g.
     for variables we start with a singleton context using |o-Ref|.
-    Also make sure the necessary operations like |pop| and |\/| are introduced.
   }
 
   For |Let|, one way is to handle it using a combination of the operations for
@@ -360,7 +389,7 @@
   The function |analyse| computes an existentially qualified live context and thinning,
   together with a matching annotated expression.
   \begin{code}
-    analyse : Expr tau (floor(Delta)) -> (Exists (Delta') (SubCtx Gamma)) LiveExpr Delta Delta' tau
+    analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
   \end{code}
 
   It is sensible to assume that analysis does not change the expression,
@@ -386,6 +415,7 @@
       evalLive e2 env theta' 
     (dots)
   \end{code}
+  \Fixme{Explain why only |theta'| is needed.}
 
   \paragraph{Transformation}
   The \emph{optimised semantics} above indicates that
@@ -457,7 +487,6 @@
 \label{sec:de-bruijn-let-sinking-direct}
   We want to push a let-binding as far inward as possible,
   without pushing into a $\lambda$-abstraction or duplicating the binding.
-  This seemingly simple transformation shows some unexpected complications.
   \paragraph{Type signature}
   While we initially deal with a binding for the topmost entry in the context
   (|Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|),
@@ -574,6 +603,7 @@
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
   \Outline{Generally, what caused issues, what was nice?}
+  \Outline{Let-sinking also performs DBE, but only for a single binding.}
   \paragraph{Alternative designs}
   \Outline{More flexible |LiveExpr|, not required to be tight.}
   \Outline{

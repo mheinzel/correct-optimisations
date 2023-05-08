@@ -17,8 +17,8 @@ private
     Γ Γ' Γ₁ Γ₂ Γ₃ Γ₄ Δ Δ₁ Δ₂ : List I
 
 data _⊑_ {I : Set} : List I → List I → Set where
-  o' : {Γ₁ Γ₂ : List I} → Γ₁ ⊑ Γ₂ →      Γ₁  ⊑ (τ ∷ Γ₂)
-  os : {Γ₁ Γ₂ : List I} → Γ₁ ⊑ Γ₂ → (τ ∷ Γ₁) ⊑ (τ ∷ Γ₂)
+  o' : {Δ Γ : List I} → Δ ⊑ Γ →      Δ  ⊑ (τ ∷ Γ)
+  os : {Δ Γ : List I} → Δ ⊑ Γ → (τ ∷ Δ) ⊑ (τ ∷ Γ)
   oz : [] ⊑ []
 
 oi : Γ ⊑ Γ

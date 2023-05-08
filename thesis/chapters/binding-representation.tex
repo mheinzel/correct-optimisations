@@ -25,7 +25,7 @@ With \emph{de Bruijn indices}
 \cite{DeBruijn1972NamelessIndices},
 we instead adopt a \emph{nameless} representation.
 Each variable is represented as a natural number,
-counting the number of nested bindings between variable occurence and its binding:
+counting the number of nested bindings between variable occurrence and its binding:
 $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
 If we adapt the syntax for let-bindings to omit the unnecessary variable name,
 the example expression from dead binding elimination is represented as follows:
@@ -63,7 +63,7 @@ Another nameless representation is described by McBride \cite{McBride2018EveryBo
 Where de Bruijn representation uses references to indicate which of the variables in scope they refer to,
 the co-de-Bruijn way is for each syntax tree node
 to shrink down the context of which variables occur in each subexpression.
-Once a variable occurence is reached, the context only consists of a single element.
+Once a variable occurrence is reached, the context only consists of a single element.
 Introducing or removing a binding can now be done without traversing the expression,
 as we can instead modify the way the context is shrunk down to its \emph{relevant}
 (actually occurring) part.

@@ -85,6 +85,6 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   ref-o (o' θ) = Pop (ref-o θ)
   ref-o (os θ) = Top
 
-  ref-o-Ref≡id : (x : Ref σ Γ) → ref-o (o-Ref x) ≡ x
-  ref-o-Ref≡id Top = refl
-  ref-o-Ref≡id (Pop x) = cong Pop (ref-o-Ref≡id x)
+  law-ref-o-Ref : (x : Ref σ Γ) → ref-o (o-Ref x) ≡ x
+  law-ref-o-Ref Top = refl
+  law-ref-o-Ref (Pop x) = cong Pop (law-ref-o-Ref x)
