@@ -327,12 +327,12 @@
     \Fixme{Is there a better name than |combine|?}
     \begin{code}
       combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
-      combine-domain {Delta2 = Delta2} theta1 (theta2 o') = Delta2
-      combine-domain theta1 (theta2 os) = \/-domain theta1 theta2
+      combine-domain {Delta2 = Delta2}  theta1 (o' theta2)  = Delta2
+      combine-domain                    theta1 (os theta2)  = \/-domain theta1 theta2
 
       combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> combine-domain theta1 theta2 C= Gamma
-      combine theta1 (theta2 o') = theta2
-      combine theta1 (theta2 os) = theta1 \/ theta2
+      combine theta1 (o' theta2)  = theta2
+      combine theta1 (os theta2)  = theta1 \/ theta2
     \end{code}
     We do not need the composed thinnings into the live context,
     as we will always distinguish the two cases of |theta2| anyways.
@@ -448,100 +448,125 @@
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-dbe-live}
-  \Outline{
-    We can use live variable analysis to compute the required context upfront.
-    It is common in compilers to first perform some analysis
-    and use the results to perform transformations (e.g. occurrence analysis in GHC).
-  }
+    In compilers, it is a common pattern to perform
+    separate analysis and transformation passes,
+    for example with strictness and occurrence analysis in GHC
+    \cite{Jones1998TransformationOptimiser}.
+    We can do the same to make variable liveness information available
+    without repeatedly having to computing it on the fly.
+    For dead binding elimination,
+    this allows us to avoid the redundant renaming of subexpressions.
   \paragraph{Liveness annotations}
-  We can now annotate each part of the expression with its live context,
-  To that end, we define annotated expressions |LiveExpr tau theta|.
-  \begin{code}
-    data LiveExpr {Gamma : Ctx} : U -> {Delta : Ctx} -> Delta C= Gamma -> Set where
-      Var :
-        (x : Ref sigma Gamma) ->
-        LiveExpr sigma (o-Ref x)
-      App :
-        {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
-        LiveExpr (sigma => tau) theta1 ->
-        LiveExpr sigma theta2 ->
-        LiveExpr tau (theta1 \/ theta2)
-      Lam :
-        {theta : Delta C= (sigma :: Gamma)} ->
-        LiveExpr tau theta ->
-        LiveExpr (sigma => tau) (pop theta)
-  \end{code}
-  \Outline{
-    Explain for some constructors, e.g.
-    for variables we start with a singleton context using |o-Ref|.
-  }
-  For |Let|,
-  we choose strongly live variable analysis.
-  \begin{code}
-      Let :
-        {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
-        LiveExpr sigma theta1 ->
-        LiveExpr tau theta2 ->
-        LiveExpr tau (combine theta1 theta2)
-  \end{code}
-
+    To annotate each part of the expression with its live context,
+    we first need to define a suitable datatype of annotated expressions
+    |LiveExpr tau theta|.
+    The thinning |theta| here will be the same as we returned from the
+    transformation in section \ref{sec:de-bruijn-dbe-direct}.
+    \begin{code}
+      data LiveExpr {Gamma : Ctx} : U -> {Delta : Ctx} -> Delta C= Gamma -> Set where
+        Var :
+          (x : Ref sigma Gamma) ->
+          LiveExpr sigma (o-Ref x)
+        App :
+          {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
+          LiveExpr (sigma => tau) theta1 ->
+          LiveExpr sigma theta2 ->
+          LiveExpr tau (theta1 \/ theta2)
+        Lam :
+          {theta : Delta C= (sigma :: Gamma)} ->
+          LiveExpr tau theta ->
+          LiveExpr (sigma => tau) (pop theta)
+        Let :
+          {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
+          LiveExpr sigma theta1 ->
+          LiveExpr tau theta2 ->
+          LiveExpr tau (combine theta1 theta2)
+        Val :
+          (interpretU(sigma)) ->
+          LiveExpr sigma oe
+        Plus :
+          {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
+          LiveExpr NAT theta1 ->
+          LiveExpr NAT theta2 ->
+          LiveExpr NAT (theta1 \/ theta2)
+    \end{code}
   \paragraph{Analysis}
-  To create an annotated expressions, we need to perform
-  some static analysis of our source programs.
-  The function |analyse| computes an existentially qualified live context and thinning,
-  together with a matching annotated expression.
-  \begin{code}
-    analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
-  \end{code}
+    To create such an annotated expressions, we need to perform
+    strongly live variable analysis.
+    The function |analyse| computes an existentially qualified live context and thinning,
+    together with a matching annotated expression.
+    \begin{code}
+      analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
+      analyse (Var {sigma} x) = sigma :: [] , o-Ref x , Var x
+      analyse (App e1 e2) =
+        let  Delta1 , theta1 , le1 = analyse e1
+             Delta2 , theta2 , le2 = analyse e2
+        in \/-domain theta1 theta2 , (theta1 \/ theta2) , App le1 le2
+      (dots)
+    \end{code}
+    It is sensible to assume that the only thing analysis does
+    is to attaches annotations without changing the structure of the expression.
+    We capture this property by stating that we can always forget the annotations
+    to obtain the original expression (|forget . analyse == id|).
+    \begin{code}
+      forget : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Expr tau Gamma
 
-  It is sensible to assume that analysis does not change the expression,
-  which we capture by stating that we can always forget the annotations
-  to obtain the original expression (|forget . analyse == id|).
-  \begin{code}
-    forget : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Expr tau Gamma
-
-    analyse-preserves :
-      (e : Expr tau Gamma) ->
-      let _ , _ , le = analyse e
-      in forget le == e
-  \end{code}
-
-  Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
-  in the |Let|-case, where we match on |theta2| to distinguish whether the bound variable is live.
-  If it is not, we directly evaluate the body, ignoring the bound declaration.
-  Another important detail is that evaluation works under any environment containing (at least) the live context.
-
-  \begin{code}
-    evalLive : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Env Gamma' -> Delta C= Gamma' -> (interpretU(tau))
-    evalLive (Let {theta2 = theta2 o'} e1 e2) env theta' =
-      evalLive e2 env theta' 
-    (dots)
-  \end{code}
-  \Fixme{Explain why only |theta'| is needed.}
-
+      analyse-preserves :
+        (e : Expr tau Gamma) ->
+        let _ , _ , le = analyse e
+        in forget le == e
+    \end{code}
+    Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
+    in the |Let|-case, where we match on |theta2| to distinguish whether the bound variable is live.
+    If it is not, we directly evaluate the body, ignoring the bound declaration.
+    Another important detail is that evaluation works under any environment containing (at least) the live context.
+    \begin{code}
+      evalLive : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Env Gamma' -> Delta C= Gamma' -> (interpretU(tau))
+      (dots)
+      evalLive (Let {theta1 = theta1} {theta2 = o' theta2} e1 e2) env theta' =
+        evalLive e2 env theta'
+      evalLive (Let {theta1 = theta1} {theta2 = os theta2} e1 e2) env theta' =
+        evalLive e2
+          (Cons (evalLive e1 env (un-\/1 theta1 theta2 .. theta')) env)
+          (os (un-\/2 theta1 theta2 .. theta'))
+      (dots)
+    \end{code}
+    We will later use this to split the correctness proof into multiple small parts.
   \paragraph{Transformation}
-  The \emph{optimised semantics} above indicates that
-  we can do a similar program transformation
-  and will be useful in its correctness proof.
-  The implementation simply maps each constructor to its counterpart in |Expr|,
-  again distinguishing the cases for live and dead let-bindings.
-
-  \begin{code}
-    transform : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Delta C= Gamma' -> Expr tau Gamma'
-    transform (Let {theta2 = theta2 o'} e1 e2) theta' =
-      transform e2 theta' 
-    (dots)
-  \end{code}
-
-  As opposed to |forget|, which stays in the original context,
-  here we remove unused variables, only keeping |Gamma'|.
-  \Outline{
-    We avoid renaming here, because we know the required context upfront
-    and can pass it into the recursive call.
-  }
-  We can now compose analysis and transformation into an operation
-  with the same signature as the direct implementation
-  in section \ref{sec:de-bruijn-dbe-direct}.
+    The second pass we perform is similar to |dbe| in the direct approach,
+    but with a few key differences.
+    Firstly, it operates on annotated expressions |LiveExpr tau theta|
+    for a known thinning |theta : Delta C= Gamma| instead of discovering the
+    thinning and returning it with the result.
+    However, the transformed expression will not just be indexed by
+    the live context |Delta|, but any chosen larger context |Gamma'|.
+    Instead of renaming afterwards,
+    the result gets created in the desired context straight away.
+    Most cases now simply recurse while accumulating the thinning
+    that eventually gets used to create the variable reference.
+    \begin{code}
+      transform : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Delta C= Gamma' -> Expr tau Gamma'
+      transform (Var x) theta' =
+        Var (ref-o theta')
+      transform (App {theta1 = theta1} {theta2 = theta2} e1 e2) theta' =
+        App  (transform e1 (un-\/1 theta1 theta2 .. theta'))
+             (transform e2 (un-\/2 theta1 theta2 .. theta'))
+      transform (Lam {theta = theta} e1) theta' =
+        Lam (transform e1 (un-pop theta .. os theta'))
+      transform (Let {theta1 = theta1} {theta2 = o' theta2} e1 e2) theta' =
+        transform e2 theta'
+      transform (Let {theta1 = theta1} {theta2 = os theta2} e1 e2) theta' =
+        Let  (transform e1 (un-\/1 theta1 theta2 .. theta'))
+             (transform e2 (os (un-\/2 theta1 theta2 .. theta')))
+      transform (Val v) theta' =
+        Val v
+      transform (Plus {theta1 = theta1} {theta2 = theta2} e1 e2) theta' =
+        Plus  (transform e1 (un-\/1 theta1 theta2 .. theta'))
+              (transform e2 (un-\/2 theta1 theta2 .. theta'))
+    \end{code}
+    We can now compose analysis and transformation into an operation
+    with the same signature as the direct implementation
+    in section \ref{sec:de-bruijn-dbe-direct}.
 
   \begin{code}
     dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
