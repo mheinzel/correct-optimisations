@@ -339,22 +339,108 @@
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-dbe-direct}
-\Outline{
-  We need to know which bindings are used.
-  Here, we return that information in the result.
-  The transformation returns |Expr sigma ^^ Gamma|,
-  indicating that only part of the context is used.
+    To make the decision whether a binding can be removed,
+    we need to find out if it is used or not.
+    We could query that information on demand
+    (and we will see a similar approach in section
+    \ref{sec:de-bruijn-let-sinking-direct}),
+    but here we instead return liveness information as part of the result
+    and use that.
+    Precisely, we return |Expr sigma ^^ Gamma|,
+    the transformed expression in its live context,
+    together with a thinning into the original one.
+  \paragraph{Transformation}
+    For the thinnings we return, we make use of the variable liveness operations
+    defined in the previous section.
+    \begin{code}
+      dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
+      dbe (Var x) =
+        Var Top ^ o-Ref x
+      dbe (App e1 e2) =
+        let  e1' ^ theta1 = dbe e1
+             e2' ^ theta2 = dbe e2
+        in App (rename-Expr (un-\/1 theta1 theta2) e1') (rename-Expr (un-\/2 theta1 theta2) e2')
+             ^ (theta1 \/ theta2)
+      dbe (Lam e1) =
+        let  e1' ^ theta = dbe e1
+        in Lam (rename-Expr (un-pop theta) e1') ^ pop theta
+      dbe (Let e1 e2) with dbe e1 | dbe e2
+      ... | e1' ^ theta1  | e2' ^ o' theta2 =
+        e2' ^ theta2
+      ... | e1' ^ theta1  | e2' ^ os theta2 =
+        Let (rename-Expr (un-\/1 theta1 theta2) e1') (rename-Expr (os (un-\/2 theta1 theta2)) e2')
+          ^ (theta1 \/ theta2)
+      dbe (Val v) =
+        (Val v) ^ oe
+      dbe (Plus e1 e2) =
+        let  e1' ^ theta1 = dbe e1
+             e2' ^ theta2 = dbe e2
+        in Plus (rename-Expr (un-\/1 theta1 theta2) e1') (rename-Expr (un-\/2 theta1 theta2) e2')
+             ^ (theta1 \/ theta2)
+    \end{code}
+    For |Let|, we split on the binding being live or dead in |dbe e2|.
+    Note that this only keeps the binding if it is \emph{strongly} live.
+    Otherwise, we simply drop it.
 
-  For |Let|, note that using the live context of the transformed body
-  automatically gives us the strong version.
-
-  Also note that we need to rename at every binary operator.
-  We explain why this cannot be avoided with this approach.
-  We somehow need to know upfront which context the expression should have in the end.
-  This will be shown in the next section.
-
-  We prove correctness (semantics-preservation).
-}
+    Also note that we need to rename the subexpressions at every binary operator,
+    which is inefficient.
+    This happens because in the |Expr| type
+    both subexpressions need to have the same context,
+    and cannot be avoided easily with the approach shown here.
+    If we knew upfront which context the expression should have in the end,
+    we could immediately produce the result in that context.
+    However, we only find out which variables are live
+    \emph{after} doing the recursive call.
+    We will show a solution to this issue in the next section.
+  \paragraph{Correctness}
+    We prove preservation of semantics based on the total evaluation function.
+    Since we allow functions as values, this requires us to postulate extensionality.
+    \begin{code}
+      dbe-correct :
+        (e : Expr sigma Gamma) (env : Env Gamma) ->
+        let e' ^ theta = dbe e
+        in eval e' (project-Env theta env) == eval e env
+    \end{code}
+    The inductive proof requires combining a large number of laws about
+    evaluation, renaming, environment projection and the thinnings we constructed.
+    The |Lam| case exemplifies that.
+    % \begin{code}
+    %   dbe-correct (App e1 e2) env =
+    %     let  e1' ^ theta1 = dbe e1
+    %          e2' ^ theta2 = dbe e2
+    %     in
+    %       cong2 _S_
+    %         (trans
+    %           (law-eval-rename-Expr e1' _ _)
+    %           (trans
+    %             (cong (eval e1')
+    %               (trans
+    %                 (sym (law-project-Env-.. (un-\/1 theta1 theta2) (theta1 \/ theta2) env))
+    %                 (cong (lambda x -> project-Env x env) (law-\/1-inv theta1 theta2))))
+    %             (dbe-correct e1 env)))
+    %         (trans
+    %           (law-eval-rename-Expr e2' _ _)
+    %           (trans
+    %             (cong (eval e2')
+    %               (trans
+    %                 (sym (law-project-Env-.. (un-\/2 theta1 theta2) (theta1 \/ theta2) env))
+    %                 (cong (lambda x -> project-Env x env) (law-\/2-inv theta1 theta2))))
+    %             (dbe-correct e2 env)))
+    % \end{code}
+    \begin{code}
+      dbe-correct (Lam e1) env =
+        let e1' ^ theta1 = dbe e1
+        in extensionality _ _ lambda v ->
+          trans
+            (law-eval-rename-Expr e1' (un-pop theta1) (project-Env (os (pop theta1)) (Cons v env)))
+            (trans
+              (cong (eval e1') (trans
+                                 (sym (law-project-Env-.. (un-pop theta1) (os (pop theta1)) (Cons v env)))
+                                 (cong (lambda x -> project-Env x (Cons v env)) (law-pop-inv theta1))))
+              (dbe-correct e1 (Cons v env)))
+      (dots)
+    \end{code}
+    \Fixme{Fix rendering of some laws that haven't been mentioned.}
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-dbe-live}

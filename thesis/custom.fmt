@@ -5,6 +5,7 @@
 %format Sigma = "\Sigma"
 %format (At(x)(p)) = x "@(" p ")"
 %format lambda = "\lambda"
+%format _S_ = "\_{\$}\_"
 %format _=>_ = "\_{\Rightarrow}\_"
 %format e' = "\Varid{e}^{\prime}"
 %format e1 = "\Varid{e}_1"

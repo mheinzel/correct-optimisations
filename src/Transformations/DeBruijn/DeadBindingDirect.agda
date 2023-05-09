@@ -16,7 +16,6 @@ open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
 open import Language.DeBruijn
-open import Transformations.Recursion
 
 private
   variable
