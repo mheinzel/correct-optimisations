@@ -395,6 +395,9 @@
   \paragraph{Correctness}
     We prove preservation of semantics based on the total evaluation function.
     Since we allow functions as values, this requires us to postulate extensionality.
+    This does not impact the soundness of the proof
+    and could be avoided by moving to a different setting,
+    such as homotopy type theory \cite{Univalent2013HomotopyTypeTheory}.
     \begin{code}
       dbe-correct :
         (e : Expr sigma Gamma) (env : Env Gamma) ->
@@ -404,6 +407,7 @@
     The inductive proof requires combining a large number of laws about
     evaluation, renaming, environment projection and the thinnings we constructed.
     The |Lam| case exemplifies that.
+    \Fixme{Probably more useful with |==|-Reasoning.}
     % \begin{code}
     %   dbe-correct (App e1 e2) env =
     %     let  e1' ^ theta1 = dbe e1
@@ -434,13 +438,13 @@
           trans
             (law-eval-rename-Expr e1' (un-pop theta1) (project-Env (os (pop theta1)) (Cons v env)))
             (trans
-              (cong (eval e1') (trans
-                                 (sym (law-project-Env-.. (un-pop theta1) (os (pop theta1)) (Cons v env)))
-                                 (cong (lambda x -> project-Env x (Cons v env)) (law-pop-inv theta1))))
+              (cong (eval e1')
+                (trans
+                  (sym (law-project-Env-.. (un-pop theta1) (os (pop theta1)) (Cons v env)))
+                  (cong (lambda x -> project-Env x (Cons v env)) (law-pop-inv theta1))))
               (dbe-correct e1 (Cons v env)))
       (dots)
     \end{code}
-    \Fixme{Fix rendering of some laws that haven't been mentioned.}
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-dbe-live}
