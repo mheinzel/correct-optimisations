@@ -191,3 +191,10 @@ un-pop (os θ) = oi
 law-pop-inv : (θ : Δ ⊑ (σ ∷ Γ)) → un-pop θ ₒ os (pop θ) ≡ θ
 law-pop-inv (o' θ) = cong o' (law-oiₒ θ)
 law-pop-inv (os θ) = cong os (law-oiₒ θ)
+
+-- SYNTAX-RELATED OPERATIONS: COMBINE
+-- Just to show we could directly combine the previous two.
+
+module Combine where
+  combine : (θ₁ : Δ₁ ⊑ Γ) (θ₂ : Δ₂ ⊑ (σ ∷ Γ)) → ∪-domain θ₁ (pop θ₂) ⊑ Γ
+  combine θ₁ θ₂ = θ₁ ∪ pop θ₂

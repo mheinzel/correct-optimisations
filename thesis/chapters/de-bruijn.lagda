@@ -134,6 +134,7 @@
   As an example of how we can construct thinnings,
   we can embed a context into itself (identity thinning)
   or embed the empty context into any other (empty thinning).
+  \Fixme{Move |oe| directly into section \ref{sec:de-bruijn-dbe-liveness}?}
   \begin{code}
     oi : Gamma C= Gamma
     oi {Gamma = []} = oz
@@ -226,28 +227,115 @@
   |eval (rename-Expr theta e) env == eval e (project-Env theta env)|
   and
   |lookup (rename-Ref theta x) env == lookup x (project-Env theta env)|.
-  \paragraph{Thinnings as references}
-  Thinning from a singleton object are isomorphic to references.
-  We provide functions to convert between the two.
-  \begin{code}
-    o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
-    o-Ref Top      = os oe
-    o-Ref (Pop x)  = o' (o-Ref x)
-  \end{code}
-  \begin{code}
-    ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
-    ref-o (o' theta)  = Pop (ref-o theta)
-    ref-o (os theta)  = Top
-  \end{code}
-  \begin{code}
-    law-ref-o-Ref : (x : Ref sigma Gamma) -> ref-o (o-Ref x) == x
-  \end{code}
 
 \Fixme{Move |Expr|-independent thinning operations on |Ref|, |Env| to a separate chapter? (basically |Language.Core|)}
 
 
 \section{Dead Binding Elimination}
 \label{sec:de-bruijn-dbe}
+
+\subsection{Variable Liveness}
+\label{sec:de-bruijn-dbe-liveness}
+    We use thinnings |Delta C= Gamma| to indicate the \emph{live variables} |Delta|
+    within the context |Gamma|.
+    The list |Delta| is not enough:
+    If the original context contains multiple variables of the same type,
+    ambiguities can arise.
+    Live variables |NAT :: []| in context |NAT :: NAT :: []|
+    could refer to the first or second variable in scope,
+    but the thinnings |os (o' oz)| and |o' (os oz)| distinguish the two cases.
+    We now need operations to merge live contexts of multiple subexpressions
+    and remove bound variables.
+  % Values have no live variables, |oe|
+  \paragraph{Variables}
+    A variable occurrence trivially has one live variable.
+    To obtain a suitable thinning, We can make use of the fact that
+    thinnings from a singleton context are isomorphic to references.
+    \begin{code}
+      o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
+      o-Ref Top      = os oe
+      o-Ref (Pop x)  = o' (o-Ref x)
+    \end{code}
+    % \begin{code}
+    %   ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
+    %   ref-o (o' theta)  = Pop (ref-o theta)
+    %   ref-o (os theta)  = Top
+    % \end{code}
+    % \begin{code}
+    %   law-ref-o-Ref : (x : Ref sigma Gamma) -> ref-o (o-Ref x) == x
+    % \end{code}
+  \paragraph{Binary constructors}
+    Variables from the context are live if they are live in one of the subexpressions (i.e. some thinning is |os _|).
+    \begin{code}
+      \/-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
+      \/-domain                       (o' theta1)  (o' theta2)  = \/-domain theta1 theta2
+      \/-domain {Gamma = sigma :: _}  (o' theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
+      \/-domain {Gamma = sigma :: _}  (os theta1)  (o' theta2)  = sigma :: \/-domain theta1 theta2
+      \/-domain {Gamma = sigma :: _}  (os theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
+      \/-domain                       oz           oz           = []
+    \end{code}
+    We then construct the thinning from this combined live context.
+    \Fixme{This is basically |Coproduct| as used for co-de-Bruijn. Can we avoid the duplication?}
+    \begin{code}
+      _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-domain theta1 theta2 C= Gamma
+      o' theta1  \/ o' theta2  = o'  (theta1 \/ theta2)
+      o' theta1  \/ os theta2  = os  (theta1 \/ theta2)
+      os theta1  \/ o' theta2  = os  (theta1 \/ theta2)
+      os theta1  \/ os theta2  = os  (theta1 \/ theta2)
+      oz         \/ oz         = oz
+    \end{code}
+    Furthermore, we can construct the two thinnings \emph{into} the combined live context
+    and show that this is exactly what we need to obtain the original thinnings.
+    \begin{code}
+      un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-domain theta1 theta2
+      un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-domain theta1 theta2
+
+      law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
+      law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
+    \end{code}
+  \paragraph{Binders}
+    The context only contains the free variables of an expression,
+    so we have to pop bound variables off the context and live variables (if present).
+    There are again thinnings into and out of the resulting list.
+    \begin{code}
+      pop-domain : Delta C= Gamma -> List I
+      pop-domain {Delta = Delta}       (o' theta)  = Delta
+      pop-domain {Delta = _ :: Delta}  (os theta)  = Delta
+      pop-domain                       oz          = []
+
+      pop : (theta : Delta C= (sigma :: Gamma)) -> pop-domain theta C= Gamma
+      pop (o' theta)  = theta
+      pop (os theta)  = theta
+
+      un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-domain theta)
+
+      law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
+    \end{code}
+  \paragraph{Let-bindings}
+    For let-bindings, one way is to treat them as an immediate application
+    of a $\lambda$-abstraction, combining the methods we just saw.
+    This corresponds to a non-strong live variable analysis,
+    since even if the body is dead, we end up considering the declaration
+    for the live context.
+    \begin{code}
+      combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-domain theta1 (pop theta2) C= Gamma
+      combine theta1 theta2 = theta1 \/ pop theta2
+    \end{code}
+    The other option is to do strongly live variable analysis
+    with a custom operation |combine|,
+    which ignores the declaration's context if it is unused in the body.
+    \Fixme{Is there a better name than |combine|?}
+    \begin{code}
+      combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
+      combine-domain {Delta2 = Delta2} theta1 (theta2 o') = Delta2
+      combine-domain theta1 (theta2 os) = \/-domain theta1 theta2
+
+      combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> combine-domain theta1 theta2 C= Gamma
+      combine theta1 (theta2 o') = theta2
+      combine theta1 (theta2 os) = theta1 \/ theta2
+    \end{code}
+    We do not need the composed thinnings into the live context,
+    as we will always distinguish the two cases of |theta2| anyways.
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-dbe-direct}
@@ -275,55 +363,6 @@
     It is common in compilers to first perform some analysis
     and use the results to perform transformations (e.g. occurrence analysis in GHC).
   }
-  We use thinnings |Delta C= Gamma| to indicate the \emph{live variables} |Delta|
-  within the context |Gamma|.
-  For that, we need operations to merge live contexts of multiple subexpressions
-  and remove bound variables.
-  \begin{code}
-    \/-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
-    \/-domain                       (o' theta1)  (o' theta2)  = \/-domain theta1 theta2
-    \/-domain {Gamma = sigma :: _}  (o' theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
-    \/-domain {Gamma = sigma :: _}  (os theta1)  (o' theta2)  = sigma :: \/-domain theta1 theta2
-    \/-domain {Gamma = sigma :: _}  (os theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
-    \/-domain                       oz           oz           = []
-  \end{code}
-  Variables from the context are live if they are live in one the subexpressions
-  (i.e. not both thinnings are |o'|).
-  We can also construct the thinning from this combined live context.
-  \Fixme{This is basically |Coproduct| as used for co-de-Bruijn. Can we avoid the duplication?}
-  \begin{code}
-    _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-domain theta1 theta2 C= Gamma
-    o' theta1  \/ o' theta2  = o'  (theta1 \/ theta2)
-    o' theta1  \/ os theta2  = os  (theta1 \/ theta2)
-    os theta1  \/ o' theta2  = os  (theta1 \/ theta2)
-    os theta1  \/ os theta2  = os  (theta1 \/ theta2)
-    oz         \/ oz         = oz
-  \end{code}
-  Furthermore, we can construct the two thinnings \emph{into} the combined live context
-  and show that this is exactly what we need to obtain the original thinnings.
-  \begin{code}
-    un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-domain theta1 theta2
-    un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-domain theta1 theta2
-
-    law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
-    law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
-  \end{code}
-  We need similar operator to pop the top element of the context.
-  \begin{code}
-    pop-domain : {Delta Gamma : List I} -> Delta C= Gamma -> List I
-    pop-domain {Delta = Delta}       (o' theta)  = Delta
-    pop-domain {Delta = _ :: Delta}  (os theta)  = Delta
-    pop-domain                       oz          = []
-
-    pop : (theta : Delta C= (sigma :: Gamma)) -> pop-domain theta C= Gamma
-    pop (o' theta)  = theta
-    pop (os theta)  = theta
-
-    un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-domain theta)
-
-    law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
-  \end{code}
-
   \paragraph{Liveness annotations}
   We can now annotate each part of the expression with its live context,
   To that end, we define annotated expressions |LiveExpr tau theta|.
@@ -346,32 +385,8 @@
     Explain for some constructors, e.g.
     for variables we start with a singleton context using |o-Ref|.
   }
-
-  For |Let|, one way is to handle it using a combination of the operations for
-  |App| and |Lam|.
-  This corresponds to a non-strong live variable analysis,
-  since even if the body is dead, we end up considering the declaration
-  for the live context.
-  \begin{code}
-      Let :
-        {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
-        LiveExpr sigma theta1 ->
-        LiveExpr tau theta2 ->
-        LiveExpr tau (theta1 \/ pop theta2)
-  \end{code}
-
-  The other is to do strongly live variable analysis with a custom operation |combine|,
-  which ignores the declaration's context if it is not used in the body.
-  \Fixme{Is there a better name than |combine|?}
-  \begin{code}
-    combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
-    combine-domain {Delta2 = Delta2} theta1 (theta2 o') = Delta2
-    combine-domain theta1 (theta2 os) = \/-domain theta1 theta2
-
-    combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> combine-domain theta1 theta2 C= Gamma
-    combine theta1 (theta2 o') = theta2
-    combine theta1 (theta2 os) = theta1 \/ theta2
-  \end{code}
+  For |Let|,
+  we choose strongly live variable analysis.
   \begin{code}
       Let :
         {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
@@ -379,9 +394,6 @@
         LiveExpr tau theta2 ->
         LiveExpr tau (combine theta1 theta2)
   \end{code}
-
-  We will use the latter version, but later show how to achieve the same result
-  by iterating the non-strong version.
 
   \paragraph{Analysis}
   To create an annotated expressions, we need to perform
@@ -599,6 +611,7 @@
     |Expr tau ^^ Gamma| and composing the thinning.
     We would then only need to rename the declaration once at the end,
     when the binding is created.
+
 
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
