@@ -804,48 +804,60 @@
 
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
-  \Outline{Generally, what caused issues, what was nice?}
-  \Outline{re-ordering context does not fit thinnings nicely.}
-  \Outline{Let-sinking also performs DBE, but only for a single binding.}
-  \paragraph{Alternative designs}
-  \Outline{More flexible |LiveExpr|, not required to be tight.}
-  \Outline{
-    Iteration (e.g. without strong, but also for more complicated analyses)
-  }
-  \Draft{
-    As discussed in section \ref{ch:program-transformations},
-    more than one pass of dead binding elimination might be necessary to remove all unused bindings.
-    While in our simple setting all these bindings could be identified in a single pass
-    using strongly live variable analysis,
-    in general it can be useful to simply iterate optimisations until a fixpoint is reached.
+    \Outline{
+      We implemented two transformation,
+      each first directly (exhibiting inherent flaws)
+      and then using liveness annotations.
+      While this requires a separate analysis pass
+      and requires additional code,
+      it solved the issues with the direct approach
+      and simplified some aspects.
+    }
+    \Outline{Generally, what caused issues, what was nice?}
+    \Outline{re-ordering context does not fit thinnings nicely.}
+    \Outline{Let-sinking also performs DBE, but only for a single binding.}
 
-    Consequently, we keep applying |dbe| as long as the number of bindings decreases.
-    Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
-    We observe that the algorithm must terminate
-    since the number of bindings decreases with each iteration (but the last) and cannot become negative.
-    This corresponds to the ascending chain condition in program analysis literature
-    \cite{Nielson1999PrinciplesProgramAnalysis}.
-    To convince the termination checker, we use well-founded recursion
-    \cite{Bove2014PartialityRecursion}
-    on the number of bindings.
+\subsection{Alternative Designs}
+  \paragraph{More flexible annotations}
+    \Outline{|LiveExpr| not required to be tight.}
+  \paragraph{Iterating transformations}
+    \Outline{e.g. without strong, but also for more complicated analyses}
+    \Draft{
+      As discussed in section \ref{ch:program-transformations},
+      more than one pass of dead binding elimination might be necessary to remove all unused bindings.
+      While in our simple setting all these bindings could be identified in a single pass
+      using strongly live variable analysis,
+      in general it can be useful to simply iterate optimisations until a fixpoint is reached.
 
-    The correctness of the iterated implementation
-    follows directly from the correctness of each individual iteration step.
-  }
-  \Outline{
-    Let-sinking: Transformation could also return annotated expression
-    (why throw away information?).
-    But more complex, annotations need to be reconstructed on the way up.
-    Maybe this could be factored out?
-    However, also other practical issues.
-  }
+      Consequently, we keep applying |dbe| as long as the number of bindings decreases.
+      Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
+      We observe that the algorithm must terminate
+      since the number of bindings decreases with each iteration (but the last) and cannot become negative.
+      This corresponds to the ascending chain condition in program analysis literature
+      \cite{Nielson1999PrinciplesProgramAnalysis}.
+      To convince the termination checker, we use well-founded recursion
+      \cite{Bove2014PartialityRecursion}
+      on the number of bindings.
+
+      The correctness of the iterated implementation
+      follows directly from the correctness of each individual iteration step.
+    }
+  \paragraph{Keeping annotations}
+    \Outline{
+      Transformations could also return annotated expression
+      (why throw away information?).
+      But more complex, annotations need to be reconstructed on the way up.
+      Maybe this could be factored out?
+      However, also other practical issues.
+    }
+    \Outline{
+      Note that it might generally be useful to stay in |LiveExpr| world all the time.
+      Usage information is nice, but complicated to maintain.
+      Doing it for let-sinking caused issues.
+      There remains redundancy around indexing by two scopes.
+      Could co-de-Bruijn give us the same benefits by default?
+      It would also help with CSE (equality of terms).
+    }
+
+  \vspace{0.5cm}
   \OpenEnd{Let-sinking multiple bindings at once?}
-  \paragraph{Usefulness of variable usage annotations}
-  \Outline{
-    Note that it might generally be useful to stay in |LiveExpr| world all the time.
-    Usage information is nice, but complicated to maintain.
-    Doing it for let-sinking caused issues.
-    There remains redundancy around indexing by two scopes.
-    Could co-de-Bruijn give us the same benefits by default?
-    It would also help with CSE (equality of terms).
-  }
