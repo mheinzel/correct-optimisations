@@ -116,6 +116,7 @@
 
 
 \section{Thinnings}
+\label{sec:de-bruijn-thinnings}
   We use \emph{thinnings}, also called \emph{order-preserving embeddings} (OPE)
   \cite{Chapman2009TypeCheckingNormalisation},
   e.g. to reason about the part of a context that is live (actually used).
@@ -619,15 +620,17 @@
 
 \section{Let-sinking}
 \label{sec:de-bruijn-let-sinking}
+    We want to push let-bindings as far inward as possible,
+    without pushing into a $\lambda$-abstraction or duplicating the binding.
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-let-sinking-direct}
-    We want to push a let-binding as far inward as possible,
-    without pushing into a $\lambda$-abstraction or duplicating the binding.
+    We focus on a single let-binding |Let decl e| at a time,
+    which we want to replace with the result of |let-sink decl e|.
   \paragraph{Type signature}
-    While we initially deal with a binding for the topmost entry in the context
-    (|Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|),
-    recursively applying this function under binders requires more flexibility.
+    We initially deal with a binding for the topmost entry in the context,
+    so we want something like |let-sink : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|.
+    However, recursively applying this function under binders requires more flexibility.
     The solution chosen here uses list concatenation in the context
     to allow |sigma| to occur at any position.
     Choosing |[]| as the prefix then again results in the same signature
@@ -716,9 +719,6 @@
     but let-sinking works top-down,
     we redundantly traverse the whole expression at each binary constructor
     of the expression.
-    Perhaps unsurprisingly, we will see that we can again change that
-    using liveness annotations.
-
     If the binding is not used in a subexpression,
     we need to obtain a strengthened version of that expression,
     so we make it part of the querying operation.
@@ -756,50 +756,73 @@
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-let-sinking-live}
-  \Outline{
-    We can solve repeated-querying-problem with liveness annotations again.
-    First |analyse| and then (instead of strengthening), just look at thinning.
-    (how?)
-  }
+    Perhaps unsurprisingly, we can avoid the repeated querying
+    using liveness annotations.
+    As during dead binding elimination, we first |analyse| and then
+    (instead of strengthening) look at the thinnings
+    to find out where the declaration is used.
   \paragraph{Type signature}
     Similarly to section \ref{sec:de-bruijn-dbe-live},
-    we first perform the analysis and then a transformation,
-    resulting in a plain |Expr| again.
+    we first perform the analysis and then a transformation
+    that results in a plain |Expr| again.
     Combined, this has the same signature as the direct version.
     \begin{code}
       transform :
         {theta : Delta C= (Gamma1 ++ sigma :: Gamma2)} ->
-        Expr sigma (Gamma1 ++ Gamma2) ->
+        Expr sigma ^^ (Gamma1 ++ Gamma2) ->
         LiveExpr tau theta ->
         Expr tau (Gamma1 ++ Gamma2)
     \end{code}
     \begin{code}
       sink-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
-      sink-let decl e = let _ , theta , le = analyse e in transform decl le
+      sink-let decl e = let _ , theta , le = analyse e in transform (decl ^ oi) le
     \end{code}
-  \paragraph{Creating the binding}
-    This is almost identical to before,
-    but we now need to |forget| the annotations before calling |rename-top|.
+    Note that only the body is annotated,
+    as we do not need liveness information for the declaration.
+    The declaration however is passed with a thinning.
+    This change is independent of the others,
+    but will avoid repeatedly having to rename the declaration.
+    The structure of the implementation is the same as for the direct approach,
+    so we will only highlight a few differences.
   \paragraph{Binary constructors}
-    We call |_-||_| on the thinnings of the subexpressions
-    to find out where the declaration is used.
-    For the subexpressions where the variable |sigma| bound to the declaration
-    does not occur, the |Split| exposes that their thinning |theta|
-    into |Gamma1 ++ sigma :: Gamma2| is of the form |theta1 ++C= o' theta2|,
-    so we can construct a new thinning |theta1 ++C= theta2|
-    into |Gamma1 ++ Gamma2|.
-    \Fixme{More consistent naming of thinnings involved}
-    To obtain the required un-annotated expression
-    (that does not have the declaration in its context anymore),
-    we can then use |DBE.transform|.
+    The |Let| case shows all major changes.
+    The main one is that instead of traversing the subexpressions
+    (attempting to strengthen them),
+    it is sufficient to work with the thinnings found during analysis.
+    We make use of the ability to split and concatenate them,
+    as shown in section \ref{sec:de-bruijn-thinnings}.
+    \begin{code}
+      transform {Gamma1 = Gamma1} decl e@(Let {theta1 = theta} {theta2 = phi} e1 e2) with Gamma1 -| theta | (_ :: Gamma1) -| phi
+      ... | split theta1 (o' theta2) (refl , refl) | split phi1 (o' phi2) (refl , refl) =
+        Let (DBE.transform e1 (theta1 ++C= theta2)) (DBE.transform e2 (phi1 ++C= phi2))
+      ... | split theta1 (os theta2) (refl , refl) | split phi1 (o' phi2) (refl , refl) =
+        Let (transform decl e1) (DBE.transform e2 (phi1 ++C= phi2))
+      ... | split theta1 (o' theta2) (refl , refl) | split phi1 (os phi2) (refl , refl) =
+        Let (DBE.transform e1 (theta1 ++C= theta2)) (transform {Gamma1 = _ :: Gamma1} (thin^^ (o' oi) decl) e2)
+      ... | split theta1 (os theta2) (refl , refl) | split phi1 (os phi2) (refl , refl) =
+        Let (rename-Expr^^ decl) (rename-top (forget e))
+      (dots)
+    \end{code}
+    Using |_-||_|, the thinning
+    |theta : Delta1 ++ Delta2 C= Gamma1 ++ sigma :: Gamma2|
+    for the first subexpression is split into two thinnings
+    |theta1 : Delta1 C= Gamma1| and
+    |theta2 : Delta2 C= sigma :: Gamma2|.
+    If the declaration is unused, we obtain a smaller |theta2|,
+    which we can use to construct
+    |theta1 ++C= theta2 : Delta1 ++ Delta2 C= Gamma1 ++ Gamma2|
+    and remove |sigma| from the context.
+    For that, we reuse the dead binding elimination transformation.
+    \Fixme{More consistent naming of thinnings involved?}
   \paragraph{Binders}
-    We still weaken the declaration every time we go under a binder.
-    This is somewhat inefficient,
-    as weakening an expression in de Bruijn representation requires a traversal,
-    but could easily be avoided by instead passing a declaration with a thinning
-    |Expr tau ^^ Gamma| and composing the thinning.
-    We would then only need to rename the declaration once at the end,
+    Instead of weakening the declaration every time we go under a binder,
+    we manipulate the thinning it is wrapped in.
+    As a result, we only need to rename the declaration once at the end,
     when the binding is created.
+    \begin{code}
+      rename-Expr^^ : Expr sigma ^^ Gamma -> Expr sigma Gamma
+      rename-Expr^^ (e ^ theta) = rename-Expr theta e
+    \end{code}
 
 
 \section{Discussion}
