@@ -574,37 +574,47 @@
   \end{code}
 
   \paragraph{Correctness}
-  We want to show that dead binding elimination preserves semantics,
-  which we can conceptually express as
-  |eval . dbe == eval|.
-  % |eval . transform . analyse == eval|.
-  For that, it is sufficient to show the following:
+    The goal is again to show that dead binding elimination preserves semantics,
+    which we can express with the same statement as before,
+    or conceptually as |eval . dbe == eval|.
+    \begin{code}
+      dbe-correct :
+        (e : Expr sigma Gamma) (env : Env Gamma) ->
+        let e' ^ theta = dbe e
+        in eval e' (project-Env theta env) == eval e env
+    \end{code}
+    % |eval . transform . analyse == eval|.
+    We could again immediately attempt a proof by structural induction,
+    but each case would require cumbersome massaging
+    of the thinnings supplied to various operations.
+    Instead, we aim to simplify the proof by breaking it down into
+    smaller parts.
+    The first observation is that it is sufficient to show the following:
+    \begin{code}
+      eval . transform == eval . forget
+    \end{code}
+    We can then pre-compose |analyse| on both sides and remove
+    |forget . analyse| (which we know forms an identity)
+    to obtain the desired |eval . transform . analyse == eval|.
+    The proof gets simpler if we split it up using the optimised semantics:
+    \begin{code}
+      evalLive == eval . forget
+      evalLive == eval . transform
+    \end{code}
+    \Outline{
+      The actual proof statements in Agda are more involved,
+      since they quantify over the expression and environment used for evaluation.
+      As foreshadowed in the definition of |evalLive|,
+      the statements are also generalised to evaluation under any |Env Gamma'|,
+      as long as it contains the live context.
+      This gives us more flexibility when using the inductive hypothesis.
 
-  \begin{code}
-    eval . transform == eval . forget
-  \end{code}
-
-  We can then pre-compose |analyse| on both sides and remove
-  |forget . analyse| (which we know forms an identity)
-  to obtain the desired |eval . transform . analyse == eval|.
-  The proof gets simpler if we split it up using the optimised semantics:
-
-  \begin{code}
-    evalLive == eval . transform
-    evalLive == eval . forget
-  \end{code}
-
-  The actual proof statements in Agda are more involved,
-  since they quantify over the expression and environment used for evaluation.
-  As foreshadowed in the definition of |evalLive|, the statements are also generalised
-  to evaluation under any |Env Gamma'|,
-  as long as it contains the live context.
-  This gives us more flexibility when using the inductive hypothesis.
-  \Fixme{show exact proof statements}
-
-  Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
-  The interesting one is again |Let|, where we split cases on the variable being used or not
-  and need some auxiliary facts about evaluation, renaming and contexts.
+      Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
+      The interesting one is again |Let|, where we split cases on the variable being used or not
+      and need some auxiliary facts about evaluation, renaming and contexts.
+    }
+    \Fixme{show exact proof statements}
+    \OpenEnd{Some details to be figured out to make sure the modular proof is indeed simpler.}
 
 
 \section{Let-sinking}
