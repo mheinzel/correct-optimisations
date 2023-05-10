@@ -1,14 +1,14 @@
-{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: proof for renaming
-
 module Language.DeBruijn where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
 open import Data.List using (List ; _∷_ ; [])
-open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; trans ; cong ; cong₂)
+open import Function using (_$_)
 
 open import Data.Thinning
 
+open import Postulates using (extensionality)
 open import Language.Core
 open Language.Core.Env {U} {⟦_⟧}
 open Language.Core.Ref {U} {⟦_⟧}
@@ -57,4 +57,22 @@ weaken = rename-Expr (o' oi)
 law-eval-rename-Expr :
   (e : Expr σ Δ) (θ : Δ ⊑ Γ) (env : Env Γ) →
   eval (rename-Expr θ e) env ≡ eval e (project-Env θ env)
-law-eval-rename-Expr e θ env = {!!}
+law-eval-rename-Expr (Var x) θ env =
+  law-lookup-rename-Ref x θ env
+law-eval-rename-Expr (App e₁ e₂) θ env =
+  cong₂ _$_
+    (law-eval-rename-Expr e₁ θ env)
+    (law-eval-rename-Expr e₂ θ env)
+law-eval-rename-Expr (Lam e₁) θ env =
+  extensionality _ _ λ v →
+    law-eval-rename-Expr e₁ (os θ) (Cons v env)
+law-eval-rename-Expr (Let e₁ e₂) θ env =
+  trans
+    (cong (λ x → eval (rename-Expr (os θ) e₂) (Cons x env)) (law-eval-rename-Expr e₁ θ env))
+    (law-eval-rename-Expr e₂ (os θ) (Cons _ env))
+law-eval-rename-Expr (Val v) θ env =
+  refl
+law-eval-rename-Expr (Plus e₁ e₂) θ env =
+  cong₂ _+_
+    (law-eval-rename-Expr e₁ θ env)
+    (law-eval-rename-Expr e₂ θ env)

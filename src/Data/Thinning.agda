@@ -61,6 +61,22 @@ law-ₒₒ (o' θ) (os ϕ) (os ψ) = cong o' (law-ₒₒ θ ϕ ψ)
 law-ₒₒ (os θ) (os ϕ) (os ψ) = cong os (law-ₒₒ θ ϕ ψ)
 law-ₒₒ oz oz oz = refl
 
+law-inj-o' : (θ₁ θ₂ : Δ ⊑ Γ) →
+  o' {τ = τ} θ₁ ≡ o' {τ = τ} θ₂ → θ₁ ≡ θ₂
+law-inj-o' θ₁ .θ₁ refl = refl
+
+law-inj-os : (θ₁ θ₂ : Δ ⊑ Γ) →
+  os {τ = τ} θ₁ ≡ os {τ = τ} θ₂ → θ₁ ≡ θ₂
+law-inj-os θ₁ .θ₁ refl = refl
+
+law-epi : (θ₁ θ₂ : Γ₁ ⊑ Γ₂) (θ : Γ₂ ⊑ Γ₃) →
+  θ₁ ₒ θ ≡ θ₂ ₒ θ → θ₁ ≡ θ₂
+law-epi θ₁ θ₂ (o' θ) H = law-epi θ₁ θ₂ θ (law-inj-o' (θ₁ ₒ θ) (θ₂ ₒ θ) H)
+law-epi (o' θ₁) (o' θ₂) (os θ) H = cong o' (law-epi θ₁ θ₂ θ (law-inj-o' (θ₁ ₒ θ) (θ₂ ₒ θ) H))
+law-epi (os θ₁) (os θ₂) (os θ) H = cong os (law-epi θ₁ θ₂ θ (law-inj-os (θ₁ ₒ θ) (θ₂ ₒ θ) H))
+law-epi oz oz oz H = refl
+
+
 infixr 19 _++⊑_
 
 _++⊑_ :

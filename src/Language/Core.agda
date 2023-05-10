@@ -76,6 +76,13 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   rename-Ref (os θ) (Pop x) = Pop (rename-Ref θ x)
   rename-Ref (o' θ) x = Pop (rename-Ref θ x)
 
+  law-lookup-rename-Ref :
+    (x : Ref σ Δ) (θ : Δ ⊑ Γ) (env : Env Γ) →
+    lookup (rename-Ref θ x) env ≡ lookup x (project-Env θ env)
+  law-lookup-rename-Ref x       (o' θ) (Cons v env) = law-lookup-rename-Ref x θ env
+  law-lookup-rename-Ref Top     (os θ) (Cons v env) = refl
+  law-lookup-rename-Ref (Pop x) (os θ) (Cons v env) = law-lookup-rename-Ref x θ env
+
   -- Thinnings from a singleton context are isomorphic to Ref.
   o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
   o-Ref Top     = os oe
