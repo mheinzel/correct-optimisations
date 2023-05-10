@@ -622,73 +622,137 @@
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-let-sinking-direct}
-  We want to push a let-binding as far inward as possible,
-  without pushing into a $\lambda$-abstraction or duplicating the binding.
+    We want to push a let-binding as far inward as possible,
+    without pushing into a $\lambda$-abstraction or duplicating the binding.
   \paragraph{Type signature}
-  While we initially deal with a binding for the topmost entry in the context
-  (|Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|),
-  recursively applying this function under binders requires more flexibility.
-  The solution chosen here use list concatenation on the context
-  to allow |sigma| to occur at any position.
-  \begin{code}
-    sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
-  \end{code}
-  Supplying |Top| as the first argument results in the same signature
-  as the |Let| constructor itself.
-  Note that we could alternatively have used other ways, such as
-  insertion at a position |n : Fin (length Gamma)|
-  or removal of |sigma| at a position |i : Ref sigma Gamma|.
-  \Fixme{Isn't this also an alternative design?}
-  \begin{code}
-    pop-at : (Gamma : Ctx) -> Ref sigma Gamma -> Ctx
-    pop-at (sigma :: Gamma) Top = Gamma
-    pop-at (tau   :: Gamma) (Pop i) = tau :: pop-at Gamma i
-  \end{code}
-  \begin{code}
-    Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
-    Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
-    Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
-  \end{code}
+    While we initially deal with a binding for the topmost entry in the context
+    (|Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|),
+    recursively applying this function under binders requires more flexibility.
+    The solution chosen here uses list concatenation in the context
+    to allow |sigma| to occur at any position.
+    Choosing |[]| as the prefix then again results in the same signature
+    as the for the |Let| constructor itself.
+    \begin{code}
+      sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+    \end{code}
+    Note that we could alternatively have used other ways to achieve the same,
+    such as insertion at a position |n : Fin (length Gamma)|
+    or removal of |sigma| at a position |i : Ref sigma Gamma|.
+      \Fixme{Does this belong to a later alternative design section?}
+    \begin{code}
+      pop-at : (Gamma : Ctx) -> Ref sigma Gamma -> Ctx
+      pop-at (sigma :: Gamma) Top = Gamma
+      pop-at (tau   :: Gamma) (Pop i) = tau :: pop-at Gamma i
+    \end{code}
+    \begin{code}
+      Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+      Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
+      Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
+    \end{code}
+    Using list concatenation, however, allows us to make use of very general
+    operations and properties about concatenation of contexts and thinnings.
+  \paragraph{Transformation}
+    The implementation proceeds by structural induction.
+    \begin{code}
+      sink-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (Gamma1 ++ Gamma2)
+      sink-let decl (Var x) with rename-top-Ref x
+      ... | Top = decl
+      ... | Pop x' = Var x'
+      sink-let decl (At(e)(App e1 e2)) with strengthen e1 | strengthen e2
+      ... | just e1'  | just e2'  = App e1' e2'
+      ... | nothing   | just e2'  = App (sink-let decl e1) e2'
+      ... | just e1'  | nothing   = App e1' (sink-let decl e2)
+      ... | nothing   | nothing   = Let decl (rename-top e)
+      sink-let decl (At(e)(Lam e1)) =
+        Let decl (rename-top e) -- Do not push into $\lambda$-abstractions!
+      sink-let {Gamma1 = Gamma1} decl (At(e)(Let e1 e2)) with strengthen e1 | strengthen {Gamma1 = _ :: Gamma1} e2
+      ... | just e1'  | just e2'  = Let e1' e2'
+      ... | nothing   | just e2'  = Let (sink-let decl e1) e2'
+      ... | just e1'  | nothing   = Let e1' (sink-let {Gamma1 = _ :: Gamma1} (weaken decl) e2)
+      ... | nothing   | nothing   = Let decl (rename-top e)
+      sink-let decl (Val v) =
+        Val v
+      sink-let decl (At(e)(Plus e1 e2)) with strengthen e1 | strengthen e2
+      ... | just e1'  | just e2'  = Plus e1' e2'
+      ... | nothing   | just e2'  = Plus (sink-let decl e1) e2'
+      ... | just e1'  | nothing   = Plus e1' (sink-let decl e2)
+      ... | nothing   | nothing   = Let decl (rename-top e)
+    \end{code}
+    We will highlight specific parts.
+    \Fixme{Split up cases or leave as one block?}
   \paragraph{Variables}
-  When pushing a binding into a variable, there are two possible cases:
-  If variable references exactly the let-binding we are pushing,
-    we can replace it by the declaration,
-    effectively inlining it.
-  If the variable it references a different element of the context,
-    the declaration is eliminated
-    and we  only need to strengthen the variable into the smaller context.
+    When pushing a binding into a variable, there are two possible cases:
+    \begin{enumerate}
+      \item If the variable references exactly the let-binding we are sinking,
+        we can replace it by the declaration,
+        effectively inlining it.
+      \item If the variable references a different element of the context,
+        the declaration is unused
+        and we  only need to strengthen the variable into the smaller context.
+    \end{enumerate}
+    To distinguish the two cases, we rename the reference
+    (moving the variable in question to the front).
+    \begin{code}
+      rename-top-Ref : Ref tau (Gamma1 ++ sigma :: Gamma2) -> Ref tau (sigma :: Gamma1 ++ Gamma1)
+    \end{code}
+    If the result is |Top|, we learn that |sigma == tau| and can return the declaration.
+    If it is |Pop x'|, we can return |x'|,
+    as it does not have the variable of the declaration in its context anymore.
   \paragraph{Creating the binding}
-  Once we stop pushing the let-binding (e.g. when we reach a $\lambda$-abstraction),
-  it is still necessary to rename the expression in its body,
-  since it makes use of the newly created binding,
-  but expects it at a different de Bruijn index.
-  \begin{code}
-    rename-top : Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (sigma :: Gamma1 ++ Gamma2)
-  \end{code}
+    Once we stop pushing the let-binding (e.g. when we reach a $\lambda$-abstraction),
+    We insert the declaration.
+    However, the typechecker will not accept |Let decl e|.
+    It is still necessary to rename the expression,
+    since it makes use of the newly created binding,
+    but expects it at a different de Bruijn index.
+    \begin{code}
+      rename-top : Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (sigma :: Gamma1 ++ Gamma2)
+    \end{code}
   \paragraph{Binary constructors}
-  For binary operators, we need to check which subexpressions make use of the declaration.
-  Instead of working with an annotated version of the syntax tree,
-  we here query variable usage in subexpressions on demand.
-  If the binding is not used in a subexpression,
-  we need to obtain a strengthened version of that expression,
-  so we combine this into a single operation.
-  \begin{code}
-    strengthen :  Expr tau (Gamma1 ++ sigma :: Gamma2) -> Maybe (Expr tau (Gamma1 ++ Gamma2))
-  \end{code}
-  \Outline{Repeated querying is not ideal, but is hard to avoid, because\ldots}
-  If one of the subexpressions can be strengthened, we only need to recurse into the other.
-  If both subexpressions use the declaration, we do not push further,
-  but create a let-binding at the current location (see above).
+    For binary operators, we need to check which subexpressions make use of the declaration.
+    Instead of working with an annotated version of the syntax tree,
+    we here query variable usage in subexpressions on demand.
+    Since usage information is computed bottom-up,
+    but let-sinking works top-down,
+    we redundantly traverse the whole expression at each binary constructor
+    of the expression.
+    Perhaps unsurprisingly, we will see that we can again change that
+    using liveness annotations.
+
+    If the binding is not used in a subexpression,
+    we need to obtain a strengthened version of that expression,
+    so we make it part of the querying operation.
+    \begin{code}
+      strengthen :  Expr tau (Gamma1 ++ sigma :: Gamma2) -> Maybe (Expr tau (Gamma1 ++ Gamma2))
+    \end{code}
+    We now see that there are four possible cases:
+    \begin{enumerate}
+      \item
+        Both of the subexpressions can be strengthened.
+        This means that we are sinking a dead let-binding,
+        which normally should not happen.
+        Nevertheless, we need to handle the case.
+      \item
+        The right subexpression can be strengthened.
+        We recurse into the left one.
+      \item
+        The left subexpression can be strengthened.
+        We recurse into the right one.
+      \item
+        Neither subexpression can be strengthened, as both use the declaration.
+        To avoid dupliating code, we do not push further,
+        but create a let-binding at the current location.
+    \end{enumerate}
   \paragraph{Binders}
-  If we recurse into the body of a let-binding,
-  an additional binding comes into scope.
-  This means that we need to bump the reference
-  and weaken the declaration.
-  \begin{code}
-    weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
-  \end{code}
+    If we recurse into the body of a let-binding,
+    an additional variable comes into scope.
+    This means that we need to add it to the context prefix |Gamma1|
+    and weaken the declaration.
+    \begin{code}
+      weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
+    \end{code}
   \paragraph{Correctness}
-  \OpenEnd{No correctness proof yet, how hard is it?}
+    \OpenEnd{No correctness proof yet, how hard is it for the direct approach?}
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-let-sinking-live}
@@ -741,6 +805,7 @@
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
   \Outline{Generally, what caused issues, what was nice?}
+  \Outline{re-ordering context does not fit thinnings nicely.}
   \Outline{Let-sinking also performs DBE, but only for a single binding.}
   \paragraph{Alternative designs}
   \Outline{More flexible |LiveExpr|, not required to be tight.}
