@@ -682,7 +682,7 @@
       ... | nothing   | nothing   = Let decl (rename-top e)
     \end{code}
     We will highlight specific parts.
-    \Fixme{Split up cases or leave as one block?}
+    \Fixme{Split up cases or leave as one code block?}
   \paragraph{Variables}
     When pushing a binding into a variable, there are two possible cases:
     \begin{enumerate}
@@ -837,14 +837,49 @@
       and simplified some aspects.
     }
     \Outline{Generally, what caused issues, what was nice?}
-    \Outline{re-ordering context does not fit thinnings nicely.}
     \Outline{Let-sinking also performs DBE, but only for a single binding.}
+  \paragraph{Re-ordering the context}
+    When changing the order of let-bindings during let-sinking,
+    the order of the variables in the context changes as well.
+    As thinnings present \emph{order-preserving} embeddings,
+    they are not suited to describe such a change of context.
+    Consequently, we had to resort to concatenation
+    and define an additional set of operations,
+    such as for renaming expressions.
+    Both thinning and reordering could be performed
+    by a more general renaming operation,
+    for example using a function
+    |(forall sigma -> Ref sigma Delta -> Ref sigma Gamma)|
+    mapping references in the source context
+    to references in the target context.
+    This representation however is more opaque
+    and difficult to manipulate
+    the way we did with thinnings.
 
 \subsection{Alternative Designs}
   \paragraph{More flexible annotations}
-    \Outline{|LiveExpr| not required to be tight.}
+    \Outline{
+      (Optional, leave out for now!)\\
+      |LiveExpr| is not required to be tight.
+      Probably not worth pursuing further, but it could like this I guess:
+    }
+    \Draft{
+      \begin{code}
+        App :
+          {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
+          (theta : Delta C= Gamma) (phi1 : Delta1 C= Delta) (phi2 : Delta2 C= Delta) ->
+          LiveExpr (sigma => tau) theta1 ->
+          LiveExpr sigma theta2 ->
+          LiveExpr tau theta
+      \end{code}
+    }
   \paragraph{Iterating transformations}
-    \Outline{e.g. without strong, but also for more complicated analyses}
+    \Outline{
+      (Optional, leave out for now!)\\
+      E.g. non-strong DBE, but also for more complicated analyses.
+      Common in compilers, e.g. simplifier is iterated up to 4 times
+      \cite{Jones1998TransformationOptimiser}.
+    }
     \Draft{
       As discussed in section \ref{ch:program-transformations},
       more than one pass of dead binding elimination might be necessary to remove all unused bindings.
@@ -869,7 +904,7 @@
     \Outline{
       Transformations could also return annotated expression
       (why throw away information?).
-      But more complex, annotations need to be reconstructed on the way up.
+      But that is more complex, annotations need to be reconstructed on the way up.
       Maybe this could be factored out?
       However, also other practical issues.
     }
@@ -881,6 +916,3 @@
       Could co-de-Bruijn give us the same benefits by default?
       It would also help with CSE (equality of terms).
     }
-
-  \vspace{0.5cm}
-  \OpenEnd{Let-sinking multiple bindings at once?}
