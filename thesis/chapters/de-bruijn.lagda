@@ -858,22 +858,6 @@
     the way we did with thinnings.
 
 \subsection{Alternative Designs}
-  \paragraph{More flexible annotations}
-    \Outline{
-      (Optional, leave out for now!)\\
-      |LiveExpr| is not required to be tight.
-      Probably not worth pursuing further, but it could like this I guess:
-    }
-    \Draft{
-      \begin{code}
-        App :
-          {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= Gamma} ->
-          (theta : Delta C= Gamma) (phi1 : Delta1 C= Delta) (phi2 : Delta2 C= Delta) ->
-          LiveExpr (sigma => tau) theta1 ->
-          LiveExpr sigma theta2 ->
-          LiveExpr tau theta
-      \end{code}
-    }
   \paragraph{Iterating transformations}
     \Outline{
       (Optional, leave out for now!)\\
