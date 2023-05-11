@@ -51,6 +51,9 @@ rename-Expr θ (Let e₁ e₂) = Let (rename-Expr θ e₁) (rename-Expr (os θ) 
 rename-Expr θ (Val v) = Val v
 rename-Expr θ (Plus e₁ e₂) = Plus (rename-Expr θ e₁) (rename-Expr θ e₂)
 
+rename-Expr⇑ : Expr σ ⇑ Γ → Expr σ Γ
+rename-Expr⇑ (e ↑ θ) = rename-Expr θ e
+
 weaken : Expr σ Γ → Expr σ (τ ∷ Γ)
 weaken = rename-Expr (o' oi)
 
