@@ -1,57 +1,61 @@
 \chapter{Introduction}
 \label{ch:introduction}
+    \Outline{Background, relevance}
 
-\Fixme{Copied from proposal, adapt}
-\Draft{
-  When writing a compiler for a programming language,
-  an important consideration is the treatment of binders and variables.
-  A well-known technique when using dependently typed programming languages such as Agda
-  \cite{Norell2008Agda}
-  is to define an intrinsically typed syntax tree,
-  where expressions are scope- and type-correct by construction and admit a total evaluation function
-  \cite{Augustsson1999WellTypedInterpreter}.
-  This construction has featured in several papers, exploring
-  basic operations like renaming and substitution
-  \cite{Allais2018UniverseOfSyntaxes}
-  as well as compilation to different target languages
-  \cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
+    \Fixme{Copied from proposal, adapt}
+    \Draft{
+      When writing a compiler for a programming language,
+      an important consideration is the treatment of binders and variables.
+      A well-known technique when using dependently typed programming languages such as Agda
+      \cite{Norell2008Agda}
+      is to define an intrinsically typed syntax tree,
+      where expressions are scope- and type-correct by construction and admit a total evaluation function
+      \cite{Augustsson1999WellTypedInterpreter}.
+      This construction has featured in several papers, exploring
+      basic operations like renaming and substitution
+      \cite{Allais2018UniverseOfSyntaxes}
+      as well as compilation to different target languages
+      \cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
 
-  At the same time, there are large classes of important transformations
-  that have not yet received much attention in an intrinsically typed setting.
-  Optimisations, for example, play a central role in practical compilers
-  and establishing their correctness is often not trivial,
-  with ample opportunity for binding-related mistakes
-  \cite{SpectorZabusky2019EmbracingFormalizationGap}
-  \cite{Maclaurin2022Foil}.
-  Letting the type checker keep track of important invariants
-  promises to remove common sources of bugs.
-  A mechanised proof of semantics preservation can increase confidence further.
+      At the same time, there are large classes of important transformations
+      that have not yet received much attention in an intrinsically typed setting.
+      Optimisations, for example, play a central role in practical compilers
+      and establishing their correctness is often not trivial,
+      with ample opportunity for binding-related mistakes
+      \cite{SpectorZabusky2019EmbracingFormalizationGap}
+      \cite{Maclaurin2022Foil}.
+      Letting the type checker keep track of important invariants
+      promises to remove common sources of bugs.
+      A mechanised proof of semantics preservation can increase confidence further.
 
-  In return for the correctness guarantees, some additional work is required.
-  Program \emph{analysis} not only needs to identify optimisation opportunities,
-  but potentially also provide a proof witness that the optimisation is safe,
-  e.g. that some dead code is indeed unused.
-  For the \emph{transformation} of the intrinsically typed program,
-  the programmer then has to convince the type checker
-  that type- and scope-correctness invariants are preserved,
-  which can be cumbersome.
-  The goal of this thesis is to understand these consequences better and make the following contributions:
+      In return for the correctness guarantees, some additional work is required.
+      Program \emph{analysis} not only needs to identify optimisation opportunities,
+      but potentially also provide a proof witness that the optimisation is safe,
+      e.g. that some dead code is indeed unused.
+      For the \emph{transformation} of the intrinsically typed program,
+      the programmer then has to convince the type checker
+      that type- and scope-correctness invariants are preserved,
+      which can be cumbersome.
+      The goal of this thesis is to understand these consequences better and make the following contributions:
 
-  \begin{enumerate}
-    \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
-    \item implement several of these transformations using intrinsically typed expressions in the dependently-typed programming language Agda
-    \item provide machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
-    \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
-    \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
-  \end{enumerate}
-}
-\paragraph{Contributions}
-\Draft{
-  The source code is available online%
-  \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
-  \Fixme{write}
-}
-
-\paragraph{Ethics}
-The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
-It classified this research as low-risk with no fuller ethics review or privacy assessment required.
+      \begin{enumerate}
+        \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
+        \item implement several of these transformations using intrinsically typed expressions in the dependently-typed programming language Agda
+        \item provide machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
+        \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
+        \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
+      \end{enumerate}
+    }
+  \paragraph{Contributions}
+    \Outline{
+      High level structure.
+    }
+    \Outline{
+      What of it existed, what is ours? \\
+      (separately or interwoven with structure?)
+    }
+    The source code is available online%
+    \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
+  \paragraph{Ethics review}
+    The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
+    It classified this research as low-risk with no fuller ethics review or privacy assessment required.

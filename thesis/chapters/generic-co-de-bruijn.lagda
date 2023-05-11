@@ -191,3 +191,5 @@
 }
 
 \section{(Let-sinking)}
+    \OpenEnd{Not implemented. Is there something interesting to say about it?}
+    \Fixme{Does this belong in Further Work instead?}

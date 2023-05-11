@@ -135,7 +135,7 @@
   As an example of how we can construct thinnings,
   we can embed a context into itself (identity thinning)
   or embed the empty context into any other (empty thinning).
-  \Fixme{Move |oe| directly into section \ref{sec:de-bruijn-dbe-liveness}?}
+  \Fixme{Move |oe| directly into section \ref{sec:de-bruijn-liveness}?}
   \begin{code}
     oi : Gamma C= Gamma
     oi {Gamma = []} = oz
@@ -232,17 +232,14 @@
 \Fixme{Move |Expr|-independent thinning operations on |Ref|, |Env| to a separate chapter? (basically |Language.Core|)}
 
 
-\section{Dead Binding Elimination}
-\label{sec:de-bruijn-dbe}
-
-\subsection{Variable Liveness}
-\label{sec:de-bruijn-dbe-liveness}
+\section{Variable Liveness}
+\label{sec:de-bruijn-liveness}
     We use thinnings |Delta C= Gamma| to indicate the \emph{live variables} |Delta|
     within the context |Gamma|.
     The list |Delta| is not enough:
     If the original context contains multiple variables of the same type,
     ambiguities can arise.
-    Live variables |NAT :: []| in context |NAT :: NAT :: []|
+    For example, live variables |NAT :: []| in context |NAT :: NAT :: []|
     could refer to the first or second variable in scope,
     but the thinnings |os (o' oz)| and |o' (os oz)| distinguish the two cases.
     We now need operations to merge live contexts of multiple subexpressions
@@ -337,6 +334,10 @@
     \end{code}
     We do not need the composed thinnings into the live context,
     as we will always distinguish the two cases of |theta2| anyways.
+
+
+\section{Dead Binding Elimination}
+\label{sec:de-bruijn-dbe}
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-dbe-direct}

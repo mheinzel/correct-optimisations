@@ -7,6 +7,11 @@
 \section{Intrinsically Typed Syntax}
 \label{sec:co-de-bruijn-intrinsically-typed}
 \Draft{
+  \Outline{Explain relevant pairs, binders etc., based on thinnings.}
+  \Outline{Explain how this representation is similar/different to |LiveExpr|.}
+  \Outline{Explain how this representation enforces relevance,
+    and corresponds to (weak) dead binding elimination
+    (or leave that to the DBE section?).}
   We follow McBride's work on co-de-Bruijn representation
   \cite{McBride2018EveryBodysGotToBeSomewhere}
   and use thinnings |_C=_| to define the type of relevant pairs |_><R_|
@@ -66,6 +71,7 @@
 
 \section{Dead Binding Elimination}
 \label{sec:co-de-bruijn-dbe}
+    \Fixme{Why distinguish between weak/strong so much here, but not for de Bruijn?}
 \Draft{
   Co-de-Bruijn expressions enforce that every variable in an expression's context
   must occur somewhere.
