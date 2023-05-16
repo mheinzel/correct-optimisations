@@ -6,13 +6,20 @@ institute: Utrecht University
 theme: metropolis
 ---
 
-# $\lambda$-calculus
-  - well studied notion of computation
-  - we add let-bindings, Booleans, integers and addition
-
-  $$ \text{(definition)} $$
+[comment]: # This is probably too much content for a 30-45 min talk, but we can still cut later.
+[comment]: # TODO: Fix display of lambda, =>, ⊆ and ;;
 
 # Analysis and Transformation
+
+## Expression Language
+  $$ \text{(definition)} $$
+
+  - based on $\lambda$-calculus
+    - well studied notion of computation
+  - we add let-bindings, Booleans, integers and addition
+
+## Analysis and Transformation
+
   - fundamental part of compilers
   - we focus on those dealing with bindings
 
@@ -60,7 +67,7 @@ theme: metropolis
 
 # Intrinsically Typed de Bruijn Representation
 
-[comment]: # start showing Agda code (similar to Haskell!)
+[comment]: # start showing Agda code (looks similar to Haskell, but total!)
 [comment]: # work towards it, motivate design
 
 ## Naive Syntax
@@ -70,7 +77,7 @@ theme: metropolis
       App  : Expr → Expr → Expr
       Lam  : Expr → Expr
       Let  : Expr → Expr → Expr
-      Num  : Int → Expr
+      Num  : Nat → Expr
       Bln  : Bool → Expr
       Plus : Expr → Expr → Expr
   ```
@@ -86,6 +93,11 @@ theme: metropolis
       _=>_ : U → U → U
       BOOL : U
       NAT  : U
+
+    ⟦_⟧ : U → Set
+    ⟦ σ => τ ⟧ = ⟦ σ ⟧ → ⟦ τ ⟧
+    ⟦ BOOL ⟧   = Bool
+    ⟦ NAT ⟧    = Nat
   ```
 
 ## Sorts
@@ -99,30 +111,31 @@ theme: metropolis
       Plus : Expr NAT → Expr NAT → Expr NAT
   ```
 
-  - helps, but variables are still not safe!
+  - helps, e.g. addition now only on numbers
+  - but variables are still not safe!
 
 ## Context
-  - always consider which variables are in scope
+  - always consider *context*, i.e. which variables are in scope
 
   ```agda
     Ctx = List U
 
     data Ref (σ : U) : Ctx → Set where
-      Top  : Ref σ (σ ∷ Γ)
-      Pop  : Ref σ Γ → Ref σ (τ ∷ Γ)
+      Top  : Ref σ (σ :: Γ)
+      Pop  : Ref σ Γ → Ref σ (τ :: Γ)
   ```
 
   - a reference is both:
     - an index (unary numbers)
-    - proof that a fitting binding is in scope
+    - proof that a fitting binding is in the context
 
 ## Intrinsically Typed Syntax
   ```agda
     data Expr : U → Ctx → Set where
       Var  : Ref σ Γ → Expr σ Γ
       App  : Expr (σ => τ) Γ → Expr σ Γ → Expr τ Γ
-      Lam  : Expr τ (σ ∷ Γ) → Expr (σ => τ) Γ
-      Let  : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ
+      Lam  : Expr τ (σ :: Γ) → Expr (σ => τ) Γ
+      Let  : Expr σ Γ → Expr τ (σ :: Γ) → Expr τ Γ
       Val  : ⟦ σ ⟧ → Expr σ Γ
       Plus : Expr NAT Γ → Expr NAT Γ → Expr NAT Γ
   ```
@@ -130,13 +143,104 @@ theme: metropolis
   - *intrinsically* typed
   - well-typed and well-scoped *by construction*!
 
+## Evaluation
+  - during evaluation, we have an *environment*
+
+    (a value for each variable in the context)
+
+  ```agda
+    data Env : List I → Set where
+      Nil   : Env []
+      Cons  : ⟦ σ ⟧ → Env Γ → Env (σ :: Γ)
+
+    eval : Expr σ Γ → Env Γ → ⟦ σ ⟧
+  ```
+
+## Evaluation
+  ```agda
+    data Ref (σ : U) : Ctx → Set where
+      Top  : Ref σ (σ :: Γ)
+      Pop  : Ref σ Γ → Ref σ (τ :: Γ)
+
+    data Env : List I → Set where
+      Nil   : Env []
+      Cons  : ⟦ σ ⟧ → Env Γ → Env (σ :: Γ)
+
+    lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
+    lookup Top      (Cons v env)   = v
+    lookup (Pop i)  (Cons v env)   = lookup i env
+  ```
+
+  - lookup is total
+
+## Intrinsically Typed Syntax
+  ```agda
+    eval : Expr σ Γ → Env Γ → ⟦ σ ⟧
+    eval (Var x)      env = lookup x env
+    eval (App e₁ e₂)  env = eval e₁ env (eval e₂ env)
+    eval (Lam e)      env = \ v → eval e (Cons v env)
+    eval (Let e₁ e₂)  env = eval e₂ (Cons (eval e₁ env) env)
+    eval (Val v)      env = v
+    eval (Plus e₁ e₂) env = eval e₁ env + eval e₂ env
+  ```
+
+  - evaluation is total
+
 ## Variable Liveness
+  - we want to talk about the *live* context (result of LVA)
+
+  ```agda
+    foo : Expr (BOOL => NAT) [ NAT , NAT ]
+    foo = Lam (Plus (Val 42) (Var (Pop Top)))
+  ```
+
+  - here: `[ NAT ]`, but which variable does that refer to?
+    - live context alone is ambiguous!
+  - also, we need operations (popping top variable, union)
 
 ## Thinnings
+  - we use *thinnings* (order-preserving embeddings)
+
+  ```agda
+    data _⊆_ : List I → List I → Set where
+      o' : Δ ⊆ Γ →       Δ  ⊆ (τ :: Γ)  -- drop
+      os : Δ ⊆ Γ → (τ :: Δ) ⊆ (τ :: Γ)  -- keep
+      oz : [] ⊆ []                         -- done
+  ```
+
+  ```
+    a ------ a      os
+           - b      o'
+    c ------ c      os
+                    oz
+  ```
+
+  ```agda
+    os (o' (os oz)) : [ a , c ] ⊆ [ a , b , c ]
+  ```
+
+## Thinnings (composition)
+  ```agda
+    _;;_ : Δ ⊆ Γ → Γ ⊆ Ω → Δ ⊆ Ω
+  ```
+
+  ```
+    a ------ a      a ------ a     a ------ a
+                ;;         - b  =         - b
+           - c      c ------ c            - c
+  ```
+
+[comment]: # corresponds to (os (o' oz)  ;;  os (o' (os oz)) = os (o' (o' oz)) : (a :: []) ⊆ (a :: b :: c :: []))
 
 # Intrinsically Typed co-de-Bruijn Representation
 
 # Generic co-de-Bruijn Representation
+
+# Other Transformations
+
+## Let-sinking
+
+# Discussion
 
 
 ## {.standout}
