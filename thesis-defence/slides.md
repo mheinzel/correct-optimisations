@@ -21,24 +21,24 @@ theme: metropolis
   - we add let-bindings, Booleans, integers and addition
 
 ## Analysis and Transformation
-
   - fundamental part of compilers
   - we focus on those dealing with bindings
 
   $$ \text{(example with opportunities for inlining, DBE, moving binding)} $$
 
-## Dead Binding Elimination
+## Dead Binding Elimination (DBE)
   - remove dead (unused) bindings
   - which bindings exactly are dead?
 
   $$ \text{(example with binding only used in other dead declaration)} $$
 
-## Live Variable Analysis
+## Live Variable Analysis (LVA)
   - collect live variables, bottom up
   - for *strongly* live variable analysis, at let-binding:
     - only consider declaration if its binding is live
 
   $$ \text{(example with binding only used in other dead declaration)} $$
+
 
 # Variable Representations
   - so far, we looked at it conceptually
@@ -67,10 +67,11 @@ theme: metropolis
   - combinations of multiple techniques
   - ... ^[<http://jesper.sikanda.be/posts/1001-syntax-representations.html>]
 
+
 # Intrinsically Typed de Bruijn Representation
 
-[comment]: # start showing Agda code (looks similar to Haskell, but total!)
-[comment]: # work towards it, motivate design
+  [comment]: # start showing Agda code (looks similar to Haskell, but total!)
+  [comment]: # work towards it, motivate design
 
 ## Naive Syntax
   ```agda
@@ -193,15 +194,22 @@ theme: metropolis
 
   ```agda
     foo : Expr (NAT ⇒ NAT) [ NAT , NAT ]
-    foo = Lam (Plus (Val 42) (Var (Pop Top)))
+    foo = Lam (Plus (Var Top) (Var (Pop Top)))
   ```
 
-  - here: `[ NAT ]`, but which variable does that refer to?
-    - live context alone is ambiguous!
-  - also, we need operations (popping top variable, union)
+## Variable Liveness
+  ```agda
+    foo : Expr (NAT ⇒ NAT) [ NAT , NAT ]
+    foo = Lam (Plus (Var Top) (Var (Pop Top)))
+  ```
+
+  - here: only the innermost binding *outside* of `foo` is live
+  - but how to represent that fact in Agda?
+    - `[ NAT ]` is live context, but which variable does that refer to?
+    - conceptually: for each variable, do we keep or drop it?
 
 ## Thinnings
-  - we use *thinnings* (order-preserving embeddings)
+  - we use *thinnings* (order-preserving embeddings) from source into target
 
   ```agda
     data _⊑_ : List I → List I → Set where
@@ -221,6 +229,8 @@ theme: metropolis
     os (o' (os oz)) : [ a , c ] ⊑ [ a , b , c ]
   ```
 
+  [comment]: # There are many options, but thinnings are generally useful and have nice operations.
+
 ## Thinnings (composition)
   ```agda
     _ₒ_ : Γ₁ ⊑ Γ₂ → Γ₂ ⊑ Γ₃ → Γ₁ ⊑ Γ₃
@@ -236,11 +246,16 @@ theme: metropolis
 
 # Intrinsically Typed co-de-Bruijn Representation
 
+
 # Generic co-de-Bruijn Representation
+
 
 # Other Transformations
 
 ## Let-sinking
+  - (optional, can be skipped if low on time)
+  - (just a short glimpse, showing segmented context and thinnings)
+
 
 # Discussion
 
