@@ -7,7 +7,9 @@ theme: metropolis
 ---
 
 [comment]: # This is probably too much content for a 30-45 min talk, but we can still cut later.
-[comment]: # TODO: Fix display of lambda, =>, ⊆ and ;;
+[comment]: # Audience does not need to understand full code. Focus on signatures and things I highlight.
+[comment]: # TODO: Fix alignment, e.g. by setting math symbol width to agree with monospace font.
+
 
 # Analysis and Transformation
 
@@ -90,12 +92,12 @@ theme: metropolis
 
   ```agda
     data U : Set where
-      _=>_ : U → U → U
+      _⇒_ : U → U → U
       BOOL : U
       NAT  : U
 
     ⟦_⟧ : U → Set
-    ⟦ σ => τ ⟧ = ⟦ σ ⟧ → ⟦ τ ⟧
+    ⟦ σ ⇒ τ ⟧ = ⟦ σ ⟧ → ⟦ τ ⟧
     ⟦ BOOL ⟧   = Bool
     ⟦ NAT ⟧    = Nat
   ```
@@ -104,8 +106,8 @@ theme: metropolis
   ```agda
     data Expr : U → Set where
       Var  : Nat → Expr σ
-      App  : Expr (σ => τ) → Expr σ → Expr τ
-      Lam  : Expr τ → Expr (σ => τ)
+      App  : Expr (σ ⇒ τ) → Expr σ → Expr τ
+      Lam  : Expr τ → Expr (σ ⇒ τ)
       Let  : Expr σ → Expr τ → Expr τ
       Val  : ⟦ σ ⟧ → Expr σ
       Plus : Expr NAT → Expr NAT → Expr NAT
@@ -127,14 +129,14 @@ theme: metropolis
 
   - a reference is both:
     - an index (unary numbers)
-    - proof that a fitting binding is in the context
+    - proof that the index refers to a suitable variable in scope
 
 ## Intrinsically Typed Syntax
   ```agda
     data Expr : U → Ctx → Set where
       Var  : Ref σ Γ → Expr σ Γ
-      App  : Expr (σ => τ) Γ → Expr σ Γ → Expr τ Γ
-      Lam  : Expr τ (σ :: Γ) → Expr (σ => τ) Γ
+      App  : Expr (σ ⇒ τ) Γ → Expr σ Γ → Expr τ Γ
+      Lam  : Expr τ (σ :: Γ) → Expr (σ ⇒ τ) Γ
       Let  : Expr σ Γ → Expr τ (σ :: Γ) → Expr τ Γ
       Val  : ⟦ σ ⟧ → Expr σ Γ
       Plus : Expr NAT Γ → Expr NAT Γ → Expr NAT Γ
@@ -178,7 +180,7 @@ theme: metropolis
     eval : Expr σ Γ → Env Γ → ⟦ σ ⟧
     eval (Var x)      env = lookup x env
     eval (App e₁ e₂)  env = eval e₁ env (eval e₂ env)
-    eval (Lam e)      env = \ v → eval e (Cons v env)
+    eval (Lam e₁)     env = λ v → eval e₁ (Cons v env)
     eval (Let e₁ e₂)  env = eval e₂ (Cons (eval e₁ env) env)
     eval (Val v)      env = v
     eval (Plus e₁ e₂) env = eval e₁ env + eval e₂ env
@@ -190,7 +192,7 @@ theme: metropolis
   - we want to talk about the *live* context (result of LVA)
 
   ```agda
-    foo : Expr (BOOL => NAT) [ NAT , NAT ]
+    foo : Expr (NAT ⇒ NAT) [ NAT , NAT ]
     foo = Lam (Plus (Val 42) (Var (Pop Top)))
   ```
 
@@ -202,10 +204,10 @@ theme: metropolis
   - we use *thinnings* (order-preserving embeddings)
 
   ```agda
-    data _⊆_ : List I → List I → Set where
-      o' : Δ ⊆ Γ →       Δ  ⊆ (τ :: Γ)  -- drop
-      os : Δ ⊆ Γ → (τ :: Δ) ⊆ (τ :: Γ)  -- keep
-      oz : [] ⊆ []                         -- done
+    data _⊑_ : List I → List I → Set where
+      o' : Δ ⊑ Γ →       Δ  ⊑ (τ :: Γ)  -- drop
+      os : Δ ⊑ Γ → (τ :: Δ) ⊑ (τ :: Γ)  -- keep
+      oz : [] ⊑ []                         -- done
   ```
 
   ```
@@ -216,21 +218,21 @@ theme: metropolis
   ```
 
   ```agda
-    os (o' (os oz)) : [ a , c ] ⊆ [ a , b , c ]
+    os (o' (os oz)) : [ a , c ] ⊑ [ a , b , c ]
   ```
 
 ## Thinnings (composition)
   ```agda
-    _;;_ : Δ ⊆ Γ → Γ ⊆ Ω → Δ ⊆ Ω
+    _ₒ_ : Γ₁ ⊑ Γ₂ → Γ₂ ⊑ Γ₃ → Γ₁ ⊑ Γ₃
   ```
 
   ```
-    a ------ a      a ------ a     a ------ a
-                ;;         - b  =         - b
-           - c      c ------ c            - c
+    a ------ a     a ------ a     a ------ a
+                ₒ         - b  =         - b
+           - c     c ------ c            - c
   ```
 
-[comment]: # corresponds to (os (o' oz)  ;;  os (o' (os oz)) = os (o' (o' oz)) : (a :: []) ⊆ (a :: b :: c :: []))
+  [comment]: # corresponds to (os (o' oz) ₒ os (o' (os oz)) = os (o' (o' oz)) : (a :: []) ⊑ (a :: b :: c :: []))
 
 # Intrinsically Typed co-de-Bruijn Representation
 
