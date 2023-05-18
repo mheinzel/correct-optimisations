@@ -26,7 +26,8 @@ private
     Γ Γ' Δ : Ctx
 
 transform : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
-transform (Var x) θ' = Var (ref-o θ')
+transform (Var x) θ' =
+  Var (ref-o θ')
 transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
   App
     (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))

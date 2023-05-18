@@ -16,7 +16,7 @@ open Language.Core.Ref {U} {⟦_⟧}
 private
   variable
     σ τ : U
-    Δ Γ : Ctx
+    Δ Γ Γ₁ Γ₂ Γ₃ : Ctx
 
 data Expr : U → Ctx → Set where
   Var   : Ref σ Γ → Expr σ Γ
@@ -56,6 +56,22 @@ rename-Expr⇑ (e ↑ θ) = rename-Expr θ e
 
 weaken : Expr σ Γ → Expr σ (τ ∷ Γ)
 weaken = rename-Expr (o' oi)
+
+law-rename-Expr-ₒ :
+  (e : Expr σ Γ₁) (θ : Γ₁ ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) →
+  rename-Expr (θ ₒ ϕ) e ≡  rename-Expr ϕ (rename-Expr θ e)
+law-rename-Expr-ₒ (Var x) θ ϕ =
+  cong Var (law-rename-Ref-ₒ x θ ϕ)
+law-rename-Expr-ₒ (App e₁ e₂) θ ϕ =
+  cong₂ App (law-rename-Expr-ₒ e₁ θ ϕ) (law-rename-Expr-ₒ e₂ θ ϕ)
+law-rename-Expr-ₒ (Lam e₁) θ ϕ =
+  cong Lam (law-rename-Expr-ₒ e₁ (os θ) (os ϕ))
+law-rename-Expr-ₒ (Let e₁ e₂) θ ϕ =
+  cong₂ Let (law-rename-Expr-ₒ e₁ θ ϕ) (law-rename-Expr-ₒ e₂ (os θ) (os ϕ))
+law-rename-Expr-ₒ (Val v) θ ϕ =
+  refl
+law-rename-Expr-ₒ (Plus e₁ e₂) θ ϕ =
+  cong₂ Plus (law-rename-Expr-ₒ e₁ θ ϕ) (law-rename-Expr-ₒ e₂ θ ϕ)
 
 law-eval-rename-Expr :
   (e : Expr σ Δ) (θ : Δ ⊑ Γ) (env : Env Γ) →

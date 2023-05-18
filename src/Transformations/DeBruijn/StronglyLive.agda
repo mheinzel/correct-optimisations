@@ -72,7 +72,8 @@ forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
 
 -- decide which variables are used or not
 analyse : Expr σ Γ → Σ[ Δ ∈ Ctx ] Σ[ θ ∈ (Δ ⊑ Γ) ] LiveExpr σ θ
-analyse (Var {σ} x) = σ ∷ [] , o-Ref x , Var x
+analyse (Var {σ} x) =
+  σ ∷ [] , o-Ref x , Var x
 analyse (App e₁ e₂) =
   let Δ₁ , θ₁ , le₁ = analyse e₁
       Δ₂ , θ₂ , le₂ = analyse e₂

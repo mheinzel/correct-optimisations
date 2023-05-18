@@ -60,7 +60,7 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   open Env {I} {⟦_⟧}
   private
     variable
-      Γ Γ₁ Γ₂ Δ : List I
+      Γ Γ₁ Γ₂ Γ₃ Δ : List I
       σ τ : I
 
   data Ref (σ : I) : List I → Set where
@@ -72,9 +72,18 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   lookup (Pop i)  (Cons v env)   = lookup i env
 
   rename-Ref : Δ ⊑ Γ → Ref σ Δ → Ref σ Γ
-  rename-Ref (os θ) Top = Top
-  rename-Ref (os θ) (Pop x) = Pop (rename-Ref θ x)
   rename-Ref (o' θ) x = Pop (rename-Ref θ x)
+  rename-Ref (os θ) (Pop x) = Pop (rename-Ref θ x)
+  rename-Ref (os θ) Top = Top
+
+  law-rename-Ref-ₒ :
+    (e : Ref σ Γ₁) (θ : Γ₁ ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) →
+    rename-Ref (θ ₒ ϕ) e ≡  rename-Ref ϕ (rename-Ref θ e)
+  law-rename-Ref-ₒ x       θ      (o' ϕ) = cong Pop (law-rename-Ref-ₒ x θ ϕ)
+  law-rename-Ref-ₒ x       (o' θ) (os ϕ) = cong Pop (law-rename-Ref-ₒ x θ ϕ)
+  law-rename-Ref-ₒ (Pop x) (os θ) (os ϕ) = cong Pop (law-rename-Ref-ₒ x θ ϕ)
+  law-rename-Ref-ₒ Top     (os θ) (os ϕ) = refl
+  law-rename-Ref-ₒ ()      oz     oz
 
   law-lookup-rename-Ref :
     (x : Ref σ Δ) (θ : Δ ⊑ Γ) (env : Env Γ) →
@@ -87,6 +96,10 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
   o-Ref Top     = os oe
   o-Ref (Pop x) = o' (o-Ref x)
+
+  law-rename-Ref-o-Ref : (x : Ref τ Γ) → rename-Ref (o-Ref x) Top ≡ x
+  law-rename-Ref-o-Ref Top = refl
+  law-rename-Ref-o-Ref (Pop x) = cong Pop (law-rename-Ref-o-Ref x)
 
   ref-o : (τ ∷ []) ⊑ Γ → Ref τ Γ
   ref-o (o' θ) = Pop (ref-o θ)

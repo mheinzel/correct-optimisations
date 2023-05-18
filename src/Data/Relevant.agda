@@ -26,7 +26,7 @@ data Cover : {I : Set} {Γ₁ Γ₂ Γ : List I} → Γ₁ ⊑ Γ → Γ₂ ⊑ 
   c's : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (o' θ₁) (os θ₂)
   cs' : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (os θ₁) (o' θ₂)
   css : {θ₁ : Γ₁ ⊑ Γ} {θ₂ : Γ₂ ⊑ Γ} → Cover θ₁ θ₂ → Cover {Γ = τ ∷ _} (os θ₁) (os θ₂)
-  czz  : Cover {I} oz oz
+  czz : Cover {I} oz oz
 
 infixr 19 _++ᶜ_
 
