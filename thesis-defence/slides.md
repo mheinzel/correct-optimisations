@@ -500,7 +500,141 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 
 
 ## Dead Binding Elimination (using annotations)
-  TODO: continue
+  - repeated renaming can be avoided by first running analysis
+    - so we know upfront which which context to use
+  - common in compilers
+  - annotated syntax tree
+    - again using thinnings, constructed as before
+    - for `{θ : Δ ⊑ Γ}`, we have `LiveExpr σ θ`
+
+## Dead Binding Elimination (using annotations) {frameoptions="shrink"}
+  ```agda
+    data LiveExpr {Γ : Ctx} : {Δ : Ctx} → U → Δ ⊑ Γ → Set where
+      Var :
+        (x : Ref σ Γ) →
+        LiveExpr σ (o-Ref x)
+      App :
+        {θ₁ : Δ₁ ⊑ Γ} {θ₂ : Δ₂ ⊑ Γ} →
+        LiveExpr (σ ⇒ τ) θ₁ →
+        LiveExpr σ θ₂ →
+        LiveExpr τ (θ₁ ∪ θ₂)
+      Lam :
+        {θ : Δ ⊑ (σ ∷ Γ)} →
+        LiveExpr τ θ →
+        LiveExpr (σ ⇒ τ) (pop θ)
+      Let : ...
+      Val : ...
+      Plus : ...
+  ```
+
+## Dead Binding Elimination (using annotations)
+  ```agda
+    Let :
+      {θ₁ : Δ₁ ⊑ Γ} {θ₂ : Δ₂ ⊑ (σ ∷ Γ)} →
+      LiveExpr σ θ₁ → LiveExpr τ θ₂ →
+      LiveExpr τ (combine θ₁ θ₂)
+  ```
+
+  - in direct approach, handled in two cases
+  - for analysis, we have a choice:
+
+    1. treat `Let` as an immediately `App`lied  `Lam`
+
+        ```agda
+          combine θ₁ θ₂ = θ₁ ∪ pop θ₂
+        ```
+
+    2. custom operation for *strongly* live variable analysis
+
+        ```agda
+          combine θ₁ (o' θ₂) = θ₂
+          combine θ₁ (os θ₂) = θ₁ ∪ θ₂
+        ```
+
+        (only consider declaration if binding is live!)
+
+## Dead Binding Elimination (using annotations)
+  - now, construct an annotated expression
+
+  ```agda
+    analyse :
+      Expr σ Γ →
+      Σ[ Δ ∈ Ctx ]
+        Σ[ θ ∈ (Δ ⊑ Γ) ]
+          LiveExpr σ θ
+  ```
+
+  - annotations can also be forgotten again
+
+  ```agda
+    forget : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Expr σ Γ
+  ```
+
+## Dead Binding Elimination (using annotations)
+  - implementation does not surprise
+
+  ```agda
+    analyse (Var {σ} x) =
+      σ ∷ [] , o-Ref x , Var x
+    analyse (App e₁ e₂) =
+      let Δ₁ , θ₁ , le₁ = analyse e₁
+          Δ₂ , θ₂ , le₂ = analyse e₂
+      In ∪-domain θ₁ θ₂ , (θ₁ ∪ θ₂) , App le₁ le₂
+    ...
+  ```
+
+## Dead Binding Elimination (using annotations)
+  - after analysis, do transformation
+  - caller can choose the context (but at least live context)
+  - together, same type signature as direct approach
+
+  ```agda
+    transform : {θ : Δ ⊑ Γ} →
+      LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
+
+    dbe : Expr σ Γ → Expr σ ⇑ Γ
+    dbe e =
+      let Δ , θ , le = analyse e
+      in transform le oi ↑ θ
+  ```
+
+## Dead Binding Elimination (using annotations)
+  - no renaming anymore, directly choose desired context
+
+  ```agda
+    transform (Var x) θ' = Var (ref-o θ')
+    transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
+      App (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
+          (transform e₂ (un-∪₂ θ₁ θ₂ ₒ θ'))
+    transform (Lam {θ = θ} e₁) θ' =
+      Lam (transform e₁ (un-pop θ ₒ os θ'))
+    ...
+  ```
+
+## Dead Binding Elimination (using annotations)
+  - for `Let`, again split on thinning
+  ```agda
+    ...
+    transform (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) θ' =
+      transform e₂ (un-∪₂ θ₁ θ₂  ₒ θ')
+    transform (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) θ' =
+      Let (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
+          (transform e₂ (os (un-∪₂ θ₁ θ₂ ₒ θ')))
+    ...
+  ```
+
+## Dead Binding Elimination (using annotations)
+### Correctness
+  - TODO (first decide on phrasing of specification)
+
+[comment]: # Discussion also includes insight from other transformations.
+
+## Dead Binding Elimination (using annotations)
+### Discussion
+  - analysis requires an extra pass, but is useful
+  - `LiveExpr` is indexed by two contexts, which seems redundant
+  - currently, transformations get rid of annotations
+    - maintaining them would require more effort
 
 
 # Intrinsically Typed co-de-Bruijn Representation
