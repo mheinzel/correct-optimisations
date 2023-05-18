@@ -29,9 +29,9 @@ dbe (Var x) =
 dbe (App e₁ e₂) =
   let e₁' ↑ θ₁ = dbe e₁
       e₂' ↑ θ₂ = dbe e₂
-  in App
-       (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
-       (rename-Expr (un-∪₂ θ₁ θ₂) e₂') ↑ (θ₁ ∪ θ₂)
+  in App (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
+         (rename-Expr (un-∪₂ θ₁ θ₂) e₂')
+     ↑ (θ₁ ∪ θ₂)
 dbe (Lam e₁) =
   let e₁' ↑ θ = dbe e₁
   in Lam (rename-Expr (un-pop θ) e₁') ↑ pop θ
@@ -39,15 +39,17 @@ dbe (Let e₁ e₂) with dbe e₁ | dbe e₂
 ... | e₁' ↑ θ₁  | e₂' ↑ o' θ₂ =
   e₂' ↑ θ₂
 ... | e₁' ↑ θ₁  | e₂' ↑ os θ₂ =
-  Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁') (rename-Expr (os (un-∪₂ θ₁ θ₂)) e₂') ↑ (θ₁ ∪ θ₂)
+  Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
+      (rename-Expr (os (un-∪₂ θ₁ θ₂)) e₂')
+  ↑ (θ₁ ∪ θ₂)
 dbe (Val v) =
-  (Val v) ↑ oe
+  Val v ↑ oe
 dbe (Plus e₁ e₂) =
   let e₁' ↑ θ₁ = dbe e₁
       e₂' ↑ θ₂ = dbe e₂
-  in Plus
-       (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
-       (rename-Expr (un-∪₂ θ₁ θ₂) e₂') ↑ (θ₁ ∪ θ₂)
+  in Plus (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
+          (rename-Expr (un-∪₂ θ₁ θ₂) e₂')
+     ↑ (θ₁ ∪ θ₂)
 
 dbe-correct-Var :
   (x : Ref σ Γ) (env : Env Γ) →
