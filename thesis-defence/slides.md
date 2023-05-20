@@ -638,6 +638,115 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 
 
 # Intrinsically Typed co-de-Bruijn Representation
+  - "dual" to de Bruijn indices, due to Conor McBride:
+    - de Bruijn indices pick from the context "as late as possible"
+    - co-de-Bruijn gets rid of bindings "as early as possible"
+      - using thinnings
+  - observation: expressions indexed by their (weakly) live context
+
+## Intrinsically Typed co-de-Bruijn Representation
+  - how to deal with multiple subexpressions?
+  - basically as with `LiveExpr`, find:
+    - a suitable overall context `Γ`
+    - for each subexpression, a thinning into `Γ`
+  - here, we package it as a *relevant pair*
+
+## Intrinsically Typed co-de-Bruijn Representation
+  ```agda
+    record _×ᴿ_ (S T : List I → Set) (Γ : List I) : Set where
+      constructor pairᴿ
+      field
+        outl  : S ⇑ Γ    -- S Δ₁ and Δ₁ ⊑ Γ
+        outr  : T ⇑ Γ    -- T Δ₂ and Δ₂ ⊑ Γ
+        cover : Cover (thinning outl) (thinning outr)
+  ```
+
+  - what is a Cover?
+    - ensures that `Γ` is *relevant*, as small as possible
+
+## Intrinsically Typed co-de-Bruijn Representation
+  - each element of `Γ` needs to be relevant
+  - i.e. at least one thinning keeps
+
+  ```agda
+    data Cover : Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
+      c's : Cover θ₁ θ₂ → Cover (o' θ₁) (os θ₂)
+      cs' : Cover θ₁ θ₂ → Cover (os θ₁) (o' θ₂)
+      css : Cover θ₁ θ₂ → Cover (os θ₁) (os θ₂)
+      czz : Cover oz oz
+  ```
+
+## TODO {frameoptions="shrink"}
+
+  ```agda
+    record _⊢_ (Γ' : List I) (T : List I → Set) (Γ : List I) : Set where
+      constructor _\\_
+      field
+        {bound} : List I
+        thinning : bound ⊑ Γ'
+        thing : T (bound ++ Γ)
+  ```
+
+  ```agda
+    record Coproduct {I : Set} {Γ₁ Γ₂ Γ : List I} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where
+      constructor coproduct
+      field
+        Γ' : List I
+        ψ  : Γ' ⊑ Γ
+        θ' : Γ₁ ⊑ Γ'
+        ϕ' : Γ₂ ⊑ Γ'
+        pθ : θ ≡ (θ' ₒ ψ)
+        pϕ : ϕ ≡ (ϕ' ₒ ψ)
+        c  : Cover θ' ϕ'
+
+    cop : (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) → Coproduct θ ϕ
+    cop (o' θ) (o' ϕ) =
+      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+      in  coproduct _ (o' ψ) _ _ (cong o' pθ) (cong o' pϕ) c
+    cop (o' θ) (os ϕ) =
+      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+      in  coproduct _ (os ψ) _ _ (cong o' pθ) (cong os pϕ) (c's c)
+    cop (os θ) (o' ϕ) =
+      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+      in  coproduct _ (os ψ) _ _ (cong os pθ) (cong o' pϕ) (cs' c)
+    cop (os θ) (os ϕ) =
+      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
+      in  coproduct _ (os ψ) _ _ (cong os pθ) (cong os pϕ) (css c)
+    cop oz oz =
+      coproduct _ oz _ _ refl refl czz
+
+    _,ᴿ_ : S ⇑ Γ → T ⇑ Γ → (S ×ᴿ T) ⇑ Γ
+    (s ↑ θ) ,ᴿ (t ↑ ϕ) =
+      let coproduct _ ψ θ' ϕ' _ _ c = cop θ ϕ
+      in pairᴿ (s ↑ θ') (t ↑ ϕ') c ↑ ψ
+  ```
+
+  ```agda
+    data Expr : (σ : U) (Γ : Ctx) → Set where
+      Var :
+        ∀ {σ} →
+        Expr σ (σ ∷ [])
+      App :
+        ∀ {σ τ Γ} →
+        (Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ →
+        Expr τ Γ
+      Lam :
+        ∀ {σ τ Γ} →
+        ((σ ∷ []) ⊢ Expr τ) Γ →
+        Expr (σ ⇒ τ) Γ
+      Let :
+        ∀ {σ τ Γ} →
+        (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ →
+        Expr τ Γ
+      Val :
+        ∀ {σ} →
+        (v : ⟦ σ ⟧) →
+        Expr σ []
+      Plus :
+        ∀ {Γ} →
+        (Expr NAT ×ᴿ Expr NAT) Γ →
+        Expr NAT Γ
+  ```
 
 
 # Generic co-de-Bruijn Representation
