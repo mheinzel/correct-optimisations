@@ -136,6 +136,9 @@ mult⇑ ((t ↑ θ) ↑ ϕ) = t ↑ (θ ₒ ϕ)
 thin⇑ : Γ₁ ⊑ Γ₂ → T ⇑ Γ₁ → T ⇑ Γ₂
 thin⇑ ϕ (t ↑ θ) = t ↑ (θ ₒ ϕ)
 
+bind⇑ : (∀ {Γ'} → S Γ' → T ⇑ Γ') → S ⇑ Γ → T ⇑ Γ
+bind⇑ f s = mult⇑ (map⇑ f s)
+
 module From⊑ where
   open import Data.Var using (_─Scoped; Var; z; s)
   open import Data.Environment

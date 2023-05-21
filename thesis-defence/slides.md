@@ -649,10 +649,10 @@ Discussion also includes insight from other transformations.
 
 ## Intrinsically Typed co-de-Bruijn Representation
   - how to deal with multiple subexpressions?
-  - basically as with `LiveExpr`, find:
-    - a suitable overall context `Γ`
+  - basically, as with `LiveExpr` we need:
+    - a suitable overall context `Γ` (like `_∪_`)
     - for each subexpression, a thinning into `Γ`
-  - here, we package it as a *relevant pair*
+  - building block: *relevant pair*
 
 ## Intrinsically Typed co-de-Bruijn Representation
   ```agda
@@ -664,12 +664,17 @@ Discussion also includes insight from other transformations.
         cover : Cover (thinning outl) (thinning outr)
   ```
 
-  - what is a Cover?
-    - ensures that `Γ` is *relevant*, as small as possible
+  - usage: `(Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ`
+
+. . .
+
+  - what is a cover?
+    - we just have some overall context `Γ`
+    - cover ensures that `Γ` is *relevant*, as small as possible
 
 ## Intrinsically Typed co-de-Bruijn Representation
   - each element of `Γ` needs to be relevant
-  - i.e. at least one thinning keeps
+  - i.e. at least one thinning keeps it
 
   ```agda
     data Cover : Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
@@ -679,77 +684,258 @@ Discussion also includes insight from other transformations.
       czz : Cover oz oz
   ```
 
-## TODO {frameoptions="shrink"}
+## Intrinsically Typed co-de-Bruijn Representation
+  - how to deal with bindings?
+  - here, we allow multiple simultaneous bindings `Γ'`
+    - requires talking about context concatenation (replaces `pop`)
+
+. . .
+
+  - new construct `(Γ' ⊢ T) Γ`, consists of two things:
 
   ```agda
-    record _⊢_ (Γ' : List I) (T : List I → Set) (Γ : List I) : Set where
+    ψ : Δ' ⊑ Γ'     -- which new variables are used?
+    t : T (Δ' ++ Γ)  -- used variables added to context
+  ```
+
+## Intrinsically Typed co-de-Bruijn Representation
+  ```agda
+    record _⊢_ (Γ' : List I)
+               (T : List I → Set)
+               (Γ : List I) : Set where
       constructor _\\_
       field
-        {bound} : List I
-        thinning : bound ⊑ Γ'
-        thing : T (bound ++ Γ)
+        {used} : List I
+        thinning : used ⊑ Γ'
+        thing : T (used ++ Γ)
   ```
 
-  ```agda
-    record Coproduct {I : Set} {Γ₁ Γ₂ Γ : List I} (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) : Set where
-      constructor coproduct
-      field
-        Γ' : List I
-        ψ  : Γ' ⊑ Γ
-        θ' : Γ₁ ⊑ Γ'
-        ϕ' : Γ₂ ⊑ Γ'
-        pθ : θ ≡ (θ' ₒ ψ)
-        pϕ : ϕ ≡ (ϕ' ₒ ψ)
-        c  : Cover θ' ϕ'
+::: notes
+Just for reference, skip this slide quickly.
+:::
 
-    cop : (θ : Γ₁ ⊑ Γ) (ϕ : Γ₂ ⊑ Γ) → Coproduct θ ϕ
-    cop (o' θ) (o' ϕ) =
-      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
-      in  coproduct _ (o' ψ) _ _ (cong o' pθ) (cong o' pϕ) c
-    cop (o' θ) (os ϕ) =
-      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
-      in  coproduct _ (os ψ) _ _ (cong o' pθ) (cong os pϕ) (c's c)
-    cop (os θ) (o' ϕ) =
-      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
-      in  coproduct _ (os ψ) _ _ (cong os pθ) (cong o' pϕ) (cs' c)
-    cop (os θ) (os ϕ) =
-      let coproduct _ ψ _ _ pθ pϕ c = cop θ ϕ
-      in  coproduct _ (os ψ) _ _ (cong os pθ) (cong os pϕ) (css c)
-    cop oz oz =
-      coproduct _ oz _ _ refl refl czz
-
-    _,ᴿ_ : S ⇑ Γ → T ⇑ Γ → (S ×ᴿ T) ⇑ Γ
-    (s ↑ θ) ,ᴿ (t ↑ ϕ) =
-      let coproduct _ ψ θ' ϕ' _ _ c = cop θ ϕ
-      in pairᴿ (s ↑ θ') (t ↑ ϕ') c ↑ ψ
-  ```
+## Intrinsically Typed co-de-Bruijn Representation
 
   ```agda
-    data Expr : (σ : U) (Γ : Ctx) → Set where
+    data Expr : U → Ctx → Set where
       Var :
-        ∀ {σ} →
         Expr σ (σ ∷ [])
       App :
-        ∀ {σ τ Γ} →
         (Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ →
         Expr τ Γ
       Lam :
-        ∀ {σ τ Γ} →
         ((σ ∷ []) ⊢ Expr τ) Γ →
         Expr (σ ⇒ τ) Γ
       Let :
-        ∀ {σ τ Γ} →
         (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ →
         Expr τ Γ
-      Val :
-        ∀ {σ} →
-        (v : ⟦ σ ⟧) →
-        Expr σ []
-      Plus :
-        ∀ {Γ} →
-        (Expr NAT ×ᴿ Expr NAT) Γ →
-        Expr NAT Γ
+      ...
   ```
+
+[comment]: # Could also talk about evaluation briefly. Precursor to `relax`, accumulating thinning.
+
+## Conversion From Co-de-Bruijn syntax
+  - take all those thinnings at the nodes
+  - only use them at the latest moment, variables
+
+  ```agda
+    relax : Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr σ Γ
+  ```
+
+  - keep composing the thinning
+    - how do we deal with bindings (`ψ \\ e`)?
+
+## Concatenation of Thinnings
+  - thinnings have monoidal structure
+
+  ```agda
+    _++⊑_ :
+      Δ₁ ⊑ Γ₁ → Δ₂ ⊑ Γ₂ →
+      (Δ₁ ++ Δ₂) ⊑ (Γ₁ ++ Γ₂)
+  ```
+
+  - extends to covers
+
+  ```agda
+    _++ᶜ_ :
+      Cover θ₁ θ₂ → Cover ϕ₁ ϕ₂ →
+      Cover (θ₁ ++⊑ ϕ₁) (θ₂ ++⊑ ϕ₂)
+  ```
+
+[comment]: # TODO: Not sure if this is actually needed for the presentation.
+
+## Conversion From Co-de-Bruijn syntax
+  ```agda
+    relax : Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr σ Γ
+    relax θ Var =
+      -- eventually turn thinning into Ref
+      DeBruijn.Var (ref-o θ)
+    relax θ (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
+      DeBruijn.App (relax (ϕ₁ ₒ θ) e₁) (relax (ϕ₂ ₒ θ) e₂)
+    relax θ (Lam (ψ \\ e)) =
+      DeBruijn.Lam (relax (ψ ++⊑ θ) e)
+    relax θ (Let (pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c)) =
+      -- combination of product and binding
+      DeBruijn.Let (relax (θ₁ ₒ θ) e₁) (relax (ψ ++⊑ (θ₂ ₒ θ)) e₂)
+    ...
+  ```
+
+## Conversion To Co-de-Bruijn syntax
+  - other direction is harder
+  - we need to find all these thinnings
+  - resulting live context not known upfront, use `_⇑_`
+
+  ```agda
+    tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
+  ```
+
+## Conversion To Co-de-Bruijn syntax
+  ```agda
+    _,ᴿ_ : S ⇑ Γ → T ⇑ Γ → (S ×ᴿ T) ⇑ Γ
+  ```
+
+  - implementation similar to `_∪_`, but also constructs cover
+
+  ```agda
+    _\\ᴿ_ : (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
+  ```
+
+  - relies on the fact that thinnings can be split
+
+## Conversion To Co-de-Bruijn syntax
+  ```agda
+    tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
+    tighten (DeBruijn.Var x) =
+      Var ↑ o-Ref x
+    tighten (DeBruijn.App e₁ e₂) =
+      map⇑ App (tighten e₁ ,ᴿ tighten e₂)
+    tighten (DeBruijn.Lam e) =
+      map⇑ Lam ((_ ∷ []) \\ᴿ tighten e)
+    tighten (DeBruijn.Let e₁ e₂) =
+      map⇑ Let (tighten e₁ ,ᴿ ((_ ∷ []) \\ᴿ tighten e₂))
+    ...
+  ```
+
+  ```agda
+    -- map⇑ f (t ↑ θ) = f t ↑ θ
+  ```
+
+## Conversion To Co-de-Bruijn syntax
+  - also prove that conversion agrees with semantics
+
+  ```agda
+    relax-correct :
+      (e : Expr τ Γ') (θ : Γ' ⊑ Γ) (env : Env Γ) →
+      let e' = relax θ e
+      in DeBruijn.eval e' env ≡ eval e θ env
+
+    tighten-correct :
+      (e : DeBruijn.Expr τ Γ) (env : Env Γ) →
+      let e' ↑ θ' = tighten e
+      in eval e' θ' env ≡ DeBruijn.eval e env
+  ```
+
+## Dead Binding Elimination (co-de-Bruijn)
+  - co-de-Bruijn: all variables in the context must occur
+  - but let-bindings can still be dead (`o' oz \\ e₂`)
+    - easy to identify now
+    - remove them!
+
+. . .
+
+  - this might make some (previously weakly live) bindings dead
+    - context gets smaller
+
+  ```agda
+    dbe : Expr τ Γ → Expr τ ⇑ Γ
+  ```
+
+## Dead Binding Elimination (co-de-Bruijn)
+  ```agda
+    dbe : Expr τ Γ → Expr τ ⇑ Γ
+    dbe Var =
+      Var ↑ oi
+    dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
+      map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
+    dbe (Lam (_\\_ {Γ'} ψ e)) =
+      map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
+    ...
+  ```
+
+## Dead Binding Elimination (co-de-Bruijn)
+  ```agda
+    dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((o' oz \\ e₂) ↑ ϕ₂) c)) =
+      thin⇑ ϕ₂ (dbe e₂)
+    dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((os oz \\ e₂) ↑ ϕ₂) c)) =
+      map⇑ Let
+        (  thin⇑ ϕ₁ (dbe e₁)
+        ,ᴿ thin⇑ ϕ₂ ((_ ∷ []) \\ᴿ dbe e₂)
+        )
+  ```
+
+  - option 1: check liveness in input
+  - binding might still become dead in dbe e₂
+  - correspondes to *weakly* live variable analysis
+
+
+## Dead Binding Elimination (co-de-Bruijn)
+  ```agda
+    Let? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+    Let?   (pairᴿ _ ((o' oz \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂
+    Let? p@(pairᴿ _ ((os oz \\ _)  ↑ _)  _) = Let p ↑ oi
+
+    dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((_\\_ {Γ'} ψ e₂) ↑ ϕ₂) c)) =
+      bind⇑ Let?
+        (  thin⇑ ϕ₁ (dbe e₁)
+        ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\ᴿ dbe e₂))
+        )
+  ```
+
+  - option 2: check liveness after recursive call
+  - correspondes to *strongly* live variable analysis
+
+## Dead Binding Elimination (co-de-Bruijn)
+  - correctness, simplest statement:
+
+  ```agda
+    dbe-correct :
+      (e : Expr τ Γ) (env : Env Γ) →
+      let e' ↑ θ = dbe e
+      in eval e' θ env ≡ eval e oi env
+  ```
+
+  - more flexibility for inductive step:
+
+  ```agda
+    dbe-correct :
+      (e : Expr τ Δ) (env : Env Γ) (θ : Δ ⊑ Γ) →
+      let e' ↑ θ' = dbe e
+      in eval e' (θ' ₒ θ) env ≡ eval e θ env
+  ```
+
+## Dead Binding Elimination (co-de-Bruijn)
+  - correctness proof requires extensive massaging
+  - associativity of thinnings, identities, ...
+  - laws about `project-Env` with `_ₒ_` and `oi`
+  - laws about thinnings created by `_,ᴿ_`
+  - `(θ ₒ θ') ++⊑ (ϕ ₒ ϕ') ≡ (θ ++⊑ ϕ) ₒ (θ' ++⊑ ϕ')`
+
+  - for strong version:
+    - `Let? p` semantically equivalent to `Let p`
+
+## Intrinsically Typed co-de-Bruijn Representation
+### Discussion
+  - co-de-Bruijn representation keeps benefits of `LiveExpr`
+    - liveness information available by design
+  - some parts get simpler (just a single context)
+  - some parts get more complicated (mainly proofs)
+    - thinnings in result requires reasoning about them a lot
+    - operations on thinnings get quite complex
+  - building blocks (e.g. relevant pair) allow code reuse
+
+::: notes
+We can take this further!
+:::
 
 
 # Generic co-de-Bruijn Representation

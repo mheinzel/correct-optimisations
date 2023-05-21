@@ -69,13 +69,13 @@ mutual
   -- but where the body is revealed to not use the top variable after the recursive call.
   dbe : Expr τ Γ → Expr τ ⇑ Γ
   dbe Var =
-    Var ↑ os oz
+    Var ↑ oi
   dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
     map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
   dbe (Lam (_\\_ {bound = Γ'} ψ e)) =
     map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
   dbe (Let p) =
-    mult⇑ (map⇑ let-? (dbe-Let p))
+    bind⇑ let-? (dbe-Let p)
   dbe (Val v) =
     Val v ↑ oz
   dbe (Plus (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =

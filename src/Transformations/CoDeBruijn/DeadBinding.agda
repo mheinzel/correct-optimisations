@@ -25,11 +25,11 @@ private
 
 -- Only remove directly dead bindings.
 dbe : Expr τ Γ → Expr τ ⇑ Γ
-dbe {τ} .{τ ∷ []} Var =
-  Var ↑ os oz
+dbe Var =
+  Var ↑ oi
 dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
   map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
-dbe (Lam {σ} (_\\_ {Γ'} ψ e)) =
+dbe (Lam (_\\_ {Γ'} ψ e)) =
   map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
 -- NOTE: We check liveness given based on the the variable usage in the input Expr.
 -- But dbe e₂ might reveal the variable to be dead even if previously marked live!

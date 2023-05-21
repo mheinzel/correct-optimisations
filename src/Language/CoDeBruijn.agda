@@ -108,8 +108,8 @@ lemma-eval-Let p env θ = refl
 
 -- decide which variables are used or not
 into : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
-into (DeBruijn.Var {σ} x) =
-  Var {σ} ↑ o-Ref x
+into (DeBruijn.Var x) =
+  Var ↑ o-Ref x
 into (DeBruijn.App e₁ e₂) =
   map⇑ App (into e₁ ,ᴿ into e₂)
 into (DeBruijn.Lam e) =
@@ -117,7 +117,7 @@ into (DeBruijn.Lam e) =
 into (DeBruijn.Let e₁ e₂) =
   map⇑ Let (into e₁ ,ᴿ ((_ ∷ []) \\ᴿ into e₂))
 into (DeBruijn.Val v) =
-  (Val v) ↑ oe
+  Val v ↑ oe
 into (DeBruijn.Plus e₁ e₂) =
   map⇑ Plus (into e₁ ,ᴿ into e₂)
 

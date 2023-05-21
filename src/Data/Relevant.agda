@@ -87,6 +87,7 @@ record _×ᴿ_ (S T : I ─Indexed) (Γ : List I) : Set where
     outr  : T ⇑ Γ
     cover : Cover (_⇑_.thinning outl) (_⇑_.thinning outr)
 
+-- TODO: Maybe "used" would fit better than "bound"?
 record _⊢_ (Γ' : List I) (T : I ─Indexed) (Γ : List I) : Set where
   constructor _\\_
   field
