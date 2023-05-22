@@ -938,28 +938,223 @@ We can take this further!
 :::
 
 
-# Generic co-de-Bruijn Representation
+# Syntax-generic co-de-Bruijn Representation
 
-## Datatype-generic Programming
+::: notes
+Some might know datatype-generic programming, e.g. `GHC.Generics`.
+:::
 
 ## Syntax-generic Programming
-  - Allais et al.:
-    *A type- and scope-safe universe of syntaxes with binding: their semantics and proofs*
-  - defines a universe of syntaxes
-  - interprets it into de Bruijn terms
-  - generic implementations of renaming, substitution, ...
+  - based on work by Allais et al.
+    - *A type- and scope-safe universe of syntaxes with binding: their semantics and proofs*
+  - problem:
+    - any time you define a language, you need common operations (renaming, substitution, ...) and laws about them
+    - for these, languages need variables and bindings, the rest is noise
+    - `Ctrl+C`, `Ctrl+V`?
 
-## Generic co-de-Bruijn Representation
+## Syntax-generic Programming
+
+::: notes
+The code takes some time to understand in detail, so let's focus on the main ideas
+:::
+
+  - main idea:
+    - define a datatype of syntax descriptions `Desc`
+    - each `(d : Desc I)` describes a language of terms `Tm d σ Γ`
+    - implement operations *once*, generically over descriptions
+
+      ```agda
+        foo : (d : Desc I) → Tm d σ Γ → ...
+      ```
+
+    - describe your language using `Desc`, get operations for free
+
+. . .
+
+  - authors created Agda package `generic-syntax`
+    - we build on top of that
+    - made it compile with recent Agda versions
+      (had to remove sized types that were used to show termination)
+
+## Syntax-generic Programming
+  ```agda
+    data Desc (I : Set) : Set₁ where
+      `σ : (A : Set) → (A → Desc I)  → Desc I
+      `X : List I → I → Desc I       → Desc I
+      `∎ : I                         → Desc I
+  ```
+
+  - TODO: don't try to describe, just show example
+
+## Syntax-generic Programming
+  - variables are assumed, no need to describe them
+
+  ```agda
+    data `Lang : Set where
+      `App  : U → U → `Lang
+      `Lam  : U → U → `Lang
+      `Let  : U → U → `Lang
+      `Val  : U → `Lang
+      `Plus : `Lang
+
+    Lang : Desc U
+    Lang = `σ `Lang λ where
+      (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
+      (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
+      (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
+      (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
+      `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
+  ```
+
+## Syntax-generic co-de-Bruijn Representation
   - we interpret into co-de-Bruijn terms instead
     - McBride had something similar, but for different `Desc` type
 
+  ```agda
+    _─Scoped : Set → Set₁
+    I ─Scoped = I → List I → Set
+  ```
+
+  - something indexed by sort and context
+    - e.g. `Expr : U ─Scoped`
+
+  ```agda
+    ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
+    ⟦ `σ A d    ⟧ X i Γ = Σ[ a ∈ A ] (⟦ d a ⟧ X i Γ)
+    ⟦ `X Δ j d  ⟧ X i = X Δ j ×ᴿ ⟦ d ⟧ X i
+    ⟦ `∎ j      ⟧ X i Γ = i ≡ j × Γ ≡ []
+  ```
+
+  ```agda
+    Scope : I ─Scoped → List I → I ─Scoped
+    Scope T   []       i = T i
+    Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
+  ```
+
+  ```agda
+    data Tm (d : Desc I) : I ─Scoped where
+      `var  : Tm d i (i ∷ [])
+      `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i ⇒ Tm d i ]
+  ```
+
+  - TODO: `×ᴿ-trivial`?
+
 ## Generic co-de-Bruijn Representation
 
-## Generic Conversion To Co-de-Bruijn syntax
+[comment]: # TODO: do we need all that information about the conversion? Just a single slide instead?
 
-## Generic Conversion From Co-de-Bruijn syntax
+## Generic Conversion From Co-de-Bruijn Syntax
+  - mutually recursive functions
+
+  ```agda
+    relax :
+      (d : Desc I) → Δ ⊑ Γ →
+      CoDeBruijn.Tm d τ Δ →
+      DeBruijn.Tm d τ Γ
+
+    relax-Scope :
+      (Δ : List I) (d : Desc I) → Δ ⊑ Γ →
+      CoDeBruijn.Scope (CoDeBruijn.Tm d) Δ τ Δ →
+      DeBruijn.Scope (DeBruijn.Tm d) Δ τ Γ
+
+    relax-⟦∙⟧ :
+      (d d' : Desc I) → Δ ⊑ Γ →
+      CoDeBruijn.⟦ d ⟧ (CoDeBruijn.Scope (CoDeBruijn.Tm d')) τ Δ →
+      DeBruijn.⟦ d ⟧ (DeBruijn.Scope (DeBruijn.Tm d')) τ Γ
+  ```
+
+## Generic Conversion From Co-de-Bruijn Syntax
+  - implementation generic and concise
+
+  ```agda
+    relax d θ `var     = `var (ref-o θ)
+    relax d θ (`con t) = `con (relax-⟦∙⟧ d d θ t)
+
+    relax-Scope []      d θ t        = relax d θ t
+    relax-Scope (_ ∷ _) d θ (ψ \\ t) = relax d (ψ ++⊑ θ) t
+
+    relax-⟦∙⟧ (`σ A k) d' θ (a , t) =
+      a , relax-⟦∙⟧ (k a) d' θ t
+    relax-⟦∙⟧ (`X Δ j d) d' θ (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) cover) =
+      relax-Scope Δ d' (θ₁ ₒ θ) t₁ , relax-⟦∙⟧ d d' (θ₂ ₒ θ) t₂
+    relax-⟦∙⟧ (`∎ j) d' θ (refl , refl) =
+      refl
+  ```
+
+## Generic Conversion To Co-de-Bruijn Syntax
+  - mutually recursive functions
+
+  ```agda
+    tighten :
+      (d : Desc I) →
+      DeBruijn.Tm d τ Γ →
+      CoDeBruijn.Tm d τ ⇑ Γ
+
+    tighten-Scope :
+      (Δ : List I) (d : Desc I) →
+      DeBruijn.Scope (DeBruijn.Tm d) Δ τ Γ →
+      CoDeBruijn.Scope (CoDeBruijn.Tm d) Δ τ ⇑ Γ
+
+    tighten-⟦∙⟧ :
+      (d d' : Desc I) →
+      DeBruijn.⟦ d ⟧ (DeBruijn.Scope (DeBruijn.Tm d')) τ Γ →
+      CoDeBruijn.⟦ d ⟧ (CoDeBruijn.Scope (CoDeBruijn.Tm d')) τ ⇑ Γ
+  ```
+
+## Generic Conversion From Co-de-Bruijn Syntax
+  - implementation generic and concise
+
+  ```agda
+    tighten d (`var x) = `var ↑ o-Ref x
+    tighten d (`con t) = map⇑ `con (tighten-⟦∙⟧ d d t)
+
+    tighten-Scope   []      d t = tighten d t
+    tighten-Scope Δ@(_ ∷ _) d t = Δ \\ᴿ tighten d t
+
+    tighten-⟦∙⟧ (`σ A k) d' (a , t) =
+      map⇑ (a ,_) (tighten-⟦∙⟧ (k a) d' t)
+    tighten-⟦∙⟧ (`X Δ j d) d' (t₁ , t₂) =
+      tighten-Scope Δ d' t₁ ,ᴿ tighten-⟦∙⟧ d d' t₂
+    tighten-⟦∙⟧ (`∎ j) d' refl =
+      (refl , refl) ↑ oe
+  ```
 
 ## Dead Binding Elimination (generic co-de-Bruijn)
+
+## TODO
+  - descriptions are closed under sums
+
+  ```agda
+     _`+_ : Desc I → Desc I → Desc I
+     d `+ e = `σ Bool λ isLeft →
+              if isLeft then d else e
+
+    `Let : Desc I
+    `Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
+      `X [] σ (`X (σ ∷ []) τ (`∎ τ))
+
+    -- ⟦ d ⟧ or ⟦ d' ⟧ in ⟦ d + d' ⟧
+    pattern inl t = true  , t
+    pattern inr t = false , t
+  ```
+
+## Dead Binding Elimination (generic co-de-Bruijn)
+  - mutually recursive functions
+
+  ```agda
+    dbe :
+      Tm (d `+ `Let) τ Γ →
+      Tm (d `+ `Let) τ ⇑ Γ
+    dbe-⟦∙⟧ :
+      ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ Γ →
+      ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ ⇑ Γ
+    dbe-Scope :
+      (Δ : List I) →
+      Scope (Tm (d `+ `Let)) Δ τ Γ →
+      Scope (Tm (d `+ `Let)) Δ τ ⇑ Γ
+  ```
+
+  - TODO: show parts of the implementation?
 
 ## Generic co-de-Bruijn Representation
 ### Discussion
@@ -968,6 +1163,10 @@ We can take this further!
   - defining a similar `Semantics` for co-de-Bruijn expressions seems more difficult
     - scopes change at each node, manipulating them requires re-constructing covers
     - probably easier when operating on thinned expressions (`_⇑_`)
+
+  - correctness proofs?
+    - using which semantics?
+
   - TODO more
 
 
@@ -979,6 +1178,7 @@ We can take this further!
 
 
 # Discussion
+  - TODO
 
 
 ## {.standout}
