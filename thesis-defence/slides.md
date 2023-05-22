@@ -137,7 +137,7 @@ So far, we looked at it conceptually, but how does a compiler represent variable
     - an index (unary numbers)
     - proof that the index refers to a suitable variable in scope
 
-## Intrinsically Typed Syntax
+## Intrinsically Typed de Bruijn Representation
   ```agda
     data Expr : U → Ctx → Set where
       Var  : Ref σ Γ → Expr σ Γ
@@ -151,8 +151,8 @@ So far, we looked at it conceptually, but how does a compiler represent variable
   - *intrinsically* typed
   - well-typed and well-scoped *by construction*!
 
-## Evaluation
-  - during evaluation, we have an *environment*
+## Intrinsically Typed de Bruijn Representation
+  - evaluation requires an *environment*
 
     (a value for each variable in the context)
 
@@ -164,7 +164,7 @@ So far, we looked at it conceptually, but how does a compiler represent variable
     eval : Expr σ Γ → Env Γ → ⟦ σ ⟧
   ```
 
-## Evaluation
+## Intrinsically Typed de Bruijn Representation
   ```agda
     data Ref (σ : U) : Ctx → Set where
       Top  : Ref σ (σ :: Γ)
@@ -181,7 +181,7 @@ So far, we looked at it conceptually, but how does a compiler represent variable
 
   - lookup is total
 
-## Intrinsically Typed Syntax
+## Intrinsically Typed de Bruijn Representation
   ```agda
     eval : Expr σ Γ → Env Γ → ⟦ σ ⟧
     eval (Var x)      env = lookup x env
@@ -499,7 +499,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 [comment]: # TODO: Make this look nicer, e.g. only shrink the code block?
 
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   - repeated renaming can be avoided by first running analysis
     - so we know upfront which which context to use
   - common in compilers
@@ -507,7 +507,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     - again using thinnings, constructed as before
     - for `{θ : Δ ⊑ Γ}`, we have `LiveExpr σ θ`
 
-## Dead Binding Elimination (using annotations) {frameoptions="shrink"}
+## Dead Binding Elimination (annotated) {frameoptions="shrink"}
   ```agda
     data LiveExpr {Γ : Ctx} : {Δ : Ctx} → U → Δ ⊑ Γ → Set where
       Var :
@@ -527,7 +527,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
       Plus : ...
   ```
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   ```agda
     Let :
       {θ₁ : Δ₁ ⊑ Γ} {θ₂ : Δ₂ ⊑ (σ ∷ Γ)} →
@@ -553,7 +553,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 
         (only consider declaration if binding is live!)
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   - now, construct an annotated expression
 
   ```agda
@@ -570,7 +570,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     forget : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Expr σ Γ
   ```
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   - implementation does not surprise
 
   ```agda
@@ -583,7 +583,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     ...
   ```
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   - after analysis, do transformation
   - caller can choose the context (but at least live context)
   - together, same type signature as direct approach
@@ -598,7 +598,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
       in transform le oi ↑ θ
   ```
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   - no renaming anymore, directly choose desired context
 
   ```agda
@@ -611,7 +611,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     ...
   ```
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
   - for `Let`, again split on thinning
   ```agda
     ...
@@ -623,18 +623,21 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     ...
   ```
 
-## Dead Binding Elimination (using annotations)
+## Dead Binding Elimination (annotated)
 ### Correctness
   - TODO (first decide on phrasing of specification)
 
-[comment]: # Discussion also includes insight from other transformations.
-
-## Dead Binding Elimination (using annotations)
+## Intrinsically Typed de Bruijn Representation
 ### Discussion
+
+::: notes
+Discussion also includes insight from other transformations.
+:::
+
   - analysis requires an extra pass, but is useful
-  - `LiveExpr` is indexed by two contexts, which seems redundant
   - currently, transformations get rid of annotations
     - maintaining them would require more effort
+  - `LiveExpr` is indexed by two contexts, which seems redundant
 
 
 # Intrinsically Typed co-de-Bruijn Representation
