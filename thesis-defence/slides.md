@@ -734,7 +734,7 @@ Just for reference, skip this slide quickly.
 
 [comment]: # Could also talk about evaluation briefly. Precursor to `relax`, accumulating thinning.
 
-## Conversion From Co-de-Bruijn syntax
+## Conversion From Co-de-Bruijn Syntax
   - take all those thinnings at the nodes
   - only use them at the latest moment, variables
 
@@ -764,7 +764,7 @@ Just for reference, skip this slide quickly.
 
 [comment]: # TODO: Not sure if this is actually needed for the presentation.
 
-## Conversion From Co-de-Bruijn syntax
+## Conversion From Co-de-Bruijn Syntax
   ```agda
     relax : Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr σ Γ
     relax θ Var =
@@ -780,7 +780,7 @@ Just for reference, skip this slide quickly.
     ...
   ```
 
-## Conversion To Co-de-Bruijn syntax
+## Conversion To Co-de-Bruijn Syntax
   - other direction is harder
   - we need to find all these thinnings
   - resulting live context not known upfront, use `_⇑_`
@@ -789,7 +789,7 @@ Just for reference, skip this slide quickly.
     tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
   ```
 
-## Conversion To Co-de-Bruijn syntax
+## Conversion To Co-de-Bruijn Syntax
   ```agda
     _,ᴿ_ : S ⇑ Γ → T ⇑ Γ → (S ×ᴿ T) ⇑ Γ
   ```
@@ -802,7 +802,7 @@ Just for reference, skip this slide quickly.
 
   - relies on the fact that thinnings can be split
 
-## Conversion To Co-de-Bruijn syntax
+## Conversion To Co-de-Bruijn Syntax
   ```agda
     tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
     tighten (DeBruijn.Var x) =
@@ -820,7 +820,7 @@ Just for reference, skip this slide quickly.
     -- map⇑ f (t ↑ θ) = f t ↑ θ
   ```
 
-## Conversion To Co-de-Bruijn syntax
+## Conversion To Co-de-Bruijn Syntax
   - also prove that conversion agrees with semantics
 
   ```agda
@@ -939,6 +939,36 @@ We can take this further!
 
 
 # Generic co-de-Bruijn Representation
+
+## Datatype-generic Programming
+
+## Syntax-generic Programming
+  - Allais et al.:
+    *A type- and scope-safe universe of syntaxes with binding: their semantics and proofs*
+  - defines a universe of syntaxes
+  - interprets it into de Bruijn terms
+  - generic implementations of renaming, substitution, ...
+
+## Generic co-de-Bruijn Representation
+  - we interpret into co-de-Bruijn terms instead
+    - McBride had something similar, but for different `Desc` type
+
+## Generic co-de-Bruijn Representation
+
+## Generic Conversion To Co-de-Bruijn syntax
+
+## Generic Conversion From Co-de-Bruijn syntax
+
+## Dead Binding Elimination (generic co-de-Bruijn)
+
+## Generic co-de-Bruijn Representation
+### Discussion
+  - Allais et al. define generic notion of `Semantics`
+    - abstracts over traversal (similar to recursion schemes)
+  - defining a similar `Semantics` for co-de-Bruijn expressions seems more difficult
+    - scopes change at each node, manipulating them requires re-constructing covers
+    - probably easier when operating on thinned expressions (`_⇑_`)
+  - TODO more
 
 
 # Other Transformations
