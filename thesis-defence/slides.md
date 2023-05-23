@@ -1206,14 +1206,68 @@ The code takes some time to understand in detail, so let's focus on the main ide
     - generic notion of `Semantics` could be sufficient
     - or could at least prove it for a specific language
 
-  - TODO more
-
 
 # Other Transformations
 
 ## Let-sinking
-  - (optional, can be skipped if low on time)
-  - (just a short glimpse, showing segmented context and thinnings)
+
+::: notes
+Optional, can be skipped if low on time.
+:::
+
+  - pretty similar to DBE
+    - also requires liveness information to find location
+    - can be done directly, with repeated liveness querying
+    - annotations make it more efficient
+  - but gets more complex:
+    - instead of just removing bindings, they get reordered
+    - also reorders the context, but thinnings are *order-preserving*
+    - requires another mechanism to talk about that
+  - to keep it manageable, we focus on one binding at a time
+
+## Let-sinking
+  - top level signature remains somewhat simple
+  - should look similar to
+
+    `Let : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ`
+
+  - but as we go under binders, the binding doesn't stay on top
+
+  ```agda
+    sink-let :
+      Expr σ (Γ₁ ++ Γ₂) →
+      Expr τ (Γ₁ ++ σ ∷ Γ₂) →
+      Expr τ (Γ₁ ++ Γ₂)
+  ```
+
+## Let-sinking
+  - also requires renaming, partitioning context into 4 parts
+
+  ```agda
+    rename-top-Expr :
+      (Γ' : Ctx) →
+      Expr τ (Γ' ++ Γ₁ ++ σ ∷ Γ₂) →
+      Expr τ (Γ' ++ σ ∷ Γ₁ ++ Γ₂)
+  ```
+
+  - this gets cumbersome
+  - especially for co-de-Bruijn:
+    - need to partition and re-assemble thinnings
+      - same for covers?
+    - 12 thinnings in scope
+
+## Let-sinking
+### Discussion
+  - implemented for de Bruijn (incl. annotated) and co-de-Bruijn
+    - exact phrasing of signatures has a big impact
+  - progress with co-de-Bruijn proof, but messy and unfinished
+
+. . .
+
+  - generally similar conclusions as from DBE
+  - re-ordering context does not interact nicely with thinnings
+  - maintaining the co-de-Bruijn structure is especially cumbersome
+  - for more details, see thesis
 
 
 # Discussion
