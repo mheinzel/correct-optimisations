@@ -984,21 +984,56 @@ The code takes some time to understand in detail, so let's focus on the main ide
       `∎ : I                         → Desc I
   ```
 
-  - TODO: don't try to describe, just show example
+  - let's describe our language!
 
 ## Syntax-generic Programming
-  - variables are assumed, no need to describe them
+  ```agda
+    `σ : (A : Set) → (A → Desc I) → Desc I
+  ```
+
+  - `` `σ`` is for storing data, e.g. which constructor it is
+    - variables are assumed, no need to describe them
 
   ```agda
-    data `Lang : Set where
-      `App  : U → U → `Lang
-      `Lam  : U → U → `Lang
-      `Let  : U → U → `Lang
-      `Val  : U → `Lang
-      `Plus : `Lang
+    data Tag : Set where
+      `App  : U → U → Tag
+      ...
 
     Lang : Desc U
-    Lang = `σ `Lang λ where
+    Lang = `σ Tag λ where
+      (`App σ τ) → ...
+      ...
+  ```
+
+## Syntax-generic Programming
+  ```agda
+    `X :        -- for recursion (subexpression)
+      List I →  -- new variables bound in subexpression
+      I →       -- sort of subexpression
+      Desc I →  -- (continue)
+      Desc I
+    `∎ :        -- terminates description
+      I →       -- sort
+      Desc I
+  ```
+
+  ```agda
+      (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
+      (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
+      ...
+  ```
+
+## Syntax-generic Programming
+  ```agda
+    data Tag : Set where
+      `App  : U → U → Tag
+      `Lam  : U → U → Tag
+      `Let  : U → U → Tag
+      `Val  : U → Tag
+      `Plus : Tag
+
+    Lang : Desc U
+    Lang = `σ Tag λ where
       (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
       (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
       (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
@@ -1018,6 +1053,27 @@ The code takes some time to understand in detail, so let's focus on the main ide
   - something indexed by sort and context
     - e.g. `Expr : U ─Scoped`
 
+## Syntax-generic co-de-Bruijn Representation
+  ```agda
+    data Tm (d : Desc I) : I ─Scoped where
+      `var : Tm d i (i ∷ [])
+      `con : ⟦ d ⟧ (Scope (Tm d)) i Γ → Tm d i Γ
+  ```
+
+  - terms always have variables
+  - for the rest, interpret the description
+
+## Syntax-generic co-de-Bruijn Representation
+  ```agda
+    Scope : I ─Scoped → List I → I ─Scoped
+    Scope T    []      i = T i
+    Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
+  ```
+
+  - `Scope` roughly corresponds to bindings
+  - empty scopes are very common, avoid trivial `[] ⊢_`
+
+## Syntax-generic co-de-Bruijn Representation
   ```agda
     ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
     ⟦ `σ A d    ⟧ X i Γ = Σ[ a ∈ A ] (⟦ d a ⟧ X i Γ)
@@ -1025,26 +1081,25 @@ The code takes some time to understand in detail, so let's focus on the main ide
     ⟦ `∎ j      ⟧ X i Γ = i ≡ j × Γ ≡ []
   ```
 
-  ```agda
-    Scope : I ─Scoped → List I → I ─Scoped
-    Scope T   []       i = T i
-    Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
-  ```
+  - context only contains live variables
+    - enforced by relevant pair and constraints in `` `∎``
+
+## Syntax-generic co-de-Bruijn Representation
+  - working generically, this works well
+  - but once description is concrete, there are unexpected indirections
+  - e.g. "unary product" ``⟦ `X Δ σ (`∎ τ) ⟧``
+    - trivial relevant pair (right side has empty context)
 
   ```agda
-    data Tm (d : Desc I) : I ─Scoped where
-      `var  : Tm d i (i ∷ [])
-      `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i ⇒ Tm d i ]
+    ×ᴿ-trivial t = pairᴿ (t ↑ oi) ((refl , refl) ↑ oe) cover-oi-oe
   ```
 
-  - TODO: `×ᴿ-trivial`?
-
-## Generic co-de-Bruijn Representation
-
-[comment]: # TODO: do we need all that information about the conversion? Just a single slide instead?
+  - in the other direction, we first have to "discover" that these extra thinnings are `oi` and `oe`
 
 ## Generic Conversion From Co-de-Bruijn Syntax
-  - mutually recursive functions
+  - we can convert between de Bruijn and co-de-Bruijn
+    - completely generically!
+  - implementation is concise (few cases to handle)
 
   ```agda
     relax :
@@ -1052,94 +1107,40 @@ The code takes some time to understand in detail, so let's focus on the main ide
       CoDeBruijn.Tm d τ Δ →
       DeBruijn.Tm d τ Γ
 
-    relax-Scope :
-      (Δ : List I) (d : Desc I) → Δ ⊑ Γ →
-      CoDeBruijn.Scope (CoDeBruijn.Tm d) Δ τ Δ →
-      DeBruijn.Scope (DeBruijn.Tm d) Δ τ Γ
-
-    relax-⟦∙⟧ :
-      (d d' : Desc I) → Δ ⊑ Γ →
-      CoDeBruijn.⟦ d ⟧ (CoDeBruijn.Scope (CoDeBruijn.Tm d')) τ Δ →
-      DeBruijn.⟦ d ⟧ (DeBruijn.Scope (DeBruijn.Tm d')) τ Γ
-  ```
-
-## Generic Conversion From Co-de-Bruijn Syntax
-  - implementation generic and concise
-
-  ```agda
-    relax d θ `var     = `var (ref-o θ)
-    relax d θ (`con t) = `con (relax-⟦∙⟧ d d θ t)
-
-    relax-Scope []      d θ t        = relax d θ t
-    relax-Scope (_ ∷ _) d θ (ψ \\ t) = relax d (ψ ++⊑ θ) t
-
-    relax-⟦∙⟧ (`σ A k) d' θ (a , t) =
-      a , relax-⟦∙⟧ (k a) d' θ t
-    relax-⟦∙⟧ (`X Δ j d) d' θ (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) cover) =
-      relax-Scope Δ d' (θ₁ ₒ θ) t₁ , relax-⟦∙⟧ d d' (θ₂ ₒ θ) t₂
-    relax-⟦∙⟧ (`∎ j) d' θ (refl , refl) =
-      refl
-  ```
-
-## Generic Conversion To Co-de-Bruijn Syntax
-  - mutually recursive functions
-
-  ```agda
     tighten :
       (d : Desc I) →
       DeBruijn.Tm d τ Γ →
       CoDeBruijn.Tm d τ ⇑ Γ
-
-    tighten-Scope :
-      (Δ : List I) (d : Desc I) →
-      DeBruijn.Scope (DeBruijn.Tm d) Δ τ Γ →
-      CoDeBruijn.Scope (CoDeBruijn.Tm d) Δ τ ⇑ Γ
-
-    tighten-⟦∙⟧ :
-      (d d' : Desc I) →
-      DeBruijn.⟦ d ⟧ (DeBruijn.Scope (DeBruijn.Tm d')) τ Γ →
-      CoDeBruijn.⟦ d ⟧ (CoDeBruijn.Scope (CoDeBruijn.Tm d')) τ ⇑ Γ
-  ```
-
-## Generic Conversion From Co-de-Bruijn Syntax
-  - implementation generic and concise
-
-  ```agda
-    tighten d (`var x) = `var ↑ o-Ref x
-    tighten d (`con t) = map⇑ `con (tighten-⟦∙⟧ d d t)
-
-    tighten-Scope   []      d t = tighten d t
-    tighten-Scope Δ@(_ ∷ _) d t = Δ \\ᴿ tighten d t
-
-    tighten-⟦∙⟧ (`σ A k) d' (a , t) =
-      map⇑ (a ,_) (tighten-⟦∙⟧ (k a) d' t)
-    tighten-⟦∙⟧ (`X Δ j d) d' (t₁ , t₂) =
-      tighten-Scope Δ d' t₁ ,ᴿ tighten-⟦∙⟧ d d' t₂
-    tighten-⟦∙⟧ (`∎ j) d' refl =
-      (refl , refl) ↑ oe
   ```
 
 ## Dead Binding Elimination (generic co-de-Bruijn)
+  - DBE can be done generically as well
+  - we need let-bindings, the rest does not matter
 
-## TODO
-  - descriptions are closed under sums
+. . .
 
+  - descriptions are closed under sums:
+
+    ``Tm (d `+ `Let) τ Γ``
+
+## Dead Binding Elimination (generic co-de-Bruijn)
   ```agda
      _`+_ : Desc I → Desc I → Desc I
      d `+ e = `σ Bool λ isLeft →
-              if isLeft then d else e
+       if isLeft then d else e
 
     `Let : Desc I
     `Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
       `X [] σ (`X (σ ∷ []) τ (`∎ τ))
 
-    -- ⟦ d ⟧ or ⟦ d' ⟧ in ⟦ d + d' ⟧
+    -- ⟦ d ⟧ or ⟦ e ⟧ in ⟦ d + e ⟧
     pattern inl t = true  , t
     pattern inr t = false , t
   ```
 
 ## Dead Binding Elimination (generic co-de-Bruijn)
-  - mutually recursive functions
+  - stay in co-de-Bruijn representation
+  - define mutually recursive functions
 
   ```agda
     dbe :
@@ -1154,7 +1155,41 @@ The code takes some time to understand in detail, so let's focus on the main ide
       Scope (Tm (d `+ `Let)) Δ τ ⇑ Γ
   ```
 
-  - TODO: show parts of the implementation?
+## Dead Binding Elimination (generic co-de-Bruijn)
+  - recognise parts from the concrete implementation?
+
+  ```agda
+    dbe `var = `var ↑ oi
+    dbe (`con (inl t)) = map⇑ (`con ∘ inl) (dbe-⟦∙⟧ t)
+    dbe (`con (inr t)) = bind⇑ Let? (dbe-⟦∙⟧ {d = `Let} t)
+
+    Let? : ⟦ `Let ⟧ (...) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
+    Let? t@(a , pairᴿ (t₁ ↑ θ₁) (t₂ ↑ p) _)
+      with ×ᴿ-trivial⁻¹ p
+    ... | (o' oz \\ t₂) , refl = t₂ ↑ θ₂
+    ... | (os oz \\ t₂) , refl = `con (inr t) ↑ oi
+  ```
+
+## Dead Binding Elimination (generic co-de-Bruijn)
+  ```agda
+    dbe-⟦∙⟧ {d = `σ A d} (a , t) =
+      map⇑ (a ,_) (dbe-⟦∙⟧ t)
+    dbe-⟦∙⟧ {d = `X Δ j d} (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) =
+      thin⇑ θ₁ (dbe-Scope Δ t₁) ,ᴿ thin⇑ θ₂ (dbe-⟦∙⟧ t₂)
+    dbe-⟦∙⟧ {d = `∎ i} t =
+      t ↑ oi
+
+    dbe-Scope [] t = dbe t
+    dbe-Scope (_ ∷ _) (ψ \\ t) =
+      map⇑ (map⊢ ψ) (_ \\ᴿ dbe t)
+  ```
+
+## Generic co-de-Bruijn Representation
+### Discussion
+  - generic code is more reusable
+  - in some sense nice to write
+    - fewer cases to handle (abstraction)
+  - but also more complex
 
 ## Generic co-de-Bruijn Representation
 ### Discussion
@@ -1164,8 +1199,12 @@ The code takes some time to understand in detail, so let's focus on the main ide
     - scopes change at each node, manipulating them requires re-constructing covers
     - probably easier when operating on thinned expressions (`_⇑_`)
 
-  - correctness proofs?
+## Generic co-de-Bruijn Representation
+### Discussion
+  - no correctness proofs yet
     - using which semantics?
+    - generic notion of `Semantics` could be sufficient
+    - or could at least prove it for a specific language
 
   - TODO more
 
