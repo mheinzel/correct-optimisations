@@ -20,37 +20,24 @@ private
     Γ Δ : List I
     d d' : Desc I
 
-let-? : Tm (d `+ `Let) σ ⇑ Γ → ((σ ∷ []) ⊢ Tm (d `+ `Let) τ) ⇑ Γ → Tm (d `+ `Let) τ ⇑ Γ
-let-? (t₁ ↑ θ₁) ((o' oz \\ t₂) ↑ θ₂) = t₂ ↑ θ₂  -- Binding dead, just keep body.
-let-? (t₁ ↑ θ₁) ((os oz \\ t₂) ↑ θ₂) =          -- Assemble constructor.
-  let t' ↑ θ' = (t₁ ↑ θ₁) ,ᴿ (×ᴿ-trivial (os oz \\ t₂) ↑ θ₂)
-  in `con (injʳ (_ , t')) ↑ θ'
-
-{-
-let-?' : ⟦ `Let ⟧ (Scope (Tm (d `+ `Let))) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
-let-?' t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)
-  with cover-oi-oe⁻¹ c | ψ
-...  | refl | o' oz =
-  t₂ ↑ θ₂
-...  | refl | os oz =
-  `con (injʳ t) ↑ oi
--}
+Let? : ⟦ `Let ⟧ (Scope (Tm (d `+ `Let))) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
+Let? t@(a , pairᴿ (t₁ ↑ θ₁) (p ↑ θ₂) _)
+  with ×ᴿ-trivial⁻¹ p
+... | (o' oz \\ t₂) , refl = t₂ ↑ θ₂
+... | (os oz \\ t₂) , refl = `con (inr t) ↑ oi
 
 dbe : Tm (d `+ `Let) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
 dbe-⟦∙⟧ : ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ ⇑ Γ
 dbe-Scope : (Δ : List I) → Scope (Tm (d `+ `Let)) Δ τ Γ → Scope (Tm (d `+ `Let)) Δ τ ⇑ Γ
 
 dbe `var = `var ↑ oi
-dbe (`con (injˡ t)) = map⇑ (`con ∘ injˡ) (dbe-⟦∙⟧ t)
-dbe (`con (injʳ t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((refl , refl) ↑ _) c ↑ θ₂) _)))
-  with refl ← cover-oi-oe⁻¹ c =
-    let-? (thin⇑ θ₁ (dbe t₁)) (thin⇑ θ₂ (map⇑ (map⊢ ψ) (_ \\ᴿ dbe t₂)))
-    -- This implementation is simpler, but gets rejected by the termination checker:
-    -- mult⇑ (map⇑ let-?' (dbe-⟦∙⟧ {d = `Let} t))
-    --
-    -- Also, it would be more efficient to first only run DBE on the body,
-    -- and only run DBE on the declaration if it turned out to be needed.
-    -- This however requires some restructuring to appease the termination checker.
+dbe (`con (inl t)) = map⇑ (`con ∘ inl) (dbe-⟦∙⟧ t)
+dbe (`con (inr t)) = bind⇑ Let? (dbe-⟦∙⟧ {d = `Let} t)
+
+-- It would be more efficient to first only run DBE on the body,
+-- and only run DBE on the declaration if it turned out to be needed.
+-- This however requires some restructuring to appease the termination checker.
+
 
 dbe-⟦∙⟧ {d = `σ A d} (a , t) =
   map⇑ (a ,_) (dbe-⟦∙⟧ t)

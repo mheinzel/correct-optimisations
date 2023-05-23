@@ -9,15 +9,15 @@ open import Data.Var using (_─Scoped)
 
 open import Language.Core as Core hiding (⟦_⟧)
 
-data `Lang : Set where
-  `App  : U → U → `Lang
-  `Lam  : U → U → `Lang
-  `Let  : U → U → `Lang
-  `Val  : U → `Lang
-  `Plus : `Lang
+data Tag : Set where
+  `App  : U → U → Tag
+  `Lam  : U → U → Tag
+  `Let  : U → U → Tag
+  `Val  : U → Tag
+  `Plus : Tag
 
 Lang : Desc U
-Lang = `σ `Lang λ where
+Lang = `σ Tag λ where
   (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
   (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
   (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
