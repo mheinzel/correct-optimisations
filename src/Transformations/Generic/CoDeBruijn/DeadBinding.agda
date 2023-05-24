@@ -37,9 +37,8 @@ dbe (`con (inr t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((r
     -- This implementation is simpler, but gets rejected by the termination checker:
     -- map⇑ (`con ∘ inr) (dbe-⟦∙⟧ {d = `Let} t)
     -- We are forced to basically inline dbe-⟦∙⟧ here.
-    -- Otherwise, another option would be to re-use let-?:
-    -- mult⇑ (map⇑ dbe (let-?' t))
-    -- TODO: It was possible to simplify the strong version, revisit this!
+    -- Otherwise, another option would be to re-use Let?:
+    -- dbe (`con (inr t)) = bind⇑ dbe (Let? t)
 
 dbe-⟦∙⟧ {d = `σ A d} (a , t) =
   map⇑ (a ,_) (dbe-⟦∙⟧ t)

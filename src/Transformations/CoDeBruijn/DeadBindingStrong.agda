@@ -23,27 +23,27 @@ private
     σ τ : U
     Γ : List U
 
-let-? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
-let-?   (pairᴿ _ ((o' oz \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂  -- remove binding
-let-? p@(pairᴿ _ ((os oz \\ _)  ↑ _)  _) = Let p ↑ oi
+Let? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+Let?   (pairᴿ _ ((o' oz \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂  -- remove binding
+Let? p@(pairᴿ _ ((os oz \\ _)  ↑ _)  _) = Let p ↑ oi
 
-lemma-let-? :
+lemma-Let? :
   (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
-  let e' ↑ θ' = let-? p
+  let e' ↑ θ' = Let? p
   in eval (Let p) oi env ≡ eval e' θ' env
-lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((o' oz) \\ e₂) ↑ θ₂) c) env =
+lemma-Let? (pairᴿ (e₁ ↑ θ₁) (((o' oz) \\ e₂) ↑ θ₂) c) env =
   trans
     (lemma-eval e₂ (Cons (eval e₁ (θ₁ ₒ oi) env) env) θ₂ (o' oi))
     (cong (eval e₂ θ₂) (law-project-Env-oi env))
-lemma-let-? (pairᴿ (e₁ ↑ θ₁) (((os oz) \\ e₂) ↑ θ₂) c) env = refl
+lemma-Let? (pairᴿ (e₁ ↑ θ₁) (((os oz) \\ e₂) ↑ θ₂) c) env = refl
 
-lemma-let-?' :
+lemma-Let?' :
   {Γₑ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
-  let e' ↑ θ' = let-? p
+  let e' ↑ θ' = Let? p
   in eval (Let p) θ env ≡ eval e' (θ' ₒ θ) env
-lemma-let-?' p env θ =
+lemma-Let?' p env θ =
   let pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c = p
-      e' ↑ θ' = let-? p
+      e' ↑ θ' = Let? p
   in
     eval (Let p) θ env
   ≡⟨ refl ⟩
@@ -58,7 +58,7 @@ lemma-let-?' p env θ =
     eval e₂ (ψ ++⊑ θ₂) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) (project-Env θ env))
   ≡⟨ cong (λ x → eval e₂ (ψ ++⊑ x) _) (sym (law-ₒoi θ₂)) ⟩
     eval e₂ (ψ ++⊑ (θ₂ ₒ oi)) (Cons (eval e₁ (θ₁ ₒ oi) (project-Env θ env)) (project-Env θ env))
-  ≡⟨ lemma-let-? p (project-Env θ env) ⟩
+  ≡⟨ lemma-Let? p (project-Env θ env) ⟩
     eval e' θ' (project-Env θ env)
   ≡⟨ sym (lemma-eval e' env θ' θ) ⟩
     eval e' (θ' ₒ θ) env
@@ -75,7 +75,7 @@ mutual
   dbe (Lam (_\\_ {bound = Γ'} ψ e)) =
     map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
   dbe (Let p) =
-    bind⇑ let-? (dbe-Let p)
+    bind⇑ Let? (dbe-Let p)
   dbe (Val v) =
     Val v ↑ oz
   dbe (Plus (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
@@ -208,12 +208,12 @@ dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
 dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c)) env θ =
   let p = pairᴿ (e₁ ↑ θ₁) (_\\_ {bound = Γ'} ψ e₂ ↑ θ₂) c
       p' ↑ θ' = dbe-Let p
-      e' ↑ θ'' = let-? p'
+      e' ↑ θ'' = Let? p'
   in
     eval e' ((θ'' ₒ θ') ₒ θ) env
   ≡⟨ cong (λ x → eval e' x env) (sym (law-ₒₒ θ'' θ' θ)) ⟩
     eval e' (θ'' ₒ θ' ₒ θ) env
-  ≡⟨ sym (lemma-let-?' p' env (θ' ₒ θ)) ⟩
+  ≡⟨ sym (lemma-Let?' p' env (θ' ₒ θ)) ⟩
     eval (Let p') (θ' ₒ θ) env
   ≡⟨ dbe-correct-Let (pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c) env θ
       (dbe-correct e₁ env (θ₁ ₒ θ))

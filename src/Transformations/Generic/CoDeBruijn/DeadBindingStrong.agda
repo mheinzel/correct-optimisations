@@ -33,11 +33,9 @@ dbe-Scope : (Δ : List I) → Scope (Tm (d `+ `Let)) Δ τ Γ → Scope (Tm (d `
 dbe `var = `var ↑ oi
 dbe (`con (inl t)) = map⇑ (`con ∘ inl) (dbe-⟦∙⟧ t)
 dbe (`con (inr t)) = bind⇑ Let? (dbe-⟦∙⟧ {d = `Let} t)
-
 -- It would be more efficient to first only run DBE on the body,
 -- and only run DBE on the declaration if it turned out to be needed.
 -- This however requires some restructuring to appease the termination checker.
-
 
 dbe-⟦∙⟧ {d = `σ A d} (a , t) =
   map⇑ (a ,_) (dbe-⟦∙⟧ t)
