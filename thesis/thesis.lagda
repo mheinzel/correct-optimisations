@@ -16,6 +16,19 @@
 
 \abstract
 
+Variable representations used in compilers
+usually rely on the compiler writers' diligence to maintain complex invariants.
+Program transformations that manipulate the binding structure are therefore tricky to get right.
+In a dependently typed programming language such as Agda,
+we can however make use of intrinsically typed syntax trees
+to enforce type- and scope-safety by construction,
+ruling out a large class of binding-related bugs.
+We show how to perform (and prove correct) dead binding elimination and let-sinking using intrinsically typed de Bruijn indices.
+To avoid repeated traversals of the transformed expression,
+we include variable liveness information into the syntax tree and later employ McBride's co-de-Bruijn representation.
+Finally, we perform transformations in this style syntax-generically.
+
+
 \tableofcontents
 
 
