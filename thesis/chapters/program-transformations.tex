@@ -1,6 +1,8 @@
 \chapter{Program Analysis and Transformation}
 \label{ch:program-transformations}
 
+\Fixme{Move this chapter and the next into a single Background/Foundation chapter?}
+
 \Draft{
   As a running example, we will consider a simple expression language with let-bindings,
   variables, primitive values (integers and Booleans), and a few binary operators.
@@ -9,9 +11,9 @@
   Extending the language with further values and operators is trivial.
   \begin{align*}
     P, Q ::=&\ v
-    \\ \big||&\ P + Q
-    \\ \big||&\ \Let{x} P \In Q
-    \\ \big||&\ x
+    \\ \big|&\ P + Q
+    \\ \big|&\ \Let{x} P \In Q
+    \\ \big|&\ x
   \end{align*}
 
   An expression can be bound to a variable $x$ using a $\textbf{let}$-binding.

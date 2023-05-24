@@ -46,16 +46,53 @@
         \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
       \end{enumerate}
     }
+
+  \paragraph{Structure}
+    Chapters \ref{ch:program-transformations} and \ref{ch:binding-representation}
+    introduce the simple expression language we will work with
+    and then give some background information on program analysis and transformation,
+    as well as different binding representations and pitfalls.
+
+    In chapter \ref{ch:de-bruijn} we start by
+    showing a typical intrinsically typed de Bruijn representation of a simple expression language.
+    We then explain thinnings and motivate their application to computing variable liveness.
+    Equipped with these tools,
+    we implement dead binding elimination and let-sinking,
+    first on the standard de Bruijn representation,
+    later on a syntax tree annotated with the results of live variable analysis.
+    We prove that both versions of dead binding elimination preserve semantics.
+
+    Chapter \ref{ch:co-de-bruijn} continues the development by showing that variable liveness information
+    can serve as the main mechanism for representing bindings, as witnessed by
+    McBride's co-de-Bruijn representation
+    \cite{McBride2018EveryBodysGotToBeSomewhere}.
+    After explaining how co-de-Bruijn terms work and can be constructed from de Bruijn terms,
+    we again implement dead binding elimination and prove it correct.
+    Finally, we manage to implement dead-binding elimination, but encounter several complications
+    and struggle with the proof of correctness.
+
+    In chapter \ref{ch:generic-co-de-bruijn}, we explain the basic ideas of syntax-generic programming
+    as presented by Allais et al.
+    \cite{Allais2018UniverseOfSyntaxes}
+    and extend it with basic support for co-de-Bruijn representation.
+    This allows us to generically convert between de Bruijn and co-de-Bruijn representation
+    and perform dead binding elimination.
+    \Fixme{Can be fleshed out a little bit once everything stabilised.}
+
   \paragraph{Contributions}
-    \Outline{
-      High level structure.
-    }
-    \Outline{
-      What of it existed, what is ours? \\
-      (separately or interwoven with structure?)
-    }
+    Our main contributions are:
+    \begin{itemize}
+      \item an implementation of (strongly) live variable analysis resulting in annotated intrinsically typed syntax trees
+      \item an implementation of dead binding elimination and let-sinking on intrinsically typed syntax trees of three different flavours: de Bruijn, annotated de Bruijn, and co-de-Bruijn
+      \item proofs of correctness (preservation of semantics) for the implementations of dead binding elimination
+      \item an incomplete proof of correctness for co-de-Bruijn let-sinking, with an explanation of the main challenges
+      \item a generic interpretation of the syntax descriptions presented by Allais et al. \cite{Allais2018UniverseOfSyntaxes} into co-de-Bruijn terms
+      \item syntax-generic conversion between de Bruijn and co-de-Bruijn terms
+      \item a syntax-generic implementation of dead binding elimination on co-de-Bruijn terms
+    \end{itemize}
     The source code is available online%
     \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
+
   \paragraph{Ethics review}
     The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
     It classified this research as low-risk with no fuller ethics review or privacy assessment required.
