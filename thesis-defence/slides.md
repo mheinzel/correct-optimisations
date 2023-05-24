@@ -13,7 +13,14 @@ theme: metropolis
 # Analysis and Transformation
 
 ## Expression Language
-  $$ \text{(definition)} $$
+  \begin{align*}
+    P, Q ::=&\ x
+    \\ \big|&\ P\ Q
+    \\ \big|&\ \lambda x.\ P
+    \\ \big|&\ \textbf{let } x = P \textbf{ in } Q
+    \\ \big|&\ v
+    \\ \big|&\ P + Q
+  \end{align*}
 
   - based on $\lambda$-calculus
     - well studied notion of computation
@@ -23,20 +30,34 @@ theme: metropolis
   - fundamental part of compilers
   - we focus on those dealing with bindings
 
-  $$ \text{(example with opportunities for inlining, DBE, moving binding)} $$
+  \begin{align*}
+    &\textbf{let } f = \lambda x.\ (x + 1) \textbf{ in} \\
+    &\ \ \textbf{let } y = 42 \textbf{ in}         \\
+    &\ \ \ \ \textbf{let } z = a + a \textbf{ in}    \\
+    &\ \ \ \ \ \ f\ 1 + (z + z)
+  \end{align*}
 
 ## Dead Binding Elimination (DBE)
   - remove dead (unused) bindings
   - which bindings exactly are dead?
+    - $x$ occurs in its body, but only in declaration of $y$
 
-  $$ \text{(example with binding only used in other dead declaration)} $$
+  \begin{align*}
+    &\textbf{let } x = 42 \textbf{ in}  \\
+    &\ \ \textbf{let } y = x \textbf{ in} \\
+    &\ \ \ \ 1337
+  \end{align*}
 
 ## Live Variable Analysis (LVA)
   - collect live variables, bottom up
   - for *strongly* live variable analysis, at let-binding:
     - only consider declaration if its binding is live
 
-  $$ \text{(example with binding only used in other dead declaration)} $$
+  \begin{align*}
+    &\textbf{let } x = 42 \textbf{ in}  \\
+    &\ \ \textbf{let } y = x \textbf{ in} \\
+    &\ \ \ \ 1337
+  \end{align*}
 
 
 # Variable Representations
@@ -48,10 +69,12 @@ So far, we looked at it conceptually, but how does a compiler represent variable
 ## Named Representation
   - what we have done so far, just use strings
   - pitfall: $\alpha$-equivalence
+    - is $\lambda x.\ x$ equivalent to $\lambda x.\ y$?
   - pitfall: shadowing, variable capture
-    - GHC adopts Barendregt convention, creates "the rapier"
+    - e.g. inlining $y$ in $\textbf{let } y = x + 1 \textbf{ in } \lambda x.\ (x + y)$
+    - GHC adopts Barendregt convention, creates *the rapier*
       - relies on invariants upheld by convention
-    - Dex reports many bugs, creates "the foil"
+    - Dex reports many bugs, creates *the foil*
       - uses types to "make it harder to poke your eye out"
 
 ## de Bruijn Representation
@@ -60,7 +83,11 @@ So far, we looked at it conceptually, but how does a compiler represent variable
   - $\alpha$-equivalence for free!
   - pitfall: need to rename when adding/removing bindings
 
-  $$ \text{(example with dead binding)} $$
+  \begin{align*}
+    &\textbf{let } 42 \textbf{ in }     \\
+    &\ \ \textbf{let } 99 \textbf{ in } \\
+    &\ \ \ \ \langle 1 \rangle
+  \end{align*}
 
 ## Other Representations
   - co-de-Bruijn
@@ -1215,11 +1242,17 @@ The code takes some time to understand in detail, so let's focus on the main ide
 Optional, can be skipped if low on time.
 :::
 
+  - move let-binding as far inwards as possible without
+    - duplicating it
+    - moving it into a $\lambda$-abstraction
+
+## Let-sinking
+
   - pretty similar to DBE
     - also requires liveness information to find location
     - can be done directly, with repeated liveness querying
     - annotations make it more efficient
-  - but gets more complex:
+  - but it gets more complex
     - instead of just removing bindings, they get reordered
     - also reorders the context, but thinnings are *order-preserving*
     - requires another mechanism to talk about that
