@@ -42,11 +42,7 @@ Finally, we perform transformations in this style syntax-generically.
 
 \include{chapters/generic-co-de-bruijn}
 
-\chapter{Discussion}
-\section{Related Work}
-\label{sec:related-work}
-\section{Further Work}
-\label{sec:further-work}
+\include{chapters/discussion}
 
 
 \bibliography{../correct-optimisations}{}
