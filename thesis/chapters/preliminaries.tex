@@ -1,11 +1,11 @@
 \chapter{Preliminaries}
 \label{ch:preliminaries}
     As a running example, we will consider a simple expression language
-    based on the $\lambda$-calculus.
-    \Fixme{citation?}
-    On top of variables, function application and $\lambda$-abstraction,
-    we add let-bindings, primitive values (integers and Booleans) and a binary addition operator.
-    Since the transformations in this thesis primarily relate to variables and binders,
+    based on the $\lambda$-calculus
+    \cite{Barendregt1985LambdaCalculus}.
+    On top of variables with names $\{ x, y, z, a, b, c, f, g, \ldots \}$, function application and $\lambda$-abstraction,
+    we add let-bindings, primitive values $v \in \mathbb{B} \cup \mathbb{N}$ (with $\mathbb{B} = \{ \ValTrue , \ValFalse \}$) and a binary addition operator.
+    Since we are primarily concerned with variables and binders,
     the choice of possible values and primitive operations on them is mostly arbitrary and can be extended easily.
     \begin{align*}
       P, Q ::=&\ x
@@ -16,14 +16,18 @@
       \\ \big|&\ P + Q
     \end{align*}
 
+    To reduce the number of required parentheses,
+    we give function application the highest
+    and let-bindings the lowest precedence.
+
     Let-bindings allow to bind a declaration $P$ to a variable $x$.
     While any let-binding $\Let{x} P \In Q$ can be emulated
     using an immediately applied $\lambda$-abstraction $(\lambda x.\ Q)\ P$,
     they are very common and can benefit
     from transformations that target them specifically.
-    Noteworthy is the omission of further constructs
-    such as branching operators, recursive bindings or a fixpoint operator.
-    We discuss some potential additions and their implications
+    We omit further constructs such as branching operators,
+    recursive bindings or a fixpoint operator,
+    but discuss some potential additions and their implications
     at the end (section \ref{sec:further-work}).
 
 \section{Program Analysis and Transformation}
@@ -79,11 +83,42 @@
     We do not want to duplicate the binding
     or move it inside a $\lambda$-abstraction, which duplicates work
     if evaluated multiple times.
+    Let us look at what this means when let-sinking $x$ in the following example with free variables $a$ and $f$:
+
+    \begin{align*}
+      \Let{x} f\ 42 \In b\ (a + 1)\ (f\ x + x)
+    \end{align*}
+    \begin{align*}
+      \Downarrow
+    \end{align*}
+    \begin{align*}
+      b\ (a + 1)\ (\Let{x} f\ 42 \In f\ x + x)
+    \end{align*}
 
     Interestingly, let-sinking also covers a central part of \emph{inlining}.
     When a variable only occurs once (and would thus benefit from inlining),
     the binding will be moved inwards until it reaches the single occurence,
     which can then be replaced by the binding's declaration.
+
+    \begin{align*}
+      &\Let{x} f\ 42 \In          \\
+      &\ \ \Let{y} f\ 43 \In      \\
+      &\ \ \ \ f\ y + (y + x)
+    \end{align*}
+    \begin{align*}
+      \Downarrow
+    \end{align*}
+    \begin{align*}
+      &\Let{y} f\ 43 \In      \\
+      &\ \ f\ y + (y + \Let{x} f\ 42 \In x)
+    \end{align*}
+    \begin{align*}
+      \Downarrow
+    \end{align*}
+    \begin{align*}
+      &\Let{y} f\ 43 \In      \\
+      &\ \ f\ y + (y + f\ 42)
+    \end{align*}
 
 \section{Binding Representations}
 \label{sec:binding-representations}
@@ -125,7 +160,6 @@
     With \emph{de Bruijn indices}
     \cite{DeBruijn1972NamelessIndices},
     we instead adopt a \emph{nameless} representation.
-    \Fixme{mention \texttt{bound} library?}
     Each variable is represented as a natural number,
     counting the number of nested bindings between variable occurrence and its binding:
     $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
