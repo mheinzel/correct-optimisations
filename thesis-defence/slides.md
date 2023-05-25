@@ -69,9 +69,9 @@ So far, we looked at it conceptually, but how does a compiler represent variable
 ## Named Representation
   - what we have done so far, just use strings
   - pitfall: $\alpha$-equivalence
-    - is $\lambda x.\ x$ equivalent to $\lambda x.\ y$?
+    - is $\lambda x.\ x$ equivalent to $\lambda y.\ y$ or not?
   - pitfall: shadowing, variable capture
-    - e.g. inlining $y$ in $\textbf{let } y = x + 1 \textbf{ in } \lambda x.\ (x + y)$
+    - e.g. inlining $y$ in $\textbf{let } y = x + 1 \textbf{ in } \lambda x.\ y$
     - GHC adopts Barendregt convention, creates *the rapier*
       - relies on invariants upheld by convention
     - Dex reports many bugs, creates *the foil*
@@ -88,6 +88,8 @@ So far, we looked at it conceptually, but how does a compiler represent variable
     &\ \ \textbf{let } 99 \textbf{ in } \\
     &\ \ \ \ \langle 1 \rangle
   \end{align*}
+
+  - not intuitive for humans
 
 ## Other Representations
   - co-de-Bruijn
@@ -672,6 +674,7 @@ Discussion also includes insight from other transformations.
     - de Bruijn indices pick from the context "as late as possible"
     - co-de-Bruijn gets rid of bindings "as early as possible"
       - using thinnings
+  - even harder for humans to reason about
   - observation: expressions indexed by their (weakly) live context
 
 ## Intrinsically Typed co-de-Bruijn Representation
