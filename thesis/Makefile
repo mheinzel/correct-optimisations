@@ -4,8 +4,7 @@ SRC_TEX := \
 	preamble.tex\
 	title.tex\
 	chapters/introduction.tex\
-	chapters/program-transformations.tex\
-	chapters/binding-representation.tex\
+	chapters/preliminaries.tex\
 	chapters/de-bruijn.tex\
 	chapters/co-de-bruijn.tex\
 	chapters/generic-co-de-bruijn.tex

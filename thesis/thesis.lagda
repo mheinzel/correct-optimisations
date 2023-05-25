@@ -34,9 +34,7 @@ Finally, we perform transformations in this style syntax-generically.
 
 \include{chapters/introduction}
 
-\include{chapters/program-transformations}
-
-\include{chapters/binding-representation}
+\include{chapters/preliminaries}
 
 \include{chapters/de-bruijn}
 

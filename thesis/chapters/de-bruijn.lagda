@@ -866,7 +866,7 @@
       \cite{Jones1998TransformationOptimiser}.
     }
     \Draft{
-      As discussed in section \ref{ch:program-transformations},
+      As discussed in section \ref{sec:program-transformations},
       more than one pass of dead binding elimination might be necessary to remove all unused bindings.
       While in our simple setting all these bindings could be identified in a single pass
       using strongly live variable analysis,
