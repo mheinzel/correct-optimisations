@@ -44,7 +44,9 @@ Finally, we perform transformations in this style syntax-generically.
 
 \chapter{Discussion}
 \section{Related Work}
+\label{sec:related-work}
 \section{Further Work}
+\label{sec:further-work}
 
 
 \bibliography{../correct-optimisations}{}

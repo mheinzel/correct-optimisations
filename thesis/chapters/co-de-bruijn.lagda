@@ -3,6 +3,17 @@
 
 \chapter{co-de-Bruijn Representation}
 \label{ch:co-de-bruijn}
+  \Draft{
+    Another nameless representation is described by McBride.
+    Where de Bruijn representation uses references to indicate which of the variables in scope they refer to,
+    the co-de-Bruijn way is for each syntax tree node
+    to shrink down the context of which variables occur in each subexpression.
+    Once a variable occurrence is reached, the context only consists of a single element.
+    Introducing or removing a binding can now be done without traversing the expression,
+    as we can instead modify the way the context is shrunk down to its \emph{relevant}
+    (actually occurring) part.
+    We will see further advantages of the co-de-Bruijn approach later.
+  }
 
 \section{Intrinsically Typed Syntax}
 \label{sec:co-de-bruijn-intrinsically-typed}
@@ -144,7 +155,7 @@
   we need to make available some equalities about |_\\R_|.
   It then remains to use that composition and concatenation of thinnings commute:
   | (theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2) |.
-  \\
+
   For let-bindings, we additionally use the semantics-preserving nature of |let-?|.
   \begin{code}
     lemma-let-? :

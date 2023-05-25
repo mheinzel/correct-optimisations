@@ -1,30 +1,34 @@
 \chapter{Preliminaries}
 \label{ch:preliminaries}
-  \Draft{
-    As a running example, we will consider a simple expression language with let-bindings,
-    variables, primitive values (integers and Booleans), and a few binary operators.
+    As a running example, we will consider a simple expression language
+    based on the $\lambda$-calculus.
+    \Fixme{citation?}
+    On top of variables, function application and $\lambda$-abstraction,
+    we add let-bindings, primitive values (integers and Booleans) and a binary addition operator.
     Since the transformations in this thesis primarily relate to variables and binders,
-    the choice of possible values and additional primitive operations on them is mostly arbitrary.
-    Extending the language with further values and operators is trivial.
+    the choice of possible values and primitive operations on them is mostly arbitrary and can be extended easily.
     \begin{align*}
-      P, Q ::=&\ v
+      P, Q ::=&\ x
+      \\ \big|&\ P\ Q
+      \\ \big|&\ \lambda x.\ P
+      \\ \big|&\ \textbf{let } x = P \textbf{ in } Q
+      \\ \big|&\ v
       \\ \big|&\ P + Q
-      \\ \big|&\ \Let{x} P \In Q
-      \\ \big|&\ x
     \end{align*}
 
-    An expression can be bound to a variable $x$ using a $\textbf{let}$-binding.
-    Note that this makes the language equivalent to a restricted version of the simply typed $\lambda$-calculus,
-    where $\lambda$-abstraction and application can only occur together as $(\lambda x. Q)\ P$.
-    Encapsulating this pattern as $\Let{x} P \In Q$
-    simplifies parts of the analysis and
-    avoids the need for allowing functions as values.
-    \Fixme{We now have $\lambda$-abstractions!}
-  }
+    Let-bindings allow to bind a declaration $P$ to a variable $x$.
+    While any let-binding $\Let{x} P \In Q$ can be emulated
+    using an immediately applied $\lambda$-abstraction $(\lambda x.\ Q)\ P$,
+    they are very common and can benefit
+    from transformations that target them specifically.
+    Noteworthy is the omission of further constructs
+    such as branching operators, recursive bindings or a fixpoint operator.
+    We discuss some potential additions and their implications
+    at the end (section \ref{sec:further-work}).
 
 \section{Program Analysis and Transformation}
 \label{sec:program-transformations}
-    For now we mainly consider transformations aimed at optimising functional programs.
+    We mainly consider transformations aimed at optimising functional programs.
     A large number of program analyses and optimisations are presented in the literature
     \cite{Nielson1999PrinciplesProgramAnalysis}
     \cite{Santos1995CompilationByTransformation}
@@ -38,6 +42,7 @@
     which is explained below.
   \paragraph{Dead Binding Elimination}
     An expression is not forced to make use of the whole context to which it has access.
+    \Fixme{explain ``context'' somewhere?}
     Specifically, a let-binding introduces a new variable, but it might never be used
     in the body.
     Consider for example the following expression:
@@ -50,19 +55,19 @@
     Here, the binding for $z$ is clearly unused, as the variable never occurs in the body.
     Such dead bindings can be identified by \emph{live variable analysis}
     and consequently be removed.
-    \\
+
     Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
     Therefore, multiple iterations of live variable analysis and binding elimination might be required.
     Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
     by only considering variables to be live
     if they are used in declarations of variables that are live themselves.
-  \paragraph{Moving let-bindings}
+  \paragraph{Let-sinking}
     Even when a binding cannot be removed,
     it can still be beneficial to move it to a different location.
     Several such strategies have for example been described and evaluated
     in the context of lazy functional programs
     \cite{Jones1996LetFloating}.
-    \\
+
     Of those, we will focus on the \emph{let-sinking} transformation
     (called let-floating in the paper).
     Generally, the further inward a let binding is moved, the better:
@@ -75,87 +80,111 @@
     or move it inside a $\lambda$-abstraction, which duplicates work
     if evaluated multiple times.
 
+    Interestingly, let-sinking also covers a central part of \emph{inlining}.
+    When a variable only occurs once (and would thus benefit from inlining),
+    the binding will be moved inwards until it reaches the single occurence,
+    which can then be replaced by the binding's declaration.
+
 \section{Binding Representations}
 \label{sec:binding-representations}
+    The notation used so far treats variables as letters, or more generally strings.
+    This is how humans usually write programs
+    and makes it fairly natural to match a variable with its binding.
+    For representing variables in a compiler or mechanised proof, however,
+    different tradeoffs apply.
   \paragraph{Explicit names}
-    The syntax specified above treats variables as letters, or more generally strings,
-    and one can use the same representation inside a compiler.
-    While this is how humans usually write programs, it comes with several downsides.
+    It is quite common to use strings for variables in practical compilers,
+    but comes with several disadvantages.
     For example, additional work is necessary
     if we want the equality of expressions to be independent of the specific variable names chosen
     (\emph{$\alpha$-equivalence}).
     Also, there are pitfalls like variable shadowing and variable capture during substitution,
     requiring the careful application of variable renamings
     \cite{Barendregt1985LambdaCalculus}.
+    Consider for example the following expression, where $x$ is a free variable:
 
-    There have been multiple approaches to help compiler writers maintain the relevant invariants,
-    such as GHC's rapier \cite{Jones2002GHCInliner},
-    but these are generally still error-prone
+    \begin{align*}
+      \Let{y} x + 1 \In \Lam{x} (x + y)
+    \end{align*}
+
+    Naively inlining $y$ here causes $x$ to be captured
+    by the $\lambda$-abstraction, incorrectly resulting in the program
+    $\Lam{x} (x + (x + 1))$.
+
+    There have been various approaches to help compiler writers
+    maintain the relevant invariants,
+    such as GHC's \emph{rapier} \cite{Jones2002GHCInliner},
+    but these are generally still error-prone.
+    The developers of Dex for example used the rapier,
+    but introduced multiple binding-related compiler bugs,
+    leading them to create \emph{the foil}
+    to ``make it harder to poke your eye out''
     \cite{Maclaurin2022Foil}.
 
   \paragraph{de Bruijn Indices}
     With \emph{de Bruijn indices}
     \cite{DeBruijn1972NamelessIndices},
     we instead adopt a \emph{nameless} representation.
+    \Fixme{mention \texttt{bound} library?}
     Each variable is represented as a natural number,
     counting the number of nested bindings between variable occurrence and its binding:
     $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
     If we adapt the syntax for let-bindings to omit the unnecessary variable name,
     the example expression from dead binding elimination is represented as follows:
-    \Fixme{Numbered examples/figures to make reference clearer?}
 
     \begin{align*}
-      &\LetB 42 \In                       \\
-      &\ \ \LetB \DeBruijn{0} + 6 \In     \\
-      &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
-      &\ \ \ \ \ \ \DeBruijn{2}
+      &\Let{x} 42 \In            & &\LetB 42 \In                       \\
+      &\ \ \Let{y} x + 6 \In     & &\ \ \LetB \DeBruijn{0} + 6 \In     \\
+      &\ \ \ \ \Let{z} y + 7 \In & &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
+      &\ \ \ \ \ \ x             & &\ \ \ \ \ \ \DeBruijn{2}
     \end{align*}
 
     This makes $\alpha$-equivalence of expressions trivial and avoids variable capture,
     but there are still opportunities for mistakes during transformations.
     Adding or removing a binding
     requires us to traverse the binding's body and add or subtract 1 from all its free variables.
-    We can see this in our example when removing the innermost (unused) let-binding:
+    We can see this in our example when removing the innermost (unused) let-binding.
+    If we leave the variable $\DeBruijn{2}$ untouched,
+    it will not refer to the declaration $42$ anymore,
+    but become a free variable:
 
     \begin{align*}
       &\LetB 42 \In                   \\
       &\ \ \LetB \DeBruijn{0} + 6 \In \\
-      &\ \ \ \ \DeBruijn{1}
+      &\ \ \ \ \DeBruijn{2}\ \ \ \textit{-- incorrect, should be 1}
     \end{align*}
 
-    While useful for machines, this representation can be unintuitive for humans to reason about.
+    While useful for machines, de Bruijn representation can be unintuitive
+    for humans to reason about.
     This can be alleviated by formally describing the necessary invariants
     and using tooling to make sure they are upheld.
-    We show a possible way of using dependent types to do this in section
+    Intrinsically typed de Bruijn representation is one
+    possible way to achieve that, as demonstrated in section
     \ref{sec:de-bruijn-intrinsically-typed}.
-
-  \paragraph{co-de-Bruijn Representation}
-    Another nameless representation is described by McBride \cite{McBride2018EveryBodysGotToBeSomewhere}.
-    Where de Bruijn representation uses references to indicate which of the variables in scope they refer to,
-    the co-de-Bruijn way is for each syntax tree node
-    to shrink down the context of which variables occur in each subexpression.
-    Once a variable occurrence is reached, the context only consists of a single element.
-    Introducing or removing a binding can now be done without traversing the expression,
-    as we can instead modify the way the context is shrunk down to its \emph{relevant}
-    (actually occurring) part.
-    We will see further advantages of the co-de-Bruijn approach later.
-
-    This representation and its invariants can be even harder for humans to comprehend.
-    McBride writes that
-    ``only a fool would attempt to enforce the co-de-Bruijn invariants without support
-    from a typechecker''
-    and makes heavy use of Agda's dependent type system.
-    We follow his approach closely, as shown in section
-    \ref{sec:co-de-bruijn-intrinsically-typed}.
 
   \paragraph{Other Representations}
     There are many other techniques%
     \footnote{
-    There is an introductory blogpost
+    There is an introductory blogpost by Jesper Cockx
     \cite{Cockx2021RepresentationsBinding}
-    comparing options available in Agda.
+    comparing several approaches and their properties using Agda.
     }
     such as higher-order abstract syntax
     \cite{Pfenning1988HOAS}
     and also combinations of multiple techniques, e.g. the locally nameless representation
     \cite{Chargueraud2011LocallyNameless}.
+
+    Another nameless option we only brief mention here is the
+    \emph{co-de-Bruijn representation}
+    \cite{McBride2018EveryBodysGotToBeSomewhere}.
+    It does not only admit a trivial $\alpha$-equivalence,
+    but its terms are also unchanged by adding or removing bindings
+    in its context.
+    On the other hand,
+    it is even harder for humans to comprehend than de Bruijn syntax.
+    McBride writes that
+    ``only a fool would attempt to enforce the co-de-Bruijn invariants
+    without support from a typechecker''
+    and makes heavy use of Agda's dependent type system.
+    We follow his approach closely, as shown in section
+    \ref{sec:co-de-bruijn-intrinsically-typed}.
