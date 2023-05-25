@@ -1,51 +1,57 @@
 \chapter{Introduction}
 \label{ch:introduction}
-    \Outline{Background, relevance}
+    When writing a compiler for a programming language,
+    an important consideration is the treatment of binders and variables.
+    \Fixme{Maybe briefly motivate importance of compiler correctness in general?}
+    They are part of most languages and
+    there are several options for representing them in a compiler,
+    each with different implications for operating on and reasoning about programs.
+    Often, it is possible to represent ill-formed programs
+    where variables do not refer to a suitable binding.
+    This makes it easy to introduce bugs when manipulating programs.
 
-    \Fixme{Copied from proposal, adapt}
-    \Draft{
-      When writing a compiler for a programming language,
-      an important consideration is the treatment of binders and variables.
-      A well-known technique when using dependently typed programming languages such as Agda
-      \cite{Norell2008Agda}
-      is to define an intrinsically typed syntax tree,
-      where expressions are scope- and type-correct by construction and admit a total evaluation function
-      \cite{Augustsson1999WellTypedInterpreter}.
-      This construction has featured in several papers, exploring
-      basic operations like renaming and substitution
-      \cite{Allais2018UniverseOfSyntaxes}
-      as well as compilation to different target languages
-      \cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
+    When using a dependently typed programming language such as Agda
+    \cite{Norell2008Agda},
+    intrinsically typed syntax trees can be used to
+    make such ill-formed programs unrepresentable.
+    Using this well-known technique,
+    expressions become scope- and type-correct by construction,
+    allowing for a total evaluation function
+    \cite{Augustsson1999WellTypedInterpreter}.
+    Intrinsically typed constructions have featured in several papers,
+    exploring basic operations like renaming and substitution
+    \cite{Allais2018UniverseOfSyntaxes}
+    as well as compilation to different target languages
+    \cite[online supplementary material]{Pickard2021CalculatingDependentlyTypedCompilers}.
 
-      At the same time, there are large classes of important transformations
-      that have not yet received much attention in an intrinsically typed setting.
-      Optimisations, for example, play a central role in practical compilers
-      and establishing their correctness is often not trivial,
-      with ample opportunity for binding-related mistakes
-      \cite{SpectorZabusky2019EmbracingFormalizationGap}
-      \cite{Maclaurin2022Foil}.
-      Letting the type checker keep track of important invariants
-      promises to remove common sources of bugs.
-      A mechanised proof of semantics preservation can increase confidence further.
+    At the same time, there are large classes of important transformations
+    that have not yet received much attention in an intrinsically typed setting.
+    Optimisations, for example, play a central role in practical compilers,
+    but establishing their correctness is often not trivial,
+    with ample opportunity for binding-related mistakes
+    \cite{SpectorZabusky2019EmbracingFormalizationGap}
+    \cite{Maclaurin2022Foil}.
+    Letting the type checker keep track of invariants
+    promises to remove common sources of bugs.
+    A mechanised proof of semantics preservation can further increase
+    confidence in the transformation's correctness.
 
-      In return for the correctness guarantees, some additional work is required.
-      Program \emph{analysis} not only needs to identify optimisation opportunities,
-      but potentially also provide a proof witness that the optimisation is safe,
-      e.g. that some dead code is indeed unused.
-      For the \emph{transformation} of the intrinsically typed program,
-      the programmer then has to convince the type checker
-      that type- and scope-correctness invariants are preserved,
-      which can be cumbersome.
-      The goal of this thesis is to understand these consequences better and make the following contributions:
+    In return for the guarantees provided, some additional work is required.
+    Program \emph{analysis} not only needs to identify optimisation opportunities,
+    but potentially also provide a proof witness that the optimisation is safe,
+    e.g. that some dead code is indeed unused.
+    For the \emph{transformation} of the intrinsically typed program,
+    the programmer then has to convince the type checker
+    that type- and scope-correctness invariants are preserved,
+    which can be cumbersome.
+    The goal of this thesis is to understand these consequences better
+    and explore different techniques for dealing with them.
 
-      \begin{enumerate}
-        \item collect and document program analyses and transformations that can be performed on simple expression languages with variable binders
-        \item implement several of these transformations using intrinsically typed expressions in the dependently-typed programming language Agda
-        \item provide machine-checked proofs of the correctness (preservation of semantics) of the implemented transformations
-        \item attempt to apply relevant techniques from the literature, such as datatype-generic programming on syntax trees
-        \item identify common patterns and try capturing them as reusable building blocks (e.g. as datatype-generic constructions)
-      \end{enumerate}
-    }
+    A crucial aspect is that of \emph{variable liveness}.
+    Whether it is safe to apply a binding-related transformation
+    usually depends on which parts of the program make use of which binding.
+    We employ several ways of providing and using variable liveness information
+    for program transformations.
 
   \paragraph{Structure}
     Chapters \ref{ch:program-transformations} and \ref{ch:binding-representation}
@@ -77,7 +83,7 @@
     and extend it with basic support for co-de-Bruijn representation.
     This allows us to generically convert between de Bruijn and co-de-Bruijn representation
     and perform dead binding elimination.
-    \Fixme{Can be fleshed out a little bit once everything stabilised.}
+    \Fixme{Can be fleshed out a little bit once everything stabilised. Also list main points of Discussion chapter.}
 
   \paragraph{Contributions}
     Our main contributions are:
@@ -90,6 +96,7 @@
       \item syntax-generic conversion between de Bruijn and co-de-Bruijn terms
       \item a syntax-generic implementation of dead binding elimination on co-de-Bruijn terms
     \end{itemize}
+    \Fixme{Add forward references onces structure is stable.}
     The source code is available online%
     \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
 

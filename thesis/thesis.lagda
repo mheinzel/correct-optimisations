@@ -25,7 +25,7 @@ to enforce type- and scope-safety by construction,
 ruling out a large class of binding-related bugs.
 We show how to perform (and prove correct) dead binding elimination and let-sinking using intrinsically typed de Bruijn indices.
 To avoid repeated traversals of the transformed expression,
-we include variable liveness information into the syntax tree and later employ McBride's co-de-Bruijn representation.
+we include variable liveness information into the syntax tree and later employ a co-de-Bruijn representation.
 Finally, we perform transformations in this style syntax-generically.
 
 
