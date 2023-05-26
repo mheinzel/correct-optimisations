@@ -252,9 +252,15 @@
     For example, live variables |NAT :: []| in context |NAT :: NAT :: []|
     could refer to the first or second variable in scope,
     but the thinnings |os (o' oz)| and |o' (os oz)| distinguish the two cases.
-    We now need operations to merge live contexts of multiple subexpressions
-    and remove bound variables.
-  % Values have no live variables, |oe|
+    \Fixme{Is the example from the slides more helpful?}
+    We now define the operations needed to calculate the live context
+    of expressions bottom-up.
+  \paragraph{Values}
+    Values do not use any variables.
+    The thinning from the empty context drops everything.
+    \begin{code}
+      oe : [] C= Gamma
+    \end{code}
   \paragraph{Variables}
     A variable occurrence trivially has one live variable.
     To obtain a suitable thinning, We can make use of the fact that
@@ -264,11 +270,11 @@
       o-Ref Top      = os oe
       o-Ref (Pop x)  = o' (o-Ref x)
     \end{code}
-    % \begin{code}
-    %   ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
-    %   ref-o (o' theta)  = Pop (ref-o theta)
-    %   ref-o (os theta)  = Top
-    % \end{code}
+    \begin{code}
+      Ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
+      Ref-o (o' theta)  = Pop (Ref-o theta)
+      Ref-o (os theta)  = Top
+    \end{code}
     % \begin{code}
     %   law-ref-o-Ref : (x : Ref sigma Gamma) -> ref-o (o-Ref x) == x
     % \end{code}
@@ -283,7 +289,6 @@
       \/-domain                       oz           oz           = []
     \end{code}
     We then construct the thinning from this combined live context.
-    \Fixme{This is basically |Coproduct| as used for co-de-Bruijn. Can we avoid the duplication?}
     \begin{code}
       _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-domain theta1 theta2 C= Gamma
       o' theta1  \/ o' theta2  = o'  (theta1 \/ theta2)
@@ -302,9 +307,10 @@
       law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
     \end{code}
   \paragraph{Binders}
-    The context only contains the free variables of an expression,
-    so we have to pop bound variables off the context and live variables (if present).
-    There are again thinnings into and out of the resulting list.
+    When moving up over a binder, the bound variable gets removed from the context.
+    In case it was part of the live variables, it also has to be removed there.
+    This is done using |pop|,
+    again wiht thinnings into and out of the resulting list.
     \begin{code}
       pop-domain : Delta C= Gamma -> List I
       pop-domain {Delta = Delta}       (o' theta)  = Delta
@@ -322,8 +328,8 @@
   \paragraph{Let-bindings}
     For let-bindings, one way is to treat them as an immediate application
     of a $\lambda$-abstraction, combining the methods we just saw.
-    This corresponds to a non-strong live variable analysis,
-    since even if the body is dead, we end up considering the declaration
+    This corresponds to a weakly live variable analysis,
+    since even if the variable is dead, we end up considering its declaration
     for the live context.
     \begin{code}
       combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-domain theta1 (pop theta2) C= Gamma
@@ -343,7 +349,8 @@
       combine theta1 (os theta2)  = theta1 \/ theta2
     \end{code}
     We do not need the composed thinnings into the live context,
-    as we will always distinguish the two cases of |theta2| anyways.
+    as we will always distinguish the two cases of |theta2| anyways
+    and can then rely on the thinnings defined for |_\/_|.
 
 
 \section{Dead Binding Elimination}
