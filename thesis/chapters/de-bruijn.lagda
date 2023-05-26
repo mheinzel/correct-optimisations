@@ -359,18 +359,37 @@
 \subsection{Direct Approach}
 \label{sec:de-bruijn-dbe-direct}
     To make the decision whether a binding can be removed,
-    we need to find out if it is used or not.
-    We could query that information on demand
-    (and we will see a similar approach in section
-    \ref{sec:de-bruijn-let-sinking-direct}),
-    but here we instead return liveness information as part of the result
-    and use that.
+    we need to find out if it is used in its body or not.
+    This can be achieved by returning liveness information
+    as part of the transformation's result and use that after the recursive call on the body.
     Precisely, we return |Expr sigma ^^ Gamma|,
     the transformed expression in its live context,
     together with a thinning into the original one.
+    % We could query that information on demand (and we will see a similar approach in section \ref{sec:de-bruijn-let-sinking-direct}),
   \paragraph{Transformation}
-    For the thinnings we return, we make use of the variable liveness operations
-    defined in the previous section.
+    The transformation proceeds bottom up.
+    Once all subexpressions have been transformed and we know their live contexts,
+    we can use of the variable liveness operations we just define
+    to calculate the overall live context with its corresponding thinnings.
+    Since the constructors of |Expr| require the subexpressions' context to match their own,
+    we need to rename the subexpressions accordingly.
+
+    \begin{code}
+      rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
+      rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
+    \end{code}
+
+    Each renaming traverses the expression
+    and doing it repeatedly is inefficient,
+    but cannot be avoided easily with the approach shown here.
+    If we knew upfront which context the expression should have in the end,
+    we could immediately produce the result in that context.
+    However, we only find out which variables are live
+    \emph{after} doing the recursive call.
+    Querying liveness before doing the recursive calls would also require
+    redundant traversals,
+    but we will show a solution to this issue in the next section.
+
     \begin{code}
       dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
       dbe (Var x) =
@@ -397,95 +416,102 @@
         in Plus (rename-Expr (un-\/1 theta1 theta2) e1') (rename-Expr (un-\/2 theta1 theta2) e2')
              ^ (theta1 \/ theta2)
     \end{code}
-    For |Let|, we split on the binding being live or dead in |dbe e2|.
-    Note that this only keeps the binding if it is \emph{strongly} live.
-    Otherwise, we simply drop it.
 
-    \Draft{
-      Thinnings can be used to specify operations on the datatypes we defined for our language,
-      such as environments, references and expressions.
-      \begin{code}
-        rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
-        rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
-      \end{code}
-    }
+    For |Let|, we split on the binding being live or dead in |dbe e2|
+    Only if it is dead will the typechecker allow us to return |e2'|
+    without the binding.
+    Finally, note that checking liveness after already removing dead bindings
+    from the body corresponds to \emph{strongly} live variable analysis.
 
-    Also note that we need to rename the subexpressions at every binary operator,
-    which is inefficient.
-    This happens because in the |Expr| type
-    both subexpressions need to have the same context,
-    and cannot be avoided easily with the approach shown here.
-    If we knew upfront which context the expression should have in the end,
-    we could immediately produce the result in that context.
-    However, we only find out which variables are live
-    \emph{after} doing the recursive call.
-    We will show a solution to this issue in the next section.
   \paragraph{Correctness}
     We prove preservation of semantics based on the total evaluation function.
     Since we allow functions as values, this requires us to postulate extensionality.
     This does not impact the soundness of the proof
     and could be avoided by moving to a different setting,
     such as homotopy type theory \cite{Univalent2013HomotopyTypeTheory}.
-    \Draft{
-      Thinnings can be used to specify operations on the datatypes we defined for our language,
-      such as environments, references and expressions.
-      \Fixme{Also show laws that |_.._| commutes with operations?}
-      \begin{code}
-        project-Env  : Delta C= Gamma -> Env Gamma         -> Env Delta
-      \end{code}
-      Furthermore, we can prove laws about how they relate to each other under evaluation,
-      such as
-      |eval (rename-Expr theta e) env == eval e (project-Env theta env)|
-      and
-      |lookup (rename-Ref theta x) env == lookup x (project-Env theta env)|.
-    }
+
+    \begin{code}
+      postulate
+        extensionality :
+          {S : Set} {T : S -> Set} {f g : (x : S) -> T x} ->
+          (forall x -> f x == g x) -> f == g
+    \end{code}
+
+    As the transformed expression generally has a smaller context than before,
+    we cannot immediately evaluate it under the same environment.
+    Instead of using the thinning to rename the expression,
+    we project the environment to match the smaller context.
+
+    \begin{code}
+      project-Env : Delta C= Gamma -> Env Gamma -> Env Delta
+    \end{code}
     \begin{code}
       dbe-correct :
         (e : Expr sigma Gamma) (env : Env Gamma) ->
         let e' ^ theta = dbe e
         in eval e' (project-Env theta env) == eval e env
     \end{code}
+
+    As we show, both are equivalent,
+    but in this case it turned out to be more convenient to reason about context projection.
+
+    \begin{code}
+      law-eval-rename-Expr :
+        (e : Expr sigma Delta) (theta : Delta C= Gamma) (env : Env Gamma) ->
+        eval (rename-Expr theta e) env == eval e (project-Env theta env)
+    \end{code}
+
     The inductive proof requires combining a large number of laws about
     evaluation, renaming, environment projection and the thinnings we constructed.
     The |Lam| case exemplifies that.
-    \Fixme{Probably more useful with |==|-Reasoning.}
-    % \begin{code}
-    %   dbe-correct (App e1 e2) env =
-    %     let  e1' ^ theta1 = dbe e1
-    %          e2' ^ theta2 = dbe e2
-    %     in
-    %       cong2 _S_
-    %         (trans
-    %           (law-eval-rename-Expr e1' _ _)
-    %           (trans
-    %             (cong (eval e1')
-    %               (trans
-    %                 (sym (law-project-Env-.. (un-\/1 theta1 theta2) (theta1 \/ theta2) env))
-    %                 (cong (lambda x -> project-Env x env) (law-\/1-inv theta1 theta2))))
-    %             (dbe-correct e1 env)))
-    %         (trans
-    %           (law-eval-rename-Expr e2' _ _)
-    %           (trans
-    %             (cong (eval e2')
-    %               (trans
-    %                 (sym (law-project-Env-.. (un-\/2 theta1 theta2) (theta1 \/ theta2) env))
-    %                 (cong (lambda x -> project-Env x env) (law-\/2-inv theta1 theta2))))
-    %             (dbe-correct e2 env)))
-    % \end{code}
+    We omit most of the proof terms except for the inductive hypothesis, as they are rather long.
+    The intermediate terms still show, how we apply different lemmas.
+
     \begin{code}
       dbe-correct (Lam e1) env =
         let e1' ^ theta1 = dbe e1
-        in extensionality _ _ lambda v ->
-          trans
-            (law-eval-rename-Expr e1' (un-pop theta1) (project-Env (os (pop theta1)) (Cons v env)))
-            (trans
-              (cong (eval e1')
-                (trans
-                  (sym (law-project-Env-.. (un-pop theta1) (os (pop theta1)) (Cons v env)))
-                  (cong (lambda x -> project-Env x (Cons v env)) (law-pop-inv theta1))))
-              (dbe-correct e1 (Cons v env)))
+        in extensionality lambda v ->
+            eval (rename-Expr (un-pop theta1) e1') (project-Env (os (pop theta1)) (Cons v env))
+          ==<[ law-eval-rename-Expr e1' (un-pop theta1) _ ]>
+            eval e1' (project-Env (un-pop theta1) (project-Env (os (pop theta1)) (Cons v env)))
+          ==<[ (dots (cong (eval e1') (sym (law-project-Env-.. (un-pop theta1) (os (pop theta1)) (Cons v env))))) ]>
+            eval e1' (project-Env (un-pop theta1 .. os (pop theta1)) (Cons v env))
+          ==<[ (dots (cong (lambda x -> eval e1' (project-Env x (Cons v env))) (law-pop-inv theta1))) ]>
+            eval e1' (project-Env theta1 (Cons v env))
+          ==<[ dbe-correct e1 (Cons v env) ]>
+            eval e1 (Cons v env)
+          QED
       (dots)
     \end{code}
+
+    The cases for binary operators have a similar structure,
+    but are even longer, as they need to apply laws once for each subexpression.
+    Since the implementation uses a \textbf{with}-abstraction for the |Let|-case,
+    the proof does the same:
+
+    \begin{code}
+      dbe-correct (Let e1 e2) env with dbe e1 | dbe e2 | dbe-correct e1 | dbe-correct e2
+      ... | e1' ↑ theta1 | e2' ^ o' theta2 | h1 | h2 =
+        h2 (Cons (eval e1 env) env)
+      ... | e1' ↑ theta1 | e2' ^ os theta2 | h1 | h2 =
+        let v = eval (rename-Expr (un-∪1 theta1 theta2) e1') (project-Env (theta1 ∪ theta2) env)
+        in
+          eval (rename-Expr (os (un-∪2 theta1 theta2)) e2')
+            (Cons v (project-Env (theta1 ∪ theta2) env))
+        ==<[ (dots) ]>
+          (dots)      -- long proof
+        ==<[ (dots) ]>
+          eval e2 (Cons (eval e1 env) env)
+        QED
+    \end{code}
+
+    Note that we also \textbf{with}-abstract over the inductive hypothesis.
+    When abstracting over e.g. |dbe e1|,
+    the statement we need to prove gets generalised and then talks about |e1'|.
+    However, |dbe-correct e1| talks about |dbe e1| and Agda is not aware of their connection.
+    Generalising |dbe-correct e1| makes it refer to |e1'| as well.
+    \footnote{\url{https://agda.readthedocs.io/en/v2.6.3/language/with-abstraction.html}}
+
 
 \subsection{Using Live Variable Analysis}
 \label{sec:de-bruijn-dbe-live}

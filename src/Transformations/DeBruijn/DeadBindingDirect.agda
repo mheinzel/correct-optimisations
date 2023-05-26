@@ -86,11 +86,11 @@ dbe-correct (Lam e₁) env =
   let e₁' ↑ θ₁ = dbe e₁
   in extensionality _ _ λ v →
       eval (rename-Expr (un-pop θ₁) e₁') (project-Env (os (pop θ₁)) (Cons v env))
-    ≡⟨ law-eval-rename-Expr e₁' (un-pop θ₁) (project-Env (os (pop θ₁)) (Cons v env)) ⟩
+    ≡⟨ law-eval-rename-Expr e₁' (un-pop θ₁) _ ⟩
       eval e₁' (project-Env (un-pop θ₁) (project-Env (os (pop θ₁)) (Cons v env)))
     ≡⟨ cong (eval e₁') (sym (law-project-Env-ₒ (un-pop θ₁) (os (pop θ₁)) (Cons v env))) ⟩
       eval e₁' (project-Env (un-pop θ₁ ₒ os (pop θ₁)) (Cons v env))
-    ≡⟨ cong (λ x → eval e₁' (project-Env x (Cons v env))) (law-pop-inv θ₁) ⟩
+    ≡⟨ cong (λ x → eval e₁' _) (law-pop-inv θ₁) ⟩
       eval e₁' (project-Env θ₁ (Cons v env))
     ≡⟨ dbe-correct e₁ (Cons v env) ⟩
       eval e₁ (Cons v env)
