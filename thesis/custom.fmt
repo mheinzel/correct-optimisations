@@ -67,6 +67,7 @@
 %format thin^^ = "\Varid{thin}{\Uparrow}"
 %format map^^ = "\Varid{map}{\Uparrow}"
 %format mult^^ = "\Varid{mult}{\Uparrow}"
+%format bind^^ = "\Varid{bind}{\Uparrow}"
 %format rename-Expr^^ = "\Varid{rename-Expr}{\Uparrow}"
 %format law-project-Env-.. = "\Varid{law-project-Env-}" ..
 %format \/-domain = "{\cup}\Varid{-domain}"

@@ -122,119 +122,124 @@
 
 \section{Thinnings}
 \label{sec:de-bruijn-thinnings}
-  We use \emph{thinnings}, also called \emph{order-preserving embeddings} (OPE)
-  \cite{Chapman2009TypeCheckingNormalisation},
-  e.g. to reason about the part of a context that is live (actually used).
-  We closely follow the syntactic conventions of McBride
-  \cite{McBride2018EveryBodysGotToBeSomewhere},
-  but grow our lists towards the left
-  instead of using backwards lists and postfix operators.
-  \begin{code}
-    data _C=_ {I : Set} : List I -> List I -> Set where
-      o' : Delta C= Gamma ->          Delta   C= (tau :: Gamma)
-      os : Delta C= Gamma -> (tau ::  Delta)  C= (tau :: Gamma)
-      oz : [] C= []
-  \end{code}
-  \Fixme{explain the intuition a bit?}
+    Since the context of an expression plays such an important role for its scope-safety,
+    we want some machinery for talking about how different contexts relate to each other.
+    One such relation, which will prove useful soon, is that of subcontexts,
+    or more precisely contexts that embed into each other.
+    This is formalised in the form of \emph{thinnings},
+    also called \emph{order-preserving embeddings} (OPE)
+    \cite{Chapman2009TypeCheckingNormalisation}.
+    As several operations on thinnings are used pervasively
+    throughout the rest of the thesis,
+    we introduce them here in a central location we can refer to.
+
+    We closely follow the syntactic conventions of McBride
+    \cite{McBride2018EveryBodysGotToBeSomewhere},
+    but grow our lists towards the left
+    instead of using backwards lists and postfix operators.
+
+    \begin{code}
+      data _C=_ {I : Set} : List I -> List I -> Set where
+        o' : Delta C= Gamma ->          Delta   C= (tau :: Gamma)    -- drop
+        os : Delta C= Gamma -> (tau ::  Delta)  C= (tau :: Gamma)    -- keep
+        oz : [] C= []                                                -- empty
+    \end{code}
+
+    As an example of how we can construct thinnings, let us embed
+    |[ a , c ]| into |[ a , b , c ]|:
+    \Fixme{Some nice little diagrams?}
+
+    \begin{code}
+      os (o' (os oz)) : [ a , c ] ⊑ [ a , b , c ]
+    \end{code}
+
   \paragraph{Identity and composition}
-  As an example of how we can construct thinnings,
-  we can embed a context into itself (identity thinning)
-  or embed the empty context into any other (empty thinning).
-  \Fixme{Move |oe| directly into section \ref{sec:de-bruijn-liveness}?}
-  \begin{code}
-    oi : Gamma C= Gamma
-    oi {Gamma = []} = oz
-    oi {Gamma = _ :: _} = os oi
+    Contexts and the thinnings between them form a category
+    with the inital object |[]|.
+    Concretely this means that we have an empty and identity thinning
+    (keeping none or all element, respectively),
+    composition of thinnings in sequence,
+    as well as identity and associativity laws.
+    \begin{code}
+      oe : [] C= Gamma
+      oe {Gamma = []} = oz
+      oe {Gamma = _ :: _} = o' oe
 
-    oe : [] C= Gamma
-    oe {Gamma = []} = oz
-    oe {Gamma = _ :: _} = o' oe
-  \end{code}
-  Crucially, thinnings can be composed in sequence, and follow the expected laws.
-  \begin{code}
-    _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
-    theta     .. o' phi  = o' (theta .. phi)
-    o' theta  .. os phi  = o' (theta .. phi)
-    os theta  .. os phi  = os (theta .. phi)
-    oz        .. oz      = oz
-  \end{code}
-  \begin{code}
-    law-..oi  :  (theta : Delta C= Gamma) -> theta .. oi == theta
-    law-oi..  :  (theta : Delta C= Gamma) -> oi .. theta == theta
-    law-....  :  (theta : Gamma1 C= Gamma2) (phi : Gamma2 C= Gamma3) (psi : Gamma3 C= Gamma4) ->
-                 theta .. (phi .. psi) == (theta .. phi) .. psi
-  \end{code}
-  \Fixme{Rendering of names could be prettier.}
+      oi : Gamma C= Gamma
+      oi {Gamma = []} = oz
+      oi {Gamma = _ :: _} = os oi
+
+      _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
+      theta     .. o' phi  = o' (theta .. phi)
+      o' theta  .. os phi  = o' (theta .. phi)
+      os theta  .. os phi  = os (theta .. phi)
+      oz        .. oz      = oz
+      law-..oi  :  (theta : Delta C= Gamma) -> theta .. oi == theta
+      law-oi..  :  (theta : Delta C= Gamma) -> oi .. theta == theta
+      law-....  :  (theta : Gamma1 C= Gamma2) (phi : Gamma2 C= Gamma3) (psi : Gamma3 C= Gamma4) ->
+                   theta .. (phi .. psi) == (theta .. phi) .. psi
+    \end{code}
+    \Fixme{Rendering of names could be prettier.}
+
   \paragraph{Concatenating thinnings}
-  Thinnings cannot just be composed in sequence, but also concatenated.
-  \begin{code}
-    _++C=_ : Delta1 C= Gamma1 -> Delta2 C= Gamma2 -> (Delta1 ++ Delta2) C= (Gamma1 ++ Gamma2)
-    o' theta  ++C= phi = o'  (theta ++C= phi)
-    os theta  ++C= phi = os  (theta ++C= phi)
-    oz        ++C= phi = phi
-  \end{code}
-  This commutes nicely, i.e. 
-  |(theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2)|
-  \paragraph{Splitting thinnings}
-  If we have a thinning into a concatenated context,
-  we can also split the thinning itself accordingly.
-  \Fixme{Is this the best place? Only needed for let-sinking.}
-  \begin{code}
-    record Split (Gamma1 : List I) (psi : Delta C= (Gamma1 ++ Gamma2)) : Set where
-      constructor split
-      field
-        {used1} : List I
-        {used2} : List I
-        thinning1 : (used1 C= Gamma1)
-        thinning2 : (used2 C= Gamma2)
-        eq : Sigma (Delta == used1 ++ used2) lambda { refl -> psi == thinning1 ++C= thinning2 }
-  \end{code}
-  \begin{code}
-    _-|_ : (Gamma1 : List I) (psi : Delta C= (Gamma1 ++ Gamma2)) -> Split Gamma1 psi
-    []               -| psi                                                    = split oz psi (refl , refl)
-    (tau :: Gamma1)  -| o' psi                with Gamma1 -| psi
-    (tau :: Gamma1)  -| o' .(phi1 ++C= phi2)  | split phi1 phi2 (refl , refl)  = split (o' phi1) phi2 (refl , refl)
-    (tau :: Gamma1)  -| os psi                with Gamma1 -| psi
-    (tau :: Gamma1)  -| os .(phi1 ++C= phi2)  | split phi1 phi2 (refl , refl)  = split (os phi1) phi2 (refl , refl)
-  \end{code}
-  \paragraph{Things with thinnings}
-  For types indexed by a context, we have been careful to pass it as the last argument.
-  This allows us talk about things in some existential scope, but with a thinning
-  into a fixed one.
-  \begin{code}
-    record _^^_ (T : List I -> Set) (Gamma : List I) : Set where
-      constructor _^_
-      field
-        {support} : List I
-        thing : T support
-        thinning : support C= Gamma
-  \end{code}
-  \begin{code}
-    map^^   : (forall {Delta} -> S Delta -> T Delta) -> S ^^ Gamma -> T ^^ Gamma
-    mult^^  : ((T ^^_) ^^_) Gamma -> T ^^ Gamma
-    thin^^  : Delta C= Gamma -> T ^^ Delta -> T ^^ Gamma
-  \end{code}
-  % map^^ f (s ^ theta) = f s ^ theta
-  % mult^^ ((t ^ theta) ^ phi) = t ^ (theta .. phi)
-  % thin^^ phi (t ^ theta) = t ^ (theta .. phi)
-  \paragraph{Language-related operations}
-  Thinnings can be used to specify operations on the datatypes we defined for our language,
-  such as environments, references and expressions.
-  \Fixme{Also show laws that |_.._| commutes with operations?}
-  \begin{code}
-    project-Env  : Delta C= Gamma -> Env Gamma         -> Env Delta
-    rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
-    rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
-  \end{code}
-  Note that we can only \emph{remove} elements from environments,
-  but \emph{add} further elements to the context of references and expressions.
-  Furthermore, we can prove laws about how they relate to each other under evaluation,
-  such as
-  |eval (rename-Expr theta e) env == eval e (project-Env theta env)|
-  and
-  |lookup (rename-Ref theta x) env == lookup x (project-Env theta env)|.
+    Thinnings cannot just be composed in sequence, but also concatenated.
 
-\Fixme{Move |Expr|-independent thinning operations on |Ref|, |Env| to a separate chapter? (basically |Language.Core|)}
+    \begin{code}
+      _++C=_ : Delta1 C= Gamma1 -> Delta2 C= Gamma2 -> (Delta1 ++ Delta2) C= (Gamma1 ++ Gamma2)
+      o' theta  ++C= phi = o'  (theta ++C= phi)
+      os theta  ++C= phi = os  (theta ++C= phi)
+      oz        ++C= phi = phi
+    \end{code}
+
+    This commutes nicely, i.e. 
+    |(theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2)|
+
+  \paragraph{Splitting thinnings}
+    If we have a thinning into a target context that is concatenated from two segments,
+    we can also split the source context and thinning accordingly.
+    To help the typechecker figure out what we want, we quantify over |Gamma1| explicitly,
+    while leaving the other variables implicit.
+    \begin{code}
+      record Split (Gamma1 : List I) (theta : Delta C= (Gamma1 ++ Gamma2)) : Set where
+        constructor split
+        field
+          {Delta1} : List I
+          {Delta2} : List I
+          theta1 : (Delta1 C= Gamma1)
+          theta2 : (Delta2 C= Gamma2)
+          eq : Sigma (Delta == Delta1 ++ Delta2) lambda { refl -> theta == theta1 ++C= theta2 }
+    \end{code}
+    \begin{code}
+      _-|_ : (Gamma1 : List I) (theta : Delta C= (Gamma1 ++ Gamma2)) -> Split Gamma1 theta
+    \end{code}
+    % []               -| theta                                                          = split oz theta (refl , refl)
+    % (tau :: Gamma1)  -| o' theta                  with Gamma1 -| theta
+    % (tau :: Gamma1)  -| o' .(theta1 ++C= theta2)  | split theta1 theta2 (refl , refl)  = split (o' theta1) theta2 (refl , refl)
+    % (tau :: Gamma1)  -| os theta                  with Gamma1 -| theta
+    % (tau :: Gamma1)  -| os .(theta1 ++C= theta2)  | split theta1 theta2 (refl , refl)  = split (os theta1) theta2 (refl , refl)
+
+  \paragraph{Things with thinnings}
+    We will later deal with things (e.g. expressions) indexed by a context
+    that we do not statically know.
+    We do know, however, that it embeds it a specific context |Gamma| via some thinning.
+    As we have so far been careful to always use the context as the last argument,
+    this concept of a thing with a thinning can be used for a wide range of different datatypes.
+
+    \begin{code}
+      record _^^_ (T : List I -> Set) (Gamma : List I) : Set where
+        constructor _^_
+        field
+          {support} : List I
+          thing : T support
+          thinning : support C= Gamma
+    \end{code}
+    To avoid manual un- and re-packing, some combinators come in handy:
+    \begin{code}
+      map^^   : (forall {Delta} -> S Delta -> T Delta) -> S ^^ Gamma -> T ^^ Gamma
+      mult^^  : ((T ^^_) ^^_) Gamma -> T ^^ Gamma
+      bind^^  : (forall {Delta} -> S Delta -> T ^^ Delta) -> S ^^ Gamma -> T ^^ Gamma
+      thin^^  : Delta C= Gamma -> T ^^ Delta -> T ^^ Gamma
+    \end{code}
 
 
 \section{Variable Liveness}
@@ -389,6 +394,15 @@
     Note that this only keeps the binding if it is \emph{strongly} live.
     Otherwise, we simply drop it.
 
+    \Draft{
+      Thinnings can be used to specify operations on the datatypes we defined for our language,
+      such as environments, references and expressions.
+      \begin{code}
+        rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
+        rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
+      \end{code}
+    }
+
     Also note that we need to rename the subexpressions at every binary operator,
     which is inefficient.
     This happens because in the |Expr| type
@@ -405,6 +419,19 @@
     This does not impact the soundness of the proof
     and could be avoided by moving to a different setting,
     such as homotopy type theory \cite{Univalent2013HomotopyTypeTheory}.
+    \Draft{
+      Thinnings can be used to specify operations on the datatypes we defined for our language,
+      such as environments, references and expressions.
+      \Fixme{Also show laws that |_.._| commutes with operations?}
+      \begin{code}
+        project-Env  : Delta C= Gamma -> Env Gamma         -> Env Delta
+      \end{code}
+      Furthermore, we can prove laws about how they relate to each other under evaluation,
+      such as
+      |eval (rename-Expr theta e) env == eval e (project-Env theta env)|
+      and
+      |lookup (rename-Ref theta x) env == lookup x (project-Env theta env)|.
+    }
     \begin{code}
       dbe-correct :
         (e : Expr sigma Gamma) (env : Env Gamma) ->
