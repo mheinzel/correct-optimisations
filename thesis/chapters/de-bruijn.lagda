@@ -513,22 +513,24 @@
     \footnote{\url{https://agda.readthedocs.io/en/v2.6.3/language/with-abstraction.html}}
 
 
-\subsection{Using Live Variable Analysis}
+\subsection{Using Annotations}
 \label{sec:de-bruijn-dbe-live}
     In compilers, it is a common pattern to perform
     separate analysis and transformation passes,
     for example with strictness and occurrence analysis in GHC
     \cite{Jones1998TransformationOptimiser}.
     We can do the same to make variable liveness information available
-    without repeatedly having to computing it on the fly.
+    without repeatedly having to compute it on the fly.
     For dead binding elimination,
     this allows us to avoid the redundant renaming of subexpressions.
+
   \paragraph{Liveness annotations}
     To annotate each part of the expression with its live context,
     we first need to define a suitable datatype of annotated expressions
     |LiveExpr tau theta|.
-    The thinning |theta| here will be the same as we returned from the
-    transformation in section \ref{sec:de-bruijn-dbe-direct}.
+    The thinning |theta| here plays the same role as
+    the one returned from the transformation in section \ref{sec:de-bruijn-dbe-direct}.
+
     \begin{code}
       data LiveExpr {Gamma : Ctx} : U -> {Delta : Ctx} -> Delta C= Gamma -> Set where
         Var :
@@ -557,11 +559,18 @@
           LiveExpr NAT theta2 ->
           LiveExpr NAT (theta1 \/ theta2)
     \end{code}
+
+    |combine| can refer to either one we introduced,
+    but for the remainder of this thesis we will use the strongly live version.
+
   \paragraph{Analysis}
     To create such an annotated expressions, we need to perform
     strongly live variable analysis.
-    The function |analyse| computes an existentially qualified live context and thinning,
+    As we do not know the live context upfront,
+    |analyse| computes an existentially qualified live context and thinning,
     together with a matching annotated expression.
+    The implementation is straightforward,
+    directly following the expression's structure.
     \begin{code}
       analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
       analyse (Var {sigma} x) = sigma :: [] , o-Ref x , Var x
@@ -572,7 +581,7 @@
       (dots)
     \end{code}
     It is sensible to assume that the only thing analysis does
-    is to attaches annotations without changing the structure of the expression.
+    is to attach annotations without changing the structure of the expression.
     We capture this property by stating that we can always forget the annotations
     to obtain the original expression (|forget . analyse == id|).
     \begin{code}
@@ -583,10 +592,14 @@
         let _ , _ , le = analyse e
         in forget le == e
     \end{code}
-    Note that we can evaluate |LiveExpr| directly, differing from |eval| mainly
-    in the |Let|-case, where we match on |theta2| to distinguish whether the bound variable is live.
-    If it is not, we directly evaluate the body, ignoring the bound declaration.
-    Another important detail is that evaluation works under any environment containing (at least) the live context.
+    Note that we can evaluate |LiveExpr| directly, differing from |eval| in two points:
+    Firstly, since the annotations make it easy to identify dead let-bindings,
+    we can skip their evaluation.
+    Secondly, evaluation works under any environment containing (at least) the live context.
+    This makes it possible to get by with the minimal required environment,
+    but still gives some flexibility.
+    For example, we can avoid projecting the environment for each recursive call,
+    instead just manipulating the thinning.
     \begin{code}
       evalLive : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Env Gamma' -> Delta C= Gamma' -> (interpretU(tau))
       (dots)
@@ -607,7 +620,7 @@
     thinning and returning it with the result.
     However, the transformed expression will not just be indexed by
     the live context |Delta|, but any chosen larger context |Gamma'|.
-    Instead of renaming afterwards,
+    Instead of inefficiently renaming afterwards,
     the result gets created in the desired context straight away.
     Most cases now simply recurse while accumulating the thinning
     that eventually gets used to create the variable reference.
@@ -820,7 +833,7 @@
   \paragraph{Correctness}
     \OpenEnd{No correctness proof yet, how hard is it for the direct approach?}
 
-\subsection{Using Live Variable Analysis}
+\subsection{Using Annotations}
 \label{sec:de-bruijn-let-sinking-live}
     Perhaps unsurprisingly, we can avoid the repeated querying
     using liveness annotations.
