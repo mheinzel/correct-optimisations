@@ -699,21 +699,21 @@
 
 \section{Let-sinking}
 \label{sec:de-bruijn-let-sinking}
-    We want to push let-bindings as far inward as possible,
-    without pushing into a $\lambda$-abstraction or duplicating the binding.
+    As outlined in section \ref{sec:program-transformations},
+    we want to move a single let-bindings as far inward as possible,
+    without duplicating it or pushing it into a $\lambda$-abstraction.
 
 \subsection{Direct Approach}
 \label{sec:de-bruijn-let-sinking-direct}
-    We focus on a single let-binding |Let decl e| at a time,
-    which we want to replace with the result of |let-sink decl e|.
   \paragraph{Type signature}
-    We initially deal with a binding for the topmost entry in the context,
-    so we want something like |let-sink : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|.
-    However, recursively applying this function under binders requires more flexibility.
+    We want to replace a |Let decl e| with the result of |sink-let decl e|.
+    As we initially deal with the topmost entry in the context,
+    the signature could look like
+    |sink-let : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|.
+    However, recursively going under binders requires more flexibility.
     The solution chosen here uses list concatenation in the context
     to allow |sigma| to occur at any position.
-    Choosing |[]| as the prefix then again results in the same signature
-    as the for the |Let| constructor itself.
+    Choosing |[]| as the prefix then again results in the signature above.
     \begin{code}
       sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
     \end{code}
@@ -731,10 +731,30 @@
       Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
       Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
     \end{code}
-    Using list concatenation, however, allows us to make use of very general
+    Using list concatenation, however, seems more principled and allows us to make use of very general
     operations and properties about concatenation of contexts and thinnings.
   \paragraph{Transformation}
-    The implementation proceeds by structural induction.
+    Just as dead binding elimination, let-sinking heavily relies on variable liveness information.
+    To know where a binding should be moved, we need to know where it is used.
+    As we are working with a plain (unannotated) syntax tree in this section,
+    we need to query the subexpressions' variable usage on demand,
+    which repeatedly traverses the expression.
+    This is difficult to avoid, since usage information is computed bottom-up,
+    but let-sinking needs to proceed top-down.
+
+    More concretely, we need to find out for each subexpression
+    whether it uses the binding we are let-sinking or not.
+    If the binding is unused, we usually need to make that clear to the typechecker
+    by removing it from the subexpression's context.
+    Therefore, we combine querying and the context change into a single operation
+    we refer to as \emph{strengthening}.
+
+    \begin{code}
+      strengthen :  Expr tau (Gamma1 ++ sigma :: Gamma2) -> Maybe (Expr tau (Gamma1 ++ Gamma2))
+    \end{code}
+
+    We now give the complete implementation before highlighting specific parts.
+
     \begin{code}
       sink-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (Gamma1 ++ Gamma2)
       sink-let decl (Var x) with rename-top-Ref x
@@ -747,10 +767,10 @@
       ... | nothing   | nothing   = Let decl (rename-top e)
       sink-let decl (At(e)(Lam e1)) =
         Let decl (rename-top e) -- Do not push into $\lambda$-abstractions!
-      sink-let {Gamma1 = Gamma1} decl (At(e)(Let e1 e2)) with strengthen e1 | strengthen {Gamma1 = _ :: Gamma1} e2
+      sink-let decl (At(e)(Let e1 e2)) with strengthen e1 | strengthen e2
       ... | just e1'  | just e2'  = Let e1' e2'
       ... | nothing   | just e2'  = Let (sink-let decl e1) e2'
-      ... | just e1'  | nothing   = Let e1' (sink-let {Gamma1 = _ :: Gamma1} (weaken decl) e2)
+      ... | just e1'  | nothing   = Let e1' (sink-let (weaken decl) e2)
       ... | nothing   | nothing   = Let decl (rename-top e)
       sink-let decl (Val v) =
         Val v
@@ -760,8 +780,7 @@
       ... | just e1'  | nothing   = Plus e1' (sink-let decl e2)
       ... | nothing   | nothing   = Let decl (rename-top e)
     \end{code}
-    We will highlight specific parts.
-    \Fixme{Split up cases or leave as one code block?}
+
   \paragraph{Variables}
     When pushing a binding into a variable, there are two possible cases:
     \begin{enumerate}
@@ -770,7 +789,7 @@
         effectively inlining it.
       \item If the variable references a different element of the context,
         the declaration is unused
-        and we  only need to strengthen the variable into the smaller context.
+        and we  only need to rename the variable into the smaller context.
     \end{enumerate}
     To distinguish the two cases, we rename the reference
     (moving the variable in question to the front).
@@ -792,19 +811,7 @@
     \end{code}
   \paragraph{Binary constructors}
     For binary operators, we need to check which subexpressions make use of the declaration.
-    Instead of working with an annotated version of the syntax tree,
-    we here query variable usage in subexpressions on demand.
-    Since usage information is computed bottom-up,
-    but let-sinking works top-down,
-    we redundantly traverse the whole expression at each binary constructor
-    of the expression.
-    If the binding is not used in a subexpression,
-    we need to obtain a strengthened version of that expression,
-    so we make it part of the querying operation.
-    \begin{code}
-      strengthen :  Expr tau (Gamma1 ++ sigma :: Gamma2) -> Maybe (Expr tau (Gamma1 ++ Gamma2))
-    \end{code}
-    We now see that there are four possible cases:
+    There are four possible cases:
     \begin{enumerate}
       \item
         Both of the subexpressions can be strengthened.
@@ -829,8 +836,11 @@
     and weaken the declaration.
     \begin{code}
       weaken : Expr tau Gamma -> Expr tau (sigma :: Gamma)
+      weaken = rename-Expr (o' oi)
     \end{code}
-  \paragraph{Correctness}
+    This traverses the declaration for each binder it is moved across,
+    but in the next section we use a simple trick to only do a single renaming.
+    \vspace{1cm}
     \OpenEnd{No correctness proof yet, how hard is it for the direct approach?}
 
 \subsection{Using Annotations}
@@ -871,31 +881,37 @@
     We make use of the ability to split and concatenate them,
     as shown in section \ref{sec:de-bruijn-thinnings}.
     \begin{code}
-      transform {Gamma1 = Gamma1} decl e@(Let {theta1 = theta} {theta2 = phi} e1 e2) with Gamma1 -| theta | (_ :: Gamma1) -| phi
+      transform {Gamma1 = Gamma1} decl e@(Let {theta1 = theta} {theta2 = phi} e1 e2)
+          with Gamma1 -| theta | (_ :: Gamma1) -| phi
       ... | split theta1 (o' theta2) (refl , refl) | split phi1 (o' phi2) (refl , refl) =
         Let (DBE.transform e1 (theta1 ++C= theta2)) (DBE.transform e2 (phi1 ++C= phi2))
       ... | split theta1 (os theta2) (refl , refl) | split phi1 (o' phi2) (refl , refl) =
         Let (transform decl e1) (DBE.transform e2 (phi1 ++C= phi2))
       ... | split theta1 (o' theta2) (refl , refl) | split phi1 (os phi2) (refl , refl) =
-        Let (DBE.transform e1 (theta1 ++C= theta2)) (transform {Gamma1 = _ :: Gamma1} (thin^^ (o' oi) decl) e2)
+        Let (DBE.transform e1 (theta1 ++C= theta2)) (transform (thin^^ (o' oi) decl) e2)
       ... | split theta1 (os theta2) (refl , refl) | split phi1 (os phi2) (refl , refl) =
         Let (rename-Expr^^ decl) (rename-top (forget e))
       (dots)
     \end{code}
-    Using |_-||_|, the thinning
-    |theta : Delta1 ++ Delta2 C= Gamma1 ++ sigma :: Gamma2|
-    for the first subexpression is split into two thinnings
+
+    Focusing on the first subexpression,
+    we use |_-||_| to split the annotated thinning
+    |theta : (Delta1 ++ Delta2) C= (Gamma1 ++ sigma :: Gamma2)|
+    from the context of |e1| into two thinnings
     |theta1 : Delta1 C= Gamma1| and
     |theta2 : Delta2 C= sigma :: Gamma2|.
     If the declaration is unused, we obtain a smaller |theta2|,
     which we can use to construct
-    |theta1 ++C= theta2 : Delta1 ++ Delta2 C= Gamma1 ++ Gamma2|
-    and remove |sigma| from the context.
-    For that, we reuse the dead binding elimination transformation.
+    |theta1 ++C= theta2 : (Delta1 ++ Delta2) C= (Gamma1 ++ Gamma2)|,
+    which shows that |sigma| is not required in the context of |e1|.
+    To then turn the annotated |e1| into an |Expr sigma (Gamma1 ++ Gamma2)|,
+    we could forget the annotations followed by renaming,
+    but we instead use the already defined |DBE.transform|,
+    which does the job in a single traversal.
     \Fixme{More consistent naming of thinnings involved?}
   \paragraph{Binders}
     Instead of weakening the declaration every time we go under a binder,
-    we manipulate the thinning it is wrapped in.
+    we manipulate the thinning it is wrapped in (|thin^^ (o' oi)|).
     As a result, we only need to rename the declaration once at the end,
     when the binding is created.
     \begin{code}
