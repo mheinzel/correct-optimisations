@@ -3,117 +3,122 @@
 
 \chapter{de Bruijn Representation}
 \label{ch:de-bruijn}
-  Whether we use explicit names or de Bruijn indices,
-  the language as seen so far makes it possible to represent expressions
-  that are ill-typed (e.g. performing addition on Booleans)
-  or accidentally open (containing free variables).
-  Evaluating such an expression leads to a runtime error;
-  the evaluation function is partial.
+    The main objective of this chapter is to show
+    how to manipulate the binding structure of intrinsically typed de Bruijn syntax.
+    We start by demonstrating how the intrinsically typed representation
+    enforces type- and scope-correctness by making the context of expressions explicit.
+    To talk about the relationship between contexts,
+    we give an introduction to thinnings and some operations on them that will prove useful later.
+    This leads us to the discovery that thinnings can nicely capture the notion of variable liveness,
+    which is fundamental for manipulating bindings.
+    Finally, we use them to describe program transformations and prove their correctness.
 
-  When implementing a compiler in a dependently typed programming language,
-  we can define \emph{intrinsically typed syntax trees} with de Bruijn indices,
-  where type- and scope-correctness invariants are specified on the type level
-  and verified by the type checker.
-  \Fixme{mention inductive families (Dybjer)?}
-  This allows for a total evaluation function
-  \cite{Augustsson1999WellTypedInterpreter}.
-  As a consequence, transformations on the syntax tree 
-  only typecheck if they preserve the invariants.
-  While the semantics of the expression could still change,
-  guaranteeing type- and scope-correctness rules out
-  a large class of mistakes.
+    For brevity, we will make use of Agda's ability to quantify over variables implicitly.
+    The types of these variables should be clear from their names and context.
 
 
 \section{Intrinsically Typed Syntax}
 \label{sec:de-bruijn-intrinsically-typed}
-  To demonstrate this approach in Agda \cite{Norell2008Agda},
-  let us start by defining the types that expressions can have.
-  \Fixme{rename to \emph{sorts}?}
+    Whether we use explicit names or de Bruijn indices,
+    the language as seen so far makes it possible to represent expressions
+    that are ill-typed (e.g. performing addition on Booleans)
+    or -scoped.
+    In Agda, we can similarly define expressions as follows.
+    \begin{code}
+      data UnsafeExpr : Set where
+        Var   : Nat -> UnsafeExpr
+        App   : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
+        Lam   : UnsafeExpr -> UnsafeExpr
+        Let   : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
+        Num   : Nat -> UnsafeExpr
+        Bln   : Bool -> UnsafeExpr
+        Plus  : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
+    \end{code}
+    But how should expressions like |Plus (Bln False) (Var 42)| be evaluated?
+    What is the result of adding Booleans and how do we ensure that a value
+    (of the right type) is provided for each variable used?
+    Clearly, evaluating such an expression leads to a runtime error.
+  \paragraph{Sorts}
+    The first problem can be addressed by indexing each expression
+    with its \emph{sort} |U|, the type that it should be evaluated to.
+    \begin{code}
+      data U : Set where
+        _=>_  : U
+        BOOL  : U
+        NAT   : U
 
-  \begin{code}
-    data U : Set where
-      _=>_  : U
-      BOOL  : U
-      NAT   : U
+      variable
+        sigma tau : U
 
-    interpretU_ : U -> Set
-    (interpretU(sigma => tau))  = (interpretU(sigma)) -> (interpretU(tau))
-    (interpretU(BOOL))          = Bool
-    (interpretU(NAT))           = Nat
-  \end{code}
+      interpretU_ : U -> Set
+      (interpretU(sigma => tau))  = (interpretU(sigma)) -> (interpretU(tau))
+      (interpretU(BOOL))          = Bool
+      (interpretU(NAT))           = Nat
 
-  To know if a variable occurrence is valid, one must consider its \emph{context},
-  the bindings that are in scope.
-  With de Bruijn indices in an untyped setting, it would suffice to know the number of bindings in scope.
-  In a typed setting, it is also necessary to know the type of each binding,
-  so we represent the context by a list of types: One for each binding in scope, from innermost to outermost.
-  % MAYBE: Say that we use Agda's variable feature to make things more concise?
+      data UnsafeExpr : U -> Set where
+        Var   : Nat -> UnsafeExpr sigma
+        App   : UnsafeExpr (sigma => tau) -> UnsafeExpr sigma -> UnsafeExpr tau
+        Lam   : UnsafeExpr tau -> UnsafeExpr (sigma => tau)
+        Let   : UnsafeExpr sigma -> UnsafeExpr tau -> UnsafeExpr tau
+        Val   : (interpretU(sigma)) -> UnsafeExpr sigma
+        Plus  : UnsafeExpr NAT -> UnsafeExpr NAT -> UnsafeExpr NAT
+    \end{code}
+  \paragraph{Context}
+    This helps, but to know if a variable occurrence is valid, one must consider its \emph{context},
+    the (typed) bindings that are in scope.
+    We represent the context as a list of sorts: One for each binding in scope, from innermost to outermost.
+    \begin{code}
+      Ctx = List U
 
-  \begin{code}
-    Ctx = List U
-
-    variable
-      Gamma : Ctx
-      sigma tau : U
-  \end{code}
-
-  During evaluation, each variable in scope has a value.
-  Together, these are called an \emph{environment} in a given context.
-
-  \begin{code}
-    data Env : Ctx -> Set where
-      Nil   : Env []
-      Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
-  \end{code}
-
-  A variable occurrence then is an index into its context,
-  also guaranteeing that its type matches that of the binding.
-  Since variable |Ref sigma Gamma| acts as a proof that
-  the environment |Env Gamma| contains an element of type |sigma|,
-  variable lookup is total.
-
-  \begin{code}
-    data Ref (sigma : U) : Ctx -> Set where
-      Top  : Ref sigma (sigma :: Gamma)
-      Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
-  \end{code}
-
-  \begin{code}
-    lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
-    lookup Top      (Cons v env)   = v
-    lookup (Pop i)  (Cons v env)   = lookup i env
-  \end{code}
-
-  Now follows the definition of intrinsically typed expressions,
-  where an |Expr| is indexed by both
-  its type (|sigma : U|)
-  and context (|Gamma : Ctx|).
-  We can see how the context changes when introducing a new binding
-  that is then available in the body of a |Let|.
-
-  \begin{code}
-    data Expr : (Gamma : Ctx) (tau : U) -> Set where
-      Var   : Ref sigma Gamma -> Expr sigma Gamma
-      App   : Expr (sigma => tau) Gamma -> Expr sigma Gamma -> Expr tau Gamma
-      Lam   : Expr tau (sigma :: Gamma) -> Expr (sigma => tau) Gamma
-      Let   : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma
-      Val   : (interpretU(sigma)) -> Expr sigma Gamma
-      Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
-  \end{code}
-
-  This allows the definition of a total evaluator
-  using an environment that matches the expression's context.
-
-  \begin{code}
-    eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
-    eval (Var x)       env  = lookup x env
-    eval (App e1 e2)   env  = eval e1 env (eval e2 env)
-    eval (Lam e1)      env  = lambda v -> eval e1 (Cons v env)
-    eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
-    eval (Val v)       env  = v
-    eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
-  \end{code}
-
+      variable
+        Gamma Delta : Ctx
+    \end{code}
+    A de Bruijn index can then ensure that it references an element of a specific type within the context.
+    \begin{code}
+      data Ref (sigma : U) : Ctx -> Set where
+        Top  : Ref sigma (sigma :: Gamma)
+        Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
+    \end{code}
+    By also indexing expressions with their context,
+    the invariants can finally guarantee type- and scope-correctness by construction.
+    \begin{code}
+      data Expr : (Gamma : Ctx) (tau : U) -> Set where
+        Var   : Ref sigma Gamma -> Expr sigma Gamma
+        App   : Expr (sigma => tau) Gamma -> Expr sigma Gamma -> Expr tau Gamma
+        Lam   : Expr tau (sigma :: Gamma) -> Expr (sigma => tau) Gamma
+        Let   : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma
+        Val   : (interpretU(sigma)) -> Expr sigma Gamma
+        Plus  : Expr NAT Gamma -> Expr NAT Gamma -> Expr NAT Gamma
+    \end{code}
+    Note how the context changes when introducing a new binding
+    that is then available in the body of a |Let|.
+  \paragraph{Evaluation}
+    During evaluation, each variable in scope has a value.
+    Together, these are called an \emph{environment} in a given context.
+    \begin{code}
+      data Env : Ctx -> Set where
+        Nil   : Env []
+        Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
+    \end{code}
+    Since variable |Ref sigma Gamma| acts as a proof that
+    the environment |Env Gamma| contains an element of type |sigma|,
+    variable lookup is total.
+    \begin{code}
+      lookup : Ref sigma Gamma -> Env Gamma -> (interpretU(sigma))
+      lookup Top      (Cons v env)   = v
+      lookup (Pop i)  (Cons v env)   = lookup i env
+    \end{code}
+    As a result, we can define a total evaluator
+    that can only be called with an environment that matches the expression's context.
+    \begin{code}
+      eval : Expr sigma Gamma -> Env Gamma -> (interpretU(sigma))
+      eval (Var x)       env  = lookup x env
+      eval (App e1 e2)   env  = eval e1 env (eval e2 env)
+      eval (Lam e1)      env  = lambda v -> eval e1 (Cons v env)
+      eval (Let e1 e2)   env  = eval e2 (Cons (eval e1 env) env)
+      eval (Val v)       env  = v
+      eval (Plus e1 e2)  env  = eval e1 env + eval e2 env
+    \end{code}
 
 \section{Thinnings}
 \label{sec:de-bruijn-thinnings}
