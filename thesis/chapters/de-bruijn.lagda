@@ -145,8 +145,7 @@
         oz : [] C= []                                                -- empty
     \end{code}
 
-    As an example of how we can construct thinnings, let us embed
-    |[ a , c ]| into |[ a , b , c ]|:
+    As an example, let us embed |[ a , c ]| into |[ a , b , c ]|:
     \Fixme{Some nice little diagrams?}
 
     \begin{code}
@@ -713,26 +712,10 @@
     However, recursively going under binders requires more flexibility.
     The solution chosen here uses list concatenation in the context
     to allow |sigma| to occur at any position.
-    Choosing |[]| as the prefix then again results in the signature above.
     \begin{code}
       sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
     \end{code}
-    Note that we could alternatively have used other ways to achieve the same,
-    such as insertion at a position |n : Fin (length Gamma)|
-    or removal of |sigma| at a position |i : Ref sigma Gamma|.
-      \Fixme{Does this belong to a later alternative design section?}
-    \begin{code}
-      pop-at : (Gamma : Ctx) -> Ref sigma Gamma -> Ctx
-      pop-at (sigma :: Gamma) Top = Gamma
-      pop-at (tau   :: Gamma) (Pop i) = tau :: pop-at Gamma i
-    \end{code}
-    \begin{code}
-      Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
-      Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
-      Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
-    \end{code}
-    Using list concatenation, however, seems more principled and allows us to make use of very general
-    operations and properties about concatenation of contexts and thinnings.
+    Choosing |[]| as the prefix then again results in the signature above.
   \paragraph{Transformation}
     Just as dead binding elimination, let-sinking heavily relies on variable liveness information.
     To know where a binding should be moved, we need to know where it is used.
@@ -922,18 +905,16 @@
 
 \section{Discussion}
 \label{sec:de-bruijn-discussion}
-    \Outline{
-      We implemented two transformation,
-      each first directly (exhibiting inherent flaws)
-      and then using liveness annotations.
-      While this requires a separate analysis pass
-      and requires additional code,
-      it solved the issues with the direct approach
-      and simplified some aspects.
-    }
-    \Outline{Generally, what caused issues, what was nice?}
-    \Outline{Let-sinking also performs DBE, but only for a single binding.}
-  \paragraph{Re-ordering the context}
+    We used thinnings to implement live variable analysis and two program transformations.
+    In both cases,
+    the approach of directly performing the transformation on de Bruijn syntax
+    required us to traverse a number of syntax nodes roughly quadratic in the size of the tree.
+    At the cost of a single analysis pass upfront (and some additional code),
+    we were able to replace the redundant traversals with simple operations on thinnings.
+    \Fixme{Quick summary of how proofs went, once finished.}
+    \Fixme{Did annotations also simplify some aspects?}
+
+  \paragraph{Reordering the context}
     When changing the order of let-bindings during let-sinking,
     the order of the variables in the context changes as well.
     As thinnings present \emph{order-preserving} embeddings,
@@ -941,6 +922,9 @@
     Consequently, we had to resort to concatenation
     and define an additional set of operations,
     such as for renaming expressions.
+    The complexity of the transformation was significantly higher
+    than for dead binding elimination.
+
     Both thinning and reordering could be performed
     by a more general renaming operation,
     for example using a function
@@ -948,50 +932,76 @@
     mapping references in the source context
     to references in the target context.
     This representation however is more opaque
-    and difficult to manipulate
-    the way we did with thinnings.
+    and difficult to manipulate than thinnings.
 
 \subsection{Alternative Designs}
   \paragraph{Iterating transformations}
-    \Outline{
-      (Optional, leave out for now!)\\
-      E.g. non-strong DBE, but also for more complicated analyses.
-      Common in compilers, e.g. simplifier is iterated up to 4 times
-      \cite{Jones1998TransformationOptimiser}.
-    }
-    \Draft{
-      As discussed in section \ref{sec:program-transformations},
-      more than one pass of dead binding elimination might be necessary to remove all unused bindings.
-      While in our simple setting all these bindings could be identified in a single pass
-      using strongly live variable analysis,
-      in general it can be useful to simply iterate optimisations until a fixpoint is reached.
+    As discussed in section \ref{sec:program-transformations},
+    more than one pass of dead binding elimination might be necessary to remove all unused bindings.
+    While in our simple setting all these bindings could be identified in a single pass
+    using strongly live variable analysis,
+    in general it can be beneficial to iterate optimisations
+    a fixed number of times or until a fixpoint is reached.
+    For example, it is reported that GHC's simplifier pass is iterated up to 4 times
+    \cite{Jones1998TransformationOptimiser}.
 
-      Consequently, we keep applying |dbe| as long as the number of bindings decreases.
-      Such an iteration is not structurally recursive, so Agda's termination checker needs our help.
-      We observe that the algorithm must terminate
-      since the number of bindings decreases with each iteration (but the last) and cannot become negative.
-      This corresponds to the ascending chain condition in program analysis literature
-      \cite{Nielson1999PrinciplesProgramAnalysis}.
-      To convince the termination checker, we use well-founded recursion
-      \cite{Bove2014PartialityRecursion}
-      on the number of bindings.
+    As an example, we defined a function that keeps applying |dbe|
+    as long as the number of bindings in the expression decreases.
+    Such an iteration is not structurally recursive,
+    so Agda's termination checker needs our help.
+    We observe that the algorithm must terminate,
+    since the number of bindings decreases with each iteration (but the last)
+    and clearly can never be negative.
+    This is an instance of to the ascending chain condition
+    in program analysis literature \cite{Nielson1999PrinciplesProgramAnalysis}.
+    To convince the termination checker,
+    we used the technique of well-founded recursion
+    \cite{Bove2014PartialityRecursion}
+    on the number of bindings.
+    The correctness was then straightforward to prove,
+    as it follows directly from the correctness of each individual iteration step.
 
-      The correctness of the iterated implementation
-      follows directly from the correctness of each individual iteration step.
-    }
+  \paragraph{Signature of let-sinking}
+    We remind ourselves of the type signature of |let-sink|.
+    To talk about removing an element from the context at a specific position,
+    we used list concatenation.
+    \begin{code}
+      sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+    \end{code}
+    Note that we could alternatively have used other ways to achieve the same,
+    such as insertion at a position |n : Fin (length Gamma)|
+    or removal of |sigma| at a position |i : Ref sigma Gamma|.
+    \begin{code}
+      pop-at : (Gamma : Ctx) -> Ref sigma Gamma -> Ctx
+      pop-at (sigma :: Gamma) Top = Gamma
+      pop-at (tau   :: Gamma) (Pop i) = tau :: pop-at Gamma i
+    \end{code}
+    \begin{code}
+      Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+      Expr sigma (pop-at Gamma i)    -> Expr tau Gamma                        -> Expr tau (pop-at Gamma i)
+      Expr sigma Gamma               -> Expr tau (insert n sigma Gamma)       -> Expr tau Gamma
+    \end{code}
+    Using list concatenation, however, seems more principled
+    and allows us to make use of general operations and properties
+    about concatenation of contexts and thinnings.
+
   \paragraph{Keeping annotations}
-    \Outline{
-      Transformations could also return annotated expression
-      (why throw away information?).
-      But that is more complex, annotations need to be reconstructed on the way up.
-      Maybe this could be factored out?
-      However, also other practical issues.
-    }
-    \Outline{
-      Note that it might generally be useful to stay in |LiveExpr| world all the time.
-      Usage information is nice, but complicated to maintain.
-      Doing it for let-sinking caused issues.
-      There remains redundancy around indexing by two scopes.
-      Could co-de-Bruijn give us the same benefits by default?
-      It would also help with CSE (equality of terms).
-    }
+    In both transformations, we used annotated expressions for the input,
+    but returned the result without annotations.
+    When performing multiple different transformations in sequence
+    (or the same one multiple times),
+    each pass requires us to do live variable analysis anew,
+    just to then throw away the results.
+
+    If instead transformations computed updated liveness annotations
+    as they are constructing the resulting expression,
+    we could stay in |LiveExpr| world all the time.
+    However, each transformation would then effectively need to include analysis,
+    making it more complex.
+    Maybe this could be factored out,
+    but a first attempt for let-sinking encountered various practical issues.
+    In addition, indexing |LiveExpr| by \emph{two} different contexts
+    seems redundant.
+    Could a representation considering only the live context be simpler,
+    while providing the same benefits?
+    The next chapter will feature such a representation.
