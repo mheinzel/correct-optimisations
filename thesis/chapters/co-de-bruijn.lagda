@@ -219,36 +219,89 @@
 
 \section{Conversion From/To de Bruijn Syntax}
 \label{sec:co-de-bruijn-conversion}
-\Draft{
+    The conversion between de Bruijn and co-de-Bruijn representation
+    is very similar to computing and forgetting annotations
+    in the second part of section \ref{sec:de-bruijn-dbe}.
+
   \paragraph{Relax}
-  The main difference here is that
-  variables are not kept in the context until the latest,
-  but discarded at the earliest opportunity.
-  More concretely,
-  in de Bruijn representation, subexpressions keep the full context of available bindings,
-  while in co-de-Bruijn representation an thinning selects the subset that occurs.
-  A converted expression will therefore generally be required to have a larger context than before,
-  indicated by an thinning.
-  \begin{code}
-    from :  Gamma' C= Gamma -> Expr sigma Gamma' -> DeBruijn.Expr sigma Gamma
-  \end{code}
-  The implementation proceeds by induction over the syntax,
-  composes thinnings on the way
-  and finally at the variable makes use of the fact
-  that an thinning from a singleton list is isomorphic to a de Bruijn reference.
-  The proof of semantic equivalence mainly consists of congruences.
-}
-\Draft{
+    Since the converted expression often needs to be placed in a larger context
+    than just its live variables,
+    we allow to specify the desired context using a thinning.
+
+    \begin{code}
+      relax :  Delta C= Gamma -> CoDeBruijn.Expr sigma Delta -> DeBruijn.Expr sigma Gamma
+    \end{code}
+      % relax theta Var =
+      %   Var (ref-o theta)
+      % relax theta (App (pairR (e1 ^ theta1) (e2 ^ theta2) cover)) =
+      %   App (relax (theta1 .. theta) e1) (relax (theta2 .. theta) e2)
+      % relax theta (Lam (psi \\ e)) =
+      %   Lam (relax (psi ++C= theta) e)
+      % relax theta (Let (pairR (e1 ^ theta1) ((psi \\ e2) ^ theta2) c)) =
+      %   Let (relax (theta1 .. theta) e1) (relax (psi ++C= (theta2 .. theta)) e2)
+      % relax theta (Val v) =
+      %   Val v
+      % relax theta (Plus (pairR (e1 ^ theta1) (e2 ^ theta2) cover)) =
+      %   Plus (relax (theta1 .. theta) e1) (relax (theta2 .. theta) e2)
+
+    The recursive calls work the exact same way as during evaluation,
+    composing the thinning on the way down
+    to turn it into into a de Bruijn index when reaching a variable.
+    The only difference is that instead of computing a value,
+    the resulting expressions are just packaged up into a syntax tree again.
+
   \paragraph{Tighten}
-  In the opposite direction,
-  the resulting co-de-Bruijn expression will generally have a smaller context
-  that is not known upfront.
-  This can be expressed conveniently by returning an expression together with an thinning
-  into the original context.
-  \begin{code}
-    into : DeBruijn.Expr sigma Gamma -> Expr sigma ^^ Gamma
-  \end{code}
-}
+    The other direction is slightly more work,
+    but we benefit greatly from the smart constructors.
+    As we do not know the context of de resulting co-de-Bruijn expression upfront,
+    we once more return the result with a thinning.
+
+    \begin{code}
+      tighten : DeBruijn.Expr sigma Gamma -> CoDeBruijn.Expr sigma ^^ Gamma
+      tighten (Var x) =
+        Var ^ o-Ref x
+      tighten (App e1 e2) =
+        map^^ App (tighten e1 ,R tighten e2)
+      tighten (Lam e) =
+        map^^ Lam (_ \\R tighten e)
+      tighten (Let e1 e2) =
+        map^^ Let (tighten e1 ,R (_ \\R tighten e2))
+      tighten (Val v) =
+        Val v ^ oe
+      tighten (Plus e1 e2) =
+        map^^ Plus (tighten e1 ,R tighten e2)
+    \end{code}
+
+    After using the smart constructors
+    to obtain a relevant pair or binder (with a thinning),
+    it only remains to wrap things up using the right constructor.
+
+  \paragraph{Correctness}
+    While the conversion is pretty straightforward,
+    mapping constructors one-to-one to their counterparts,
+    we can prove that the semantics of the two representations agree.
+
+    \begin{code}
+      relax-correct :
+        (e : CoDeBruijn.Expr tau Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
+        let e' = relax theta e
+        in DeBruijn.eval e' env == CoDeBruijn.eval e theta env
+    \end{code}
+
+    \begin{code}
+      tighten-correct :
+        (e : DeBruijn.Expr tau Gamma) (env : Env Gamma) ->
+        let e' ^ theta = tighten e
+        in CoDeBruijn.eval e' theta env == DeBruijn.eval e env
+    \end{code}
+
+    The first proof works by a completely straightforward structural induction,
+    without requiring any further lemmas.
+    The other direction is more interesting:
+    As the smart constructors are defined using \textbf{with}-abstraction,
+    the case for each constructor first requires us to mirror that structure
+    before being able to use the induction hypothesis.
+
 
 \section{Dead Binding Elimination}
 \label{sec:co-de-bruijn-dbe}
