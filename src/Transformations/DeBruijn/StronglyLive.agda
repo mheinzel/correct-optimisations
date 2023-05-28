@@ -4,7 +4,7 @@
 module Transformations.DeBruijn.StronglyLive where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [])
+open import Data.List using (List ; _∷_ ; [] ; [_])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
@@ -73,7 +73,7 @@ forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
 -- decide which variables are used or not
 analyse : Expr σ Γ → Σ[ Δ ∈ Ctx ] Σ[ θ ∈ (Δ ⊑ Γ) ] LiveExpr σ θ
 analyse (Var {σ} x) =
-  σ ∷ [] , o-Ref x , Var x
+  [ σ ] , o-Ref x , Var x
 analyse (App e₁ e₂) =
   let Δ₁ , θ₁ , le₁ = analyse e₁
       Δ₂ , θ₂ , le₂ = analyse e₂
@@ -125,7 +125,7 @@ evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
     + evalLive e₂ env (un-∪₂ θ₁ θ₂ ₒ θ')
 
 law-lookup-ref-o :
-  (x : Ref σ Γ) (env : Env Γ) (θ' : (σ ∷ []) ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
+  (x : Ref σ Γ) (env : Env Γ) (θ' : [ σ ] ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
   (o-Ref x ≡ θ' ₒ θ'') →
   lookup (ref-o θ') (project-Env θ'' env) ≡ lookup x env
 law-lookup-ref-o (Pop x) (Cons v env) θ'      (o' θ'') H = law-lookup-ref-o x env θ' θ'' (law-inj-o' _ _ H)

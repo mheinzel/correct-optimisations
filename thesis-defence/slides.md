@@ -375,7 +375,7 @@ Empty context is initial object!
   - thinnings from singleton context are isomorphic to references
 
   ```agda
-    o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
+    o-Ref : Ref τ Γ → [ τ ] ⊑ Γ
   ```
 
 ## Dead Binding Elimination (direct approach)
@@ -604,7 +604,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 
   ```agda
     analyse (Var {σ} x) =
-      σ ∷ [] , o-Ref x , Var x
+      [ σ ] , o-Ref x , Var x
     analyse (App e₁ e₂) =
       let Δ₁ , θ₁ , le₁ = analyse e₁
           Δ₂ , θ₂ , le₂ = analyse e₂
@@ -749,15 +749,15 @@ Just for reference, skip this slide quickly.
   ```agda
     data Expr : U → Ctx → Set where
       Var :
-        Expr σ (σ ∷ [])
+        Expr σ [ σ ]
       App :
         (Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ →
         Expr τ Γ
       Lam :
-        ((σ ∷ []) ⊢ Expr τ) Γ →
+        ([ σ ] ⊢ Expr τ) Γ →
         Expr (σ ⇒ τ) Γ
       Let :
-        (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ →
+        (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ →
         Expr τ Γ
       ...
   ```
@@ -840,9 +840,9 @@ Just for reference, skip this slide quickly.
     tighten (DeBruijn.App e₁ e₂) =
       map⇑ App (tighten e₁ ,ᴿ tighten e₂)
     tighten (DeBruijn.Lam e) =
-      map⇑ Lam ((_ ∷ []) \\ᴿ tighten e)
+      map⇑ Lam ([ _ ] \\ᴿ tighten e)
     tighten (DeBruijn.Let e₁ e₂) =
-      map⇑ Let (tighten e₁ ,ᴿ ((_ ∷ []) \\ᴿ tighten e₂))
+      map⇑ Let (tighten e₁ ,ᴿ ([ _ ] \\ᴿ tighten e₂))
     ...
   ```
 
@@ -899,7 +899,7 @@ Just for reference, skip this slide quickly.
     dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((os oz \\ e₂) ↑ ϕ₂) c)) =
       map⇑ Let
         (  thin⇑ ϕ₁ (dbe e₁)
-        ,ᴿ thin⇑ ϕ₂ ((_ ∷ []) \\ᴿ dbe e₂)
+        ,ᴿ thin⇑ ϕ₂ ([ _ ] \\ᴿ dbe e₂)
         )
   ```
 
@@ -910,7 +910,7 @@ Just for reference, skip this slide quickly.
 
 ## Dead Binding Elimination (co-de-Bruijn)
   ```agda
-    Let? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+    Let? : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
     Let?   (pairᴿ _ ((o' oz \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂
     Let? p@(pairᴿ _ ((os oz \\ _)  ↑ _)  _) = Let p ↑ oi
 
@@ -1049,7 +1049,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
 
   ```agda
       (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
-      (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
+      (`Lam σ τ) → `X [ σ ] τ (`∎ (σ ⇒ τ))
       ...
   ```
 
@@ -1065,8 +1065,8 @@ The code takes some time to understand in detail, so let's focus on the main ide
     Lang : Desc U
     Lang = `σ Tag λ where
       (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
-      (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
-      (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
+      (`Lam σ τ) → `X [ σ ] τ (`∎ (σ ⇒ τ))
+      (`Let σ τ) → `X [] σ (`X [ σ ] τ (`∎ τ))
       (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
       `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
   ```
@@ -1086,7 +1086,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
 ## Syntax-generic co-de-Bruijn Representation
   ```agda
     data Tm (d : Desc I) : I ─Scoped where
-      `var : Tm d i (i ∷ [])
+      `var : Tm d i [ i ]
       `con : ⟦ d ⟧ (Scope (Tm d)) i Γ → Tm d i Γ
   ```
 
@@ -1161,7 +1161,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
 
     `Let : Desc I
     `Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
-      `X [] σ (`X (σ ∷ []) τ (`∎ τ))
+      `X [] σ (`X [ σ ] τ (`∎ τ))
 
     -- ⟦ d ⟧ or ⟦ e ⟧ in ⟦ d + e ⟧
     pattern inl t = true  , t
@@ -1313,3 +1313,7 @@ Optional, can be skipped if low on time.
 ## {.standout}
 
 <https://github.com/mheinzel/correct-optimisations>
+
+- extended slides
+- thesis
+- implementation

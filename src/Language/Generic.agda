@@ -1,6 +1,6 @@
 module Language.Generic where
 
-open import Data.List using (_∷_ ; [])
+open import Data.List using (_∷_ ; [] ; [_])
 open import Function using (const)
 
 open import Generic.Syntax hiding (`Let)
@@ -19,8 +19,8 @@ data Tag : Set where
 Lang : Desc U
 Lang = `σ Tag λ where
   (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
-  (`Lam σ τ) → `X (σ ∷ []) τ (`∎ (σ ⇒ τ))
-  (`Let σ τ) → `X [] σ (`X (σ ∷ []) τ (`∎ τ))
+  (`Lam σ τ) → `X [ σ ] τ (`∎ (σ ⇒ τ))
+  (`Let σ τ) → `X [] σ (`X [ σ ] τ (`∎ τ))
   (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
   `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
 

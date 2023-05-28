@@ -248,7 +248,7 @@
     The list |Delta| is not enough:
     If the original context contains multiple variables of the same type,
     ambiguities can arise.
-    For example, live variables |NAT :: []| in context |NAT :: NAT :: []|
+    For example, live variables |[ NAT ]| in context |[ NAT , NAT ]|
     could refer to the first or second variable in scope,
     but the thinnings |os (o' oz)| and |o' (os oz)| distinguish the two cases.
     \Fixme{Is the example from the slides more helpful?}
@@ -265,12 +265,12 @@
     To obtain a suitable thinning, We can make use of the fact that
     thinnings from a singleton context are isomorphic to references.
     \begin{code}
-      o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
+      o-Ref : Ref sigma Gamma -> [ sigma ] C= Gamma
       o-Ref Top      = os oe
       o-Ref (Pop x)  = o' (o-Ref x)
     \end{code}
     \begin{code}
-      Ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
+      Ref-o : [ sigma ] C= Gamma -> Ref sigma Gamma
       Ref-o (o' theta)  = Pop (Ref-o theta)
       Ref-o (os theta)  = Top
     \end{code}
@@ -572,7 +572,7 @@
     directly following the expression's structure.
     \begin{code}
       analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
-      analyse (Var {sigma} x) = sigma :: [] , o-Ref x , Var x
+      analyse (Var {sigma} x) = [ sigma ] , o-Ref x , Var x
       analyse (App e1 e2) =
         let  Delta1 , theta1 , le1 = analyse e1
              Delta2 , theta2 , le2 = analyse e2

@@ -2,7 +2,7 @@ module Language.Core where
 
 open import Data.Nat using (_+_) renaming (ℕ to Nat ; zero to Zero ; suc to Succ)
 open import Data.Bool using (Bool)
-open import Data.List using (List ; _∷_ ; [] ; _++_)
+open import Data.List using (List ; _∷_ ; [] ; [_] ; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong)
 
 data U : Set where
@@ -93,7 +93,7 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   law-lookup-rename-Ref (Pop x) (os θ) (Cons v env) = law-lookup-rename-Ref x θ env
 
   -- Thinnings from a singleton context are isomorphic to Ref.
-  o-Ref : Ref τ Γ → (τ ∷ []) ⊑ Γ
+  o-Ref : Ref τ Γ → [ τ ] ⊑ Γ
   o-Ref Top     = os oe
   o-Ref (Pop x) = o' (o-Ref x)
 
@@ -101,7 +101,7 @@ module Ref {I : Set} {⟦_⟧ : I → Set} where
   law-rename-Ref-o-Ref Top = refl
   law-rename-Ref-o-Ref (Pop x) = cong Pop (law-rename-Ref-o-Ref x)
 
-  ref-o : (τ ∷ []) ⊑ Γ → Ref τ Γ
+  ref-o : [ τ ] ⊑ Γ → Ref τ Γ
   ref-o (o' θ) = Pop (ref-o θ)
   ref-o (os θ) = Top
 

@@ -6,9 +6,9 @@
 module Generic.Syntax where
 
 open import Data.Bool using (Bool; if_then_else_)
-open import Data.List.Base using (List; []; _∷_; map; foldr)
+open import Data.List.Base using (List; []; _∷_; [_]; map; foldr)
 open import Data.Product as Prod using (_×_; _,_; uncurry)
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Function using (_$_)
 
 open import Data.Var using (_─Scoped)
@@ -69,4 +69,4 @@ module _ {I : Set} where
 
 `Let : Desc I
 `Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
-  `X [] σ (`X (σ ∷ []) τ (`∎ τ))
+  `X [] σ (`X [ σ ] τ (`∎ τ))

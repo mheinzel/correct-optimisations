@@ -87,7 +87,7 @@
   Co-de-Bruijn expressions enforce that every variable in an expression's context
   must occur somewhere.
   However, there can still be dead bindings:
-  The declaration of type |tau| bound by |tau :: [] ||- e| does not need to appear in the context of |e|.
+  The declaration of type |tau| bound by |[ tau ] ||- e| does not need to appear in the context of |e|.
   It can be immediately discarded, making the binding dead.
   We need to identify such let-bindings and eliminate them.
   Due to the variable usage information already maintained within co-de-Bruijn expressions,
@@ -97,7 +97,7 @@
     dbe (Let (pairR (e1 ^ phi1) ((oz o' \\ e2) ^ phi2) c)) =
       thin^^ phi2 (dbe e2)
     dbe (Let (pairR (e1 ^ phi1) ((oz os \\ e2) ^ phi2) c)) =
-      map^^ Let (thin^^ phi1 (dbe e1) ,R thin^^ phi2 ((_ :: []) \\R dbe e2))
+      map^^ Let (thin^^ phi1 (dbe e1) ,R thin^^ phi2 ([ _ ] \\R dbe e2))
     (dots)
   \end{code}
   Since the body is generally in a smaller context than the whole let-binding was,
@@ -126,7 +126,7 @@
   \emph{afterwards}.
   \Fixme{unexplained operations, hard to follow}
   \begin{code}
-    let-? : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau ^^ Gamma
+    let-? : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
     let-?         (pairR _ ((oz o' \\ e2)  ^ theta2)  _)  = e2 ^ theta2
     let-? (At(p)  (pairR _ ((oz os \\ _)   ^ _)       _)) = Let p ^ oi
   \end{code}
@@ -159,7 +159,7 @@
   For let-bindings, we additionally use the semantics-preserving nature of |let-?|.
   \begin{code}
     lemma-let-? :
-      (p : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) ->
+      (p : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) ->
       let e' ^ theta' = let-? p
       in eval (Let p) theta env ≡ eval e' (theta' .. theta) env
   \end{code}
@@ -238,7 +238,7 @@
       Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
       Expr tau (Gamma1 ++ Gamma3 ++ Gamma2 ++ Gamma4)
   \end{code}
-  The context is split into four segments (where |Gamma3| is |sigma :: []|).
+  The context is split into four segments (where |Gamma3| is |[ sigma ]|).
   Since subexpressions are in their own context,
   we first need to split their context (and the thinnings) into segments as well.
   This is also true for the cover, which then needs to be carefully reassembled.

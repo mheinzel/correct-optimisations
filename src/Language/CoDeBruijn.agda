@@ -3,7 +3,7 @@ module Language.CoDeBruijn where
 
 open import Data.Unit
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [] ; _++_)
+open import Data.List using (List ; _∷_ ; [] ; [_] ; _++_)
 open import Data.Product
 open import Function using (_∘_ ; _$_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
@@ -26,18 +26,18 @@ private
 data Expr : (σ : U) (Γ : Ctx) → Set where
   Var :
     ∀ {σ} →
-    Expr σ (σ ∷ [])
+    Expr σ [ σ ]
   App :
     ∀ {σ τ Γ} →
     (Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ →
     Expr τ Γ
   Lam :
     ∀ {σ τ Γ} →
-    ((σ ∷ []) ⊢ Expr τ) Γ →
+    ([ σ ] ⊢ Expr τ) Γ →
     Expr (σ ⇒ τ) Γ
   Let :
     ∀ {σ τ Γ} →
-    (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ →
+    (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ →
     Expr τ Γ
   Val :
     ∀ {σ} →
@@ -98,7 +98,7 @@ lemma-eval (Plus (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) env θ ϕ =
     (trans (cong (λ x → eval e₂ x env) (law-ₒₒ θ₂ θ ϕ)) (lemma-eval e₂ env (θ₂ ₒ θ) ϕ))
 
 lemma-eval-Let :
-  {Γₑ Γ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ Γ : Ctx} (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c = p
   in  eval (Let p) θ env ≡ eval (App (pairᴿ ((Lam (ψ \\ e₂)) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c))) θ env
 lemma-eval-Let p env θ = refl
@@ -113,9 +113,9 @@ into (DeBruijn.Var x) =
 into (DeBruijn.App e₁ e₂) =
   map⇑ App (into e₁ ,ᴿ into e₂)
 into (DeBruijn.Lam e) =
-  map⇑ Lam ((_ ∷ []) \\ᴿ into e)
+  map⇑ Lam ([ _ ] \\ᴿ into e)
 into (DeBruijn.Let e₁ e₂) =
-  map⇑ Let (into e₁ ,ᴿ ((_ ∷ []) \\ᴿ into e₂))
+  map⇑ Let (into e₁ ,ᴿ ([ _ ] \\ᴿ into e₂))
 into (DeBruijn.Val v) =
   Val v ↑ oe
 into (DeBruijn.Plus e₁ e₂) =
@@ -158,14 +158,14 @@ into-correct (DeBruijn.App e₁ e₂) env
 into-correct (DeBruijn.Lam e) env
   with into e  | into-correct e
 ...  | e' ↑ θ' | h
-  with (_ ∷ []) ⊣ θ'
+  with [ _ ] ⊣ θ'
 ... | split ϕ₁ ϕ₂ (refl , refl) =
   extensionality _ _ λ v →
     h (Cons v env)
 into-correct (DeBruijn.Let e₁ e₂) env
   with into e₁  | into e₂  | into-correct e₁ env | into-correct e₂ (Cons (DeBruijn.eval e₁ env) env)
 ...  | e₁' ↑ θ₁ | e₂' ↑ θ₂ | h₁                  | h₂
-  with (_ ∷ []) ⊣ θ₂
+  with [ _ ] ⊣ θ₂
 ... | split ψ θ₂' (refl , refl)
   with cop θ₁ θ₂'
 ...  | coproduct _ θ ϕ₁ ϕ₂ refl refl c =
@@ -187,7 +187,7 @@ into-correct (DeBruijn.Plus e₁ e₂) env
     DeBruijn.eval e₁ env + DeBruijn.eval e₂ env
   ∎
 
-from-correct-Var : (θ : (σ ∷ []) ⊑ Γ) (env : Env Γ) → lookup (ref-o θ) env ≡ lookup Top (project-Env θ env)
+from-correct-Var : (θ : [ σ ] ⊑ Γ) (env : Env Γ) → lookup (ref-o θ) env ≡ lookup Top (project-Env θ env)
 from-correct-Var (o' θ) (Cons v env) = from-correct-Var θ env
 from-correct-Var (os θ) (Cons v env) = refl
 

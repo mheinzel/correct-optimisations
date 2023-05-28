@@ -26,8 +26,8 @@
     Lang : Desc U
     Lang = \'sigma `Lang lambda where
       (`App sigma tau)  -> \'X [] (sigma => tau) (\'X [] sigma (\'# tau))
-      (`Lam sigma tau)  -> \'X (sigma :: []) tau (\'# (sigma => tau))
-      (`Let sigma tau)  -> \'X [] sigma (\'X (sigma :: []) tau (\'# tau))
+      (`Lam sigma tau)  -> \'X [ sigma ] tau (\'# (sigma => tau))
+      (`Let sigma tau)  -> \'X [] sigma (\'X [ sigma ] tau (\'# tau))
       (`Val tau)        -> \'sigma (interpretU(tau)) lambda _ -> \'# tau
       `Plus             -> \'X [] NAT (\'X [] NAT (\'# NAT))
   \end{code}
@@ -55,7 +55,7 @@
   \end{code}
   \begin{code}
     data Tm (d : Desc I) : I -Scoped where
-      `var  : Tm d i (i :: [])
+      `var  : Tm d i [ i ]
       `con  : (Forall (interpretC(d) (Scope (Tm d)) i => Tm d i))
   \end{code}
   The differences are that
@@ -137,7 +137,7 @@
   \begin{code}
     Let : Desc I
     Let {I} = \'sigma (I >< I) $ uncurry $ lambda sigma tau ->
-      \'X [] sigma (\'X (sigma :: []) tau (\'# tau))
+      \'X [] sigma (\'X [ sigma ] tau (\'# tau))
   \end{code}
   \begin{code}
     _\'+_ : Desc I -> Desc I -> Desc I
@@ -176,7 +176,7 @@
   Instead of checking for unused bindings before doing recursive calls,
   we do it afterwards.
   \begin{code}
-    let-? : Tm (d \'+ Let) sigma ^^ Gamma -> ((sigma :: []) ⊢ Tm (d \'+ Let) tau) ^^ Gamma → Tm (d \'+ Let) tau ^^ Gamma
+    let-? : Tm (d \'+ Let) sigma ^^ Gamma -> ([ sigma ] ⊢ Tm (d \'+ Let) tau) ^^ Gamma → Tm (d \'+ Let) tau ^^ Gamma
     let-? (t1 ^ theta1) ((oz o' \\ t2) ^ theta2) = t2 ^ theta2  -- Binding dead, just keep body.
     let-? (t1 ^ theta1) ((oz os \\ t2) ^ theta2) =              -- Assemble constructor.
       let t' ^ theta' = (t1 ^ theta1) ,R (><R-trivial (oz os \\ t2) ^ theta2)
