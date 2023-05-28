@@ -29,8 +29,8 @@ dbe Var =
   Var ↑ oi
 dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
   map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
-dbe (Lam (_\\_ {Γ'} ψ e)) =
-  map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
+dbe (Lam (ψ \\ e)) =
+  map⇑ (Lam ∘ map⊢ ψ) (_ \\ᴿ dbe e)
 -- NOTE: We check liveness given based on the the variable usage in the input Expr.
 -- But dbe e₂ might reveal the variable to be dead even if previously marked live!
 dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((o' oz \\ e₂) ↑ ϕ₂) c)) =
@@ -61,7 +61,7 @@ helper-assoc {θ₁ = θ₁} {θ₁' = θ₁'} {θ₂ = θ₂} {θ₂' = θ₂'}
 
 dbe-correct-Lam :
   {Γₑ : Ctx} (l : ([ σ ] ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
-  let _\\_ {bound = Γ'} ψ e₁ = l
+  let ψ \\ e₁ = l
       e₁' ↑ θ₁' = dbe e₁
       e = Lam l
       e' ↑ θ' = dbe e
@@ -122,12 +122,12 @@ dbe-correct :
   let e' ↑ θ' = dbe e
   in eval e' (θ' ₒ θ) env ≡ eval e θ env
 dbe-correct Var env θ =
-  cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
+  cong (λ x → lookup (ref-o x) env) (law-oiₒ θ)
 dbe-correct (App (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
   dbe-correct-×ᴿ _$_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (dbe-correct e₁ env (θ₁ ₒ θ))
     (dbe-correct e₂ env (θ₂ ₒ θ))
-dbe-correct (Lam (_\\_ {bound = Γ'} ψ e₁)) env θ =
+dbe-correct (Lam (ψ \\ e₁)) env θ =
   dbe-correct-Lam (ψ \\ e₁) env θ  λ v → dbe-correct e₁ (Cons v env) (ψ ++⊑ θ)
 dbe-correct (Let {σ} (pairᴿ (e₁ ↑ θ₁) ((o' oz \\ e₂) ↑ θ₂) c)) env θ =
   let e₂' ↑ θ₂' = dbe e₂

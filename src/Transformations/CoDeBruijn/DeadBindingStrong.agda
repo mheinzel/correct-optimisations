@@ -37,6 +37,8 @@ lemma-Let? (pairᴿ (e₁ ↑ θ₁) (((o' oz) \\ e₂) ↑ θ₂) c) env =
     (cong (eval e₂ θ₂) (law-project-Env-oi env))
 lemma-Let? (pairᴿ (e₁ ↑ θ₁) (((os oz) \\ e₂) ↑ θ₂) c) env = refl
 
+-- TODO: Put the "prime" (') on the one above?
+-- TODO: Swap the two sides of the equality? More consistent.
 lemma-Let?' :
   {Γₑ : Ctx} (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let e' ↑ θ' = Let? p
@@ -82,8 +84,8 @@ mutual
     map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
 
   dbe-Let : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ → (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) ⇑ Γ
-  dbe-Let (pairᴿ (e₁ ↑ ϕ₁) ((_\\_ {bound = Γ'} ψ e₂) ↑ ϕ₂) c) =
-    thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (Γ' \\ᴿ dbe e₂))
+  dbe-Let (pairᴿ (e₁ ↑ ϕ₁) ((ψ \\ e₂) ↑ ϕ₂) c) =
+    thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (_ \\ᴿ dbe e₂))
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
@@ -198,7 +200,7 @@ dbe-correct :
   let e' ↑ θ' = dbe e
   in eval e' (θ' ₒ θ) env ≡ eval e θ env
 dbe-correct Var env θ =
-  cong (λ x → lookup Top (project-Env x env)) (law-oiₒ θ)
+  cong (λ x → lookup (ref-o x) env) (law-oiₒ θ)
 dbe-correct (App (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover)) env θ =
   dbe-correct-×ᴿ _$_ (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) cover) env θ
     (dbe-correct e₁ env (θ₁ ₒ θ))
