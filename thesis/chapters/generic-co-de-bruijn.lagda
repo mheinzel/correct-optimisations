@@ -97,7 +97,7 @@
   Not sure it's impossible, either.
 }
 
-\section{Conversion From/To de Bruijn}
+\section{Conversion From/To de Bruijn Syntax}
 \label{sec:generic-co-de-bruijn-conversion}
 \Draft{
   \paragraph{Relax}

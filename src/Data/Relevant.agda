@@ -95,6 +95,8 @@ record _⊢_ (Γ' : List I) (T : I ─Indexed) (Γ : List I) : Set where
     thinning : bound ⊑ Γ'
     thing : T (bound ++ Γ)
 
+-- TODO: should probably be called thin⊢,
+-- map⊢ would be something like (∀ {Δ} → S Δ → T Δ) → (Γ' ⊢ S) Γ → (Γ' ⊢ T) Γ
 map⊢ : Γ₁ ⊑ Γ₂ → (Γ₁ ⊢ T) Γ → (Γ₂ ⊢ T) Γ
 map⊢ ϕ (θ \\ t) = (θ ₒ ϕ) \\ t
 

@@ -3,43 +3,221 @@
 
 \chapter{co-de-Bruijn Representation}
 \label{ch:co-de-bruijn}
-  \Draft{
-    Another nameless representation is described by McBride.
-    Where de Bruijn representation uses references to indicate which of the variables in scope they refer to,
-    the co-de-Bruijn way is for each syntax tree node
-    to shrink down the context of which variables occur in each subexpression.
-    Once a variable occurrence is reached, the context only consists of a single element.
-    Introducing or removing a binding can now be done without traversing the expression,
-    as we can instead modify the way the context is shrunk down to its \emph{relevant}
-    (actually occurring) part.
-    We will see further advantages of the co-de-Bruijn approach later.
-  }
+    After showing that de Bruijn representation can be made type- and scope-correct
+    by indexing expressions with their context (the variables in scope),
+    we found out how useful it is to also know the \emph{live} context
+    consisting only of the (weakly or strongly) live variables.
+    The type of annotated expressions we created was indexed by both of these contexts,
+    but here we will work with McBride's co-de-Bruijn syntax
+    \cite{McBride2018EveryBodysGotToBeSomewhere},
+    another nameless intrinsically typed representation,
+    which is indexed by its weakly live context alone.
+
+    In this representation,
+    bindings can be added or removed without having to traverse their body
+    to rename the variables.
+    The bookkeeping required is relatively complex,
+    but Agda's typechecker helps us maintain the invariants.
+
+    We will begin by giving an intuition for the co-de-Bruijn representation
+    and show how it translates into a few core building blocks
+    with smart constructors.
+    With these, we define another version of our expression language
+    and demonstrate that it can be converted to and from
+    our original de Bruijn expressions.
+    Once the foundations are in place,
+    we again perform dead binding elimination and let-sinking,
+    but now without the distinction between plain and annotated syntax.
 
 \section{Intrinsically Typed Syntax}
 \label{sec:co-de-bruijn-intrinsically-typed}
-\Draft{
-  \Outline{Explain relevant pairs, binders etc., based on thinnings.}
-  \Outline{Explain how this representation is similar/different to |LiveExpr|.}
-  \Outline{Explain how this representation enforces relevance,
-    and corresponds to (weak) dead binding elimination
-    (or leave that to the DBE section?).}
-  We follow McBride's work on co-de-Bruijn representation
-  \cite{McBride2018EveryBodysGotToBeSomewhere}
-  and use thinnings |_C=_| to define the type of relevant pairs |_><R_|
-  where each variable in the context must be in the context of one of the two subexpressions,
-  as well as bound variables |_||-_|.
-  \begin{code}
-    data Expr : (sigma : U) (Gamma : Ctx) -> Set where
-      Var : Expr sigma (sigma :: [])
-      App : (Expr (sigma => tau) ><R Expr sigma) Gamma -> Expr tau Gamma
-      Lam : ((sigma :: []) |- Expr tau) Gamma -> Expr (sigma => tau) Gamma
-      Let : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau Gamma
-      Val : (v : (interpretU(sigma))) -> Expr sigma []
-      Plus : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
-  \end{code}
-}
+  \paragraph{Intuition}
+    The intuition that McBride gives
+    (and uses to motivate the name \emph{co-de-Bruijn})
+    is that de Bruijn representation keeps all introduced bindings in its context
+    and only selects one of them \emph{as late as possible},
+    when encountering a variable, i.e. de Bruijn index.
+    Co-de-Bruijn representation follows the dual approach,
+    shrinking down the context \emph{as early as possible}
+    to only those variables that occur in the respective subexpression.
+    When reaching a variable, only a singleton context remains,
+    so there is no need for an index.
 
-\section{Conversion From/To de Bruijn}
+    After dealing with live variable analysis in the previous chapter,
+    we can also think about it in a way similar to liveness annotations:
+    starting from the variables, the live context gets collected bottom-up.
+
+  \paragraph{Relevant pairs}
+    The most insightful situation to consider is that of handling
+    multiple subexpressions, for example with addition.
+    Assuming we have
+    |e1 : Expr NAT Delta1| and
+    |e2 : Expr NAT Delta2|, each indexed by their live context,
+    how do we construct the syntax node representing their application?
+    It should be indexed by some |Gamma| with thinnings
+    |theta1 : Delta1 C= Gamma| and
+    |theta2 : Delta2 C= Gamma|.
+    For |LiveExpr|, we specified the resulting context using |_\/_|,
+    ensuring that it is the smallest context into which
+    we can embed both |Delta1| and |Delta2|.
+    Here, we achieve the same using a \emph{cover} of the thinnings
+    to ensure that every element of |Gamma| is part of
+    |Delta1|, |Delta2|, or both
+    (``everybody's got to be somewhere'').
+    Note that we can never construct a |Cover (o' _) (o' _)|.
+
+    \begin{code}
+      data Cover : Delta1 C= Gamma -> Delta2 C= Gamma -> Set where
+        c's  : Cover theta1 theta2  -> Cover (o' theta1) (os theta2)
+        cs'  : Cover theta1 theta2  -> Cover (os theta1) (o' theta2)
+        css  : Cover theta1 theta2  -> Cover (os theta1) (os theta2)
+        czz  : Cover oz oz
+    \end{code}
+
+    As each binary operator will in some form contain these
+    two subexpressions, two thinnings and a cover,
+    we combine them into a reusable datatype called \emph{relevant pair}.
+
+    \begin{code}
+      record _><R_ (S T : List I -> Set) (Gamma : List I) : Set where
+        constructor pairR
+        field
+          outl   : S ^^ Gamma    -- |S Delta1| and |Delta1 C= Gamma|
+          outr   : T ^^ Gamma    -- |T Delta2| and |Delta2 C= Gamma|
+          cover  : Cover (thinning outl) (thinning outr)
+    \end{code}
+
+    As an example, let us construct the relevant pair of the two expressions
+    |e1 : Expr NAT [ sigma ]| and |e2 : Expr NAT [ tau ]|,
+    each with a (different) single live variable in their context.
+    The combined live context then contains both variables,
+    so one thinning will target the first element, and one the other:
+    |pairR (e1 ^ os (o' oz)) (e2 ^ o' (os oz)) c : (Expr NAT ><R Expr NAT) [ sigma , tau ] |.
+    The cover |c = cs' (c's czz)| follows the same structure.
+
+    Manually finding the combined live context and constructing the cover
+    everytime a relevant pair gets constructed quickly gets cumbersome.
+    We can define a smart constructor,
+    but note that nothing about |e1| and |e2| tells us
+    which element should come first in the context
+    -- the choice was made (arbitrarily) by creating the thinnings.
+    As part of the input, we therefore require thinnings into a shared context.
+    Any shared context will do,
+    since we only need it to relate the two subexpressions' contexts
+    and can still shrink it down to the part that is live.
+
+    \begin{code}
+      _,R_ : S ^^ Gamma -> T ^^ Gamma -> (S ><R T) ^^ Gamma
+    \end{code}
+
+    We will not show the implementation here,
+    but it is generally similar to that of |_\/_|,
+    recursing over each element of |Gamma| to check which of the thinnings use it,
+    decide whether to include it in the resulting context,
+    and construct the matching thinnings and cover.
+
+  \paragraph{Bindings}
+    Another important consideration are bindings.
+    Not all bound variables are required to be used,
+    they can be dropped from the context of their subexpressions immediately.
+    For example, $\lambda$-abstractions that don't use their argument are perfectly valid
+    and cannot be removed as easily as dead let-bindings.
+
+    With the goal of creating another general building block
+    that can be used for a wide range of language constructs,
+    we allow a list of multiple simultaneous bindings.
+    Instead of an operation like |pop| dealing with a single binding,
+    we now use a thinning |phi  : Delta' C= Gamma'|
+    to express which of the bound variables |Gamma'| are used,
+    and concatenate the live variables |Delta'| to the context.
+
+    \begin{code}
+      record _|-_ (Gamma' : List I) (T : List I -> Set) (Gamma : List I) : Set where
+        constructor _\\_
+        field
+          {used}    : List I
+          thinning  : used C= Gamma'
+          thing     : T (used ++ Gamma)
+    \end{code}
+
+    Given an expression, wrapping it into this datatype
+    requires us to find out which part of its context is bound here.
+    Luckily, with the right thinning at hand,
+    this can be handled by a general smart constructor.
+
+    \begin{code}
+      _\\R_ : (Gamma' : List I) -> T ^^ (Gamma' ++ Gamma) -> (Gamma' |- T) ^^ Gamma
+    \end{code}
+
+    Again, we will not spend much time explaining the implementation,
+    but briefly mention that it relies on the ability to split the thinning
+    that goes into |Gamma' ++ Gamma| into two parts using |_-||_|,
+    as seen in section \ref{sec:de-bruijn-thinnings}.
+
+
+  \paragraph{Expression language}
+    Using the building blocks defined above,
+    our expression language can be defined pretty concisely.
+
+    \begin{code}
+      data Expr : (sigma : U) (Gamma : Ctx) -> Set where
+        Var   : Expr sigma [ sigma ]
+        App   : (Expr (sigma => tau) ><R Expr sigma) Gamma -> Expr tau Gamma
+        Lam   : ([ sigma ] |- Expr tau) Gamma -> Expr (sigma => tau) Gamma
+        Let   : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau Gamma
+        Val   : (interpretU(sigma)) -> Expr sigma []
+        Plus  : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
+    \end{code}
+
+    Let-bindings make use of both a relevant pair and binding,
+    without us having to think much about what the thinnings involved should look like.
+    Since the context of the declaration is considered relevant
+    irrespective of the let-binding itself being live,
+    it corresponds to the \emph{weakly} live variables.
+    Achieving \emph{strong} variable liveness would require a custom combinator,
+    but more importantly, we will show that it is not necessary
+    for an efficient implementation of the strong version of dead binding elimination.
+
+  \paragraph{Evaluation}
+    To later be able to talk about preservation of semantics,
+    we first need to define a semantics,
+    which we again do in form of a total evaluation function.
+    % Since the expressions' context gets shrunk down at each node,
+    % we either need to project the matching part out of the environment at each recursive call
+    % or maintain a thinning from the required live context to the larger context
+    % the environment provides.
+    % We choose the latter option, as we prefer to manipulate thinnings where possible.
+    As with |evalLive|,
+    we allow supplying an environment that is larger than strictly needed.
+    This allows us to compose a thinning
+    instead of having to project the environment for each recursive call.
+
+    \begin{code}
+      eval : Expr tau Delta -> Delta C= Gamma -> Env Gamma -> (interpretU(tau))
+      eval Var theta env =
+        lookup (ref-o theta) env
+      eval (App (pairR (e1 ^ theta1) (e2 ^ theta2) cover)) theta env =
+        eval e1 (theta1 .. theta) env
+          (eval e2 (theta2 .. theta) env)
+      eval (Lam (psi \\ e)) theta env =
+        lambda v -> eval e (psi ++C= theta) (Cons v env)
+      eval (Let (pairR (e1 ^ theta1) ((psi \\ e2) ^ theta2) c)) theta env =
+        eval e2 (psi ++C= (theta2 .. theta))
+          (Cons (eval e1 (theta1 .. theta) env) env)
+      (dots)
+    \end{code}
+
+    At the variable occurrences, the expression's context is a singleton
+    and we can convert the thinning into an index (|Ref|)
+    to do a lookup on the environment.
+    The thinning |psi| for bindings that get introduced needs to concatenated
+    with the accumulated binding.
+    Finally note that despite all the differences to |evalLive|,
+    we do not skip the declaration's evaluation
+    when encountering a dead let-binding.
+
+
+\section{Conversion From/To de Bruijn Syntax}
 \label{sec:co-de-bruijn-conversion}
 \Draft{
   \paragraph{Relax}
@@ -67,14 +245,6 @@
   that is not known upfront.
   This can be expressed conveniently by returning an expression together with an thinning
   into the original context.
-  \begin{code}
-    record _^^_ (T : List I -> Set) (scope : List I) : Set where
-      constructor _^_
-      field
-        {support} : List I
-        thing : T support
-        thinning : support C= scope
-  \end{code}
   \begin{code}
     into : DeBruijn.Expr sigma Gamma -> Expr sigma ^^ Gamma
   \end{code}
@@ -117,7 +287,7 @@
   }
 }
 
-\section{Strong Dead Binding Elimination}
+\subsection{Strong Dead Binding Elimination}
 \label{sec:co-de-bruijn-dbe-strong}
 \Draft{
   To avoid this,
@@ -142,7 +312,7 @@
   We also prove that |dbe| preserves semantics.
   \begin{code}
     dbe-correct :
-      (e : Expr tau Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) →
+      (e : Expr tau Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) ->
       let e' ^ theta' = dbe e
       in eval e' (theta' .. theta) env == eval e theta env
   \end{code}

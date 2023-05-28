@@ -611,6 +611,8 @@
       (dots)
     \end{code}
     We will later use this to split the correctness proof into multiple small parts.
+    % NOTE: If this text about evalLive ever gets removed,
+    % we need to move some of it to the explanation of co-de-Bruijn evaluation.
   \paragraph{Transformation}
     The second pass we perform is similar to |dbe| in the direct approach,
     but with a few key differences.
