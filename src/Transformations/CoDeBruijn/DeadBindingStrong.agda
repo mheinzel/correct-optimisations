@@ -17,6 +17,7 @@ open import Language.Core
 open Language.Core.Env {U}
 open Language.Core.Ref {U}
 open import Language.CoDeBruijn
+open import Transformations.CoDeBruijn.DeadBinding using (helper-assoc)
 
 private
   variable
@@ -89,31 +90,16 @@ mutual
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
-helper-assoc :
-  {Γ Γ₁ Γ₂ Γ' Γ'' : Ctx} →
-  {θ₁  : Γ  ⊑ Γ₁} {θ₁' : Γ₁ ⊑ Γ'} {θ₂  : Γ  ⊑ Γ₂} {θ₂' : Γ₂ ⊑ Γ'} {θ : Γ' ⊑ Γ''} →
-  θ₁ ₒ θ₁' ≡ θ₂ ₒ θ₂' →
-  θ₁ ₒ θ₁' ₒ θ ≡ θ₂ ₒ θ₂' ₒ θ
-helper-assoc {θ₁ = θ₁} {θ₁' = θ₁'} {θ₂ = θ₂} {θ₂' = θ₂'} {θ = θ} h =
-    θ₁ ₒ θ₁' ₒ θ
-  ≡⟨ law-ₒₒ _ _ _ ⟩
-    (θ₁ ₒ θ₁') ₒ θ
-  ≡⟨  cong (_ₒ θ) h ⟩
-    (θ₂ ₒ θ₂') ₒ θ
-  ≡⟨ sym (law-ₒₒ _ _ _) ⟩
-    θ₂ ₒ θ₂' ₒ θ
-  ∎
-
 dbe-correct-Lam :
   {Γₑ : Ctx} (l : ([ σ ] ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
-  let _\\_ {bound = Γ'} ψ e₁ = l
+  let ψ \\ e₁ = l
       e₁' ↑ θ₁' = dbe e₁
       e = Lam l
       e' ↑ θ' = dbe e
   in
   (h : (v : ⟦ σ ⟧) → eval e₁' (θ₁' ₒ (ψ ++⊑ θ)) (Cons v env) ≡ eval e₁ (ψ ++⊑ θ) (Cons v env)) →
   eval e' (θ' ₒ θ) env ≡ eval e θ env
-dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
+dbe-correct-Lam (_\\_ {Γ'} ψ e₁) env θ h
   with dbe e₁
 ...  | e₁' ↑ θ₁
   with Γ' ⊣ θ₁

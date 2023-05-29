@@ -48,7 +48,7 @@ helper-assoc :
   {Γ Γ₁ Γ₂ Γ' Γ'' : Ctx} →
   {θ₁  : Γ  ⊑ Γ₁} {θ₁' : Γ₁ ⊑ Γ'} {θ₂  : Γ  ⊑ Γ₂} {θ₂' : Γ₂ ⊑ Γ'} {θ : Γ' ⊑ Γ''} →
   θ₁ ₒ θ₁' ≡ θ₂ ₒ θ₂' →
-  θ₁ ₒ θ₁' ₒ θ ≡ θ₂ ₒ θ₂' ₒ θ
+  θ₁ ₒ (θ₁' ₒ θ) ≡ θ₂ ₒ (θ₂' ₒ θ)
 helper-assoc {θ₁ = θ₁} {θ₁' = θ₁'} {θ₂ = θ₂} {θ₂' = θ₂'} {θ = θ} h =
     θ₁ ₒ θ₁' ₒ θ
   ≡⟨ law-ₒₒ _ _ _ ⟩
@@ -68,7 +68,7 @@ dbe-correct-Lam :
   in
   (h : (v : ⟦ σ ⟧) → eval e₁' (θ₁' ₒ (ψ ++⊑ θ)) (Cons v env) ≡ eval e₁ (ψ ++⊑ θ) (Cons v env)) →
   eval e' (θ' ₒ θ) env ≡ eval e θ env
-dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
+dbe-correct-Lam (_\\_ {Γ'} ψ e₁) env θ h
   with dbe e₁
 ...  | e₁' ↑ θ₁
   with Γ' ⊣ θ₁
@@ -77,6 +77,8 @@ dbe-correct-Lam (_\\_ {bound = Γ'} ψ e₁) env θ h
       eval e₁' ((ϕ₁ ₒ ψ) ++⊑ (ϕ₂ ₒ θ)) (Cons v env)
     ≡⟨ cong (λ x → eval e₁' x (Cons v env)) (law-commute-ₒ++⊑ ϕ₁ ψ ϕ₂ θ) ⟩
       eval e₁' ((ϕ₁ ++⊑ ϕ₂) ₒ (ψ ++⊑ θ)) (Cons v env)
+    -- ≡⟨ cong (λ x → eval e₁' (x ₒ (ψ ++⊑ θ)) (Cons v env)) (sym p) ⟩
+    --   eval e₁' (θ₁ ₒ (ψ ++⊑ θ)) (Cons v env)
     ≡⟨ h v ⟩
       eval e₁ (ψ ++⊑ θ) (Cons v env)
     ∎
@@ -99,24 +101,29 @@ dbe-correct-×ᴿ eval-step (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ
   with dbe e₁    | dbe e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂'
   with cop (θ₁' ₒ θ₁) (θ₂' ₒ θ₂) 
-...  | coproduct Γ' ψ θ₁'' θ₂'' p₁ p₂ c =
-     eval-step
-       (eval e₁' (θ₁'' ₒ ψ ₒ θ) env)
-       (eval e₂' (θ₂'' ₒ ψ ₒ θ) env)
-   ≡⟨ cong (λ x → eval-step (eval e₁' _ _) (eval e₂' x env)) (helper-assoc (sym p₂)) ⟩
-     eval-step
-       (eval e₁' (θ₁'' ₒ ψ ₒ θ) env)
-       (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
-   ≡⟨ cong (λ x → eval-step (eval e₁' x env) _) (helper-assoc (sym p₁)) ⟩
-     eval-step
-       (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env)
-       (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
-   ≡⟨ cong₂ eval-step h₁ h₂ ⟩
-    eval-step
-      (eval e₁ (θ₁ ₒ θ) env)
-      (eval e₂ (θ₂ ₒ θ) env)
-  ∎
+...  | coproduct Γ' ψ θ₁'' θ₂'' p₁ p₂ c =  -- "not sure if there should be a case for refl
+  cong₂ eval-step
+    (trans (cong (λ x → eval e₁' x env) (helper-assoc (sym p₁))) h₁)
+    (trans (cong (λ x → eval e₂' x env) (helper-assoc (sym p₂))) h₂)
+  --   eval-step
+  --     (eval e₁' (θ₁'' ₒ ψ ₒ θ) env)
+  --     (eval e₂' (θ₂'' ₒ ψ ₒ θ) env)
+  -- ≡⟨ cong (λ x → eval-step (eval e₁' _ _) (eval e₂' x env)) (helper-assoc (sym p₂)) ⟩
+  --   eval-step
+  --     (eval e₁' (θ₁'' ₒ ψ ₒ θ) env)
+  --     (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
+  -- ≡⟨ cong (λ x → eval-step (eval e₁' x env) _) (helper-assoc (sym p₁)) ⟩
+  --   eval-step
+  --     (eval e₁' (θ₁' ₒ θ₁ ₒ θ) env)
+  --     (eval e₂' (θ₂' ₒ θ₂ ₒ θ) env)
+  -- ≡⟨ cong₂ eval-step h₁ h₂ ⟩
+  --   eval-step
+  --     (eval e₁ (θ₁ ₒ θ) env)
+  --     (eval e₂ (θ₂ ₒ θ) env)
+  -- ∎
 
+-- TODO: Is it possible to create proof combinators,
+-- similar to how the implementation uses map⇑, _,ᴿ_ etc.?
 dbe-correct :
   {Γₑ : Ctx} (e : Expr τ Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let e' ↑ θ' = dbe e

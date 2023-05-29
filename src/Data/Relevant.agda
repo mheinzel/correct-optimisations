@@ -106,9 +106,8 @@ _\\ᴿ_ : {T : I ─Indexed} (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T
 Γ' \\ᴿ (t ↑ .(θ ++⊑ ϕ)) | split θ ϕ (refl , refl) = (θ \\ t) ↑ ϕ
 -}
 
--- TODO: better name? R → ᴿ
 \\ᴿ-helper : {Γ Γ' Γ'' : List I} {ψ : Γ'' ⊑ (Γ' ++ Γ)} → Split Γ' ψ → T Γ'' → (Γ' ⊢ T) ⇑ Γ
-\\ᴿ-helper (split ϕ₁ ϕ₂ (refl , refl)) t = (ϕ₁ \\ t) ↑ ϕ₂
+\\ᴿ-helper (split ϕ₁ ϕ₂ (refl , _)) t = (ϕ₁ \\ t) ↑ ϕ₂
 
 _\\ᴿ_ : (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
 Γ' \\ᴿ (t ↑ ψ) = \\ᴿ-helper (Γ' ⊣ ψ) t
