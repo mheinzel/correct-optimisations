@@ -77,7 +77,7 @@ So far, we looked at it conceptually, but how does a compiler represent variable
     - Dex reports many bugs, creates *the foil*
       - uses types to "make it harder to poke your eye out"
 
-## de Bruijn Representation
+## De Bruijn Representation
   - no names, de Bruijn indices are natural numbers
   - *relative* reference to binding ($0$ = innermost)
   - $\alpha$-equivalence for free!
@@ -669,7 +669,7 @@ Discussion also includes insight from other transformations.
   - `LiveExpr` is indexed by two contexts, which seems redundant
 
 
-# Intrinsically Typed co-de-Bruijn Representation
+# Intrinsically Typed Co-de-Bruijn Representation
   - "dual" to de Bruijn indices, due to Conor McBride:
     - de Bruijn indices pick from the context "as late as possible"
     - co-de-Bruijn gets rid of bindings "as early as possible"
@@ -677,14 +677,14 @@ Discussion also includes insight from other transformations.
   - even harder for humans to reason about
   - observation: expressions indexed by their (weakly) live context
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   - how to deal with multiple subexpressions?
   - basically, as with `LiveExpr` we need:
     - a suitable overall context `Γ` (like `_∪_`)
     - for each subexpression, a thinning into `Γ`
   - building block: *relevant pair*
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   ```agda
     record _×ᴿ_ (S T : List I → Set) (Γ : List I) : Set where
       constructor pairᴿ
@@ -702,7 +702,7 @@ Discussion also includes insight from other transformations.
     - we just have some overall context `Γ`
     - cover ensures that `Γ` is *relevant*, as small as possible
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   - each element of `Γ` needs to be relevant
   - i.e. at least one thinning keeps it
 
@@ -714,7 +714,7 @@ Discussion also includes insight from other transformations.
       czz : Cover oz oz
   ```
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   - how to deal with bindings?
   - here, we allow multiple simultaneous bindings `Γ'`
     - requires talking about context concatenation (replaces `pop`)
@@ -728,7 +728,7 @@ Discussion also includes insight from other transformations.
     t : T (Δ' ++ Γ)  -- used variables added to context
   ```
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   ```agda
     record _⊢_ (Γ' : List I)
                (T : List I → Set)
@@ -744,7 +744,7 @@ Discussion also includes insight from other transformations.
 Just for reference, skip this slide quickly.
 :::
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
 
   ```agda
     data Expr : U → Ctx → Set where
@@ -953,7 +953,7 @@ Just for reference, skip this slide quickly.
   - for strong version:
     - `Let? p` semantically equivalent to `Let p`
 
-## Intrinsically Typed co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
 ### Discussion
   - co-de-Bruijn representation keeps benefits of `LiveExpr`
     - liveness information available by design
@@ -968,7 +968,7 @@ We can take this further!
 :::
 
 
-# Syntax-generic co-de-Bruijn Representation
+# Syntax-generic Co-de-Bruijn Representation
 
 ::: notes
 Some might know datatype-generic programming, e.g. `GHC.Generics`.
@@ -1071,7 +1071,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
       `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
   ```
 
-## Syntax-generic co-de-Bruijn Representation
+## Syntax-generic Co-de-Bruijn Representation
   - we interpret into co-de-Bruijn terms instead
     - McBride had something similar, but for different `Desc` type
 
@@ -1083,7 +1083,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
   - something indexed by sort and context
     - e.g. `Expr : U ─Scoped`
 
-## Syntax-generic co-de-Bruijn Representation
+## Syntax-generic Co-de-Bruijn Representation
   ```agda
     data Tm (d : Desc I) : I ─Scoped where
       `var : Tm d i [ i ]
@@ -1093,7 +1093,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
   - terms always have variables
   - for the rest, interpret the description
 
-## Syntax-generic co-de-Bruijn Representation
+## Syntax-generic Co-de-Bruijn Representation
   ```agda
     Scope : I ─Scoped → List I → I ─Scoped
     Scope T    []      i = T i
@@ -1103,7 +1103,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
   - `Scope` roughly corresponds to bindings
   - empty scopes are very common, avoid trivial `[] ⊢_`
 
-## Syntax-generic co-de-Bruijn Representation
+## Syntax-generic Co-de-Bruijn Representation
   ```agda
     ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
     ⟦ `σ A d    ⟧ X i Γ = Σ[ a ∈ A ] (⟦ d a ⟧ X i Γ)
@@ -1114,7 +1114,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
   - context only contains live variables
     - enforced by relevant pair and constraints in `` `∎``
 
-## Syntax-generic co-de-Bruijn Representation
+## Syntax-generic Co-de-Bruijn Representation
   - working generically, this works well
   - but once description is concrete, there are unexpected indirections
   - e.g. "unary product" ``⟦ `X Δ σ (`∎ τ) ⟧``
@@ -1214,14 +1214,14 @@ The code takes some time to understand in detail, so let's focus on the main ide
       map⇑ (map⊢ ψ) (_ \\ᴿ dbe t)
   ```
 
-## Generic co-de-Bruijn Representation
+## Generic Co-de-Bruijn Representation
 ### Discussion
   - generic code is more reusable
   - in some sense nice to write
     - fewer cases to handle (abstraction)
   - but also more complex
 
-## Generic co-de-Bruijn Representation
+## Generic Co-de-Bruijn Representation
 ### Discussion
   - Allais et al. define generic notion of `Semantics`
     - abstracts over traversal (similar to recursion schemes)
@@ -1229,7 +1229,7 @@ The code takes some time to understand in detail, so let's focus on the main ide
     - scopes change at each node, manipulating them requires re-constructing covers
     - probably easier when operating on thinned expressions (`_⇑_`)
 
-## Generic co-de-Bruijn Representation
+## Generic Co-de-Bruijn Representation
 ### Discussion
   - no correctness proofs yet
     - using which semantics?
