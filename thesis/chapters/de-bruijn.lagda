@@ -1,7 +1,7 @@
 %include agda.fmt
 %include custom.fmt
 
-\chapter{de Bruijn Representation}
+\chapter{De Bruijn Representation}
 \label{ch:de-bruijn}
     The main objective of this chapter is to show
     how to manipulate the binding structure of intrinsically typed de Bruijn syntax.

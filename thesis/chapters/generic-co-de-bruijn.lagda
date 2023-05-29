@@ -1,7 +1,7 @@
 %include agda.fmt
 %include custom.fmt
 
-\chapter{Syntax-generic co-de-Bruijn Representation}
+\chapter{Syntax-generic Co-de-Bruijn Representation}
 \label{ch:generic-co-de-bruijn}
 \Outline{Just a short explanation of the general idea.}
 \cite{Allais2018UniverseOfSyntaxes}

@@ -1,7 +1,7 @@
 %include agda.fmt
 %include custom.fmt
 
-\chapter{co-de-Bruijn Representation}
+\chapter{Co-de-Bruijn Representation}
 \label{ch:co-de-bruijn}
     After showing that de Bruijn representation can be made type- and scope-correct
     by indexing expressions with their context (the variables in scope),
