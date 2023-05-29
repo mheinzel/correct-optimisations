@@ -92,6 +92,7 @@
 %format _|-_ = "\_{\vdash}\_"
 %format \\ = "\fatbslash"
 %format _\\_ = "\_{\fatbslash}\_"
+%format thin|- = "\Varid{thin}{\vdash}"
 %format \\R = "\fatbslash_R"
 %format _\\R_ = "\_{\fatbslash_R}\_"
 %format map|- = "\Varid{map}{\vdash}"
