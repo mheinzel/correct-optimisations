@@ -33,7 +33,7 @@
   \end{code}
 }
 
-\section{Terms}
+\section{Intrinsically Typed Syntax}
 \label{sec:generic-co-de-bruijn-terms}
 \Draft{
   The \texttt{generic-syntax} package only interprets syntax descriptions into de Bruijn terms.
@@ -169,8 +169,9 @@
   and a case for let-bindings, where most of the work happens.
 }
 
-\section{Strong Dead Binding Elimination}
+\subsection{Strong Dead Binding Elimination}
 \label{sec:generic-co-de-bruijn-dbe-strong}
+\Fixme{Merge}
 \Draft{
   The type signatures are identical, the implementation only differs in one place:
   Instead of checking for unused bindings before doing recursive calls,
@@ -190,6 +191,7 @@
   \Fixme{Who's gonna try parsing this? Probably too much detail.}
 }
 
-\section{(Let-sinking)}
-    \OpenEnd{Not implemented. Is there something interesting to say about it?}
-    \Fixme{Does this belong in Further Work instead?}
+
+\section{Discussion}
+    \Outline{Nice and concise. Generic.}
+    \Outline{Correctness?}
