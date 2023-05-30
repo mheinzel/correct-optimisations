@@ -582,4 +582,24 @@
 
 \section{Discussion}
 \label{sec:co-de-bruijn-discussion}
-\Outline{This was nice, although (...). Can we generalise this?}
+  \Fixme{These are just some quick notes, revisit!}
+  \paragraph{Useful properties}
+    Co-de-Bruijn expressions generally seem promising for defining transformations,
+    with several useful properties:
+    \begin{enumerate}
+      \item Liveness information is present at each syntax node.
+      \item Changing the context in a way compatible with thinnings usually does not require a traversal of the expression.
+      \item The type of an expression only depends on the expression itself, not on the presence of unused bindings around it.
+        One situation where can be useful is when identifying identical expressions for common subexpression elimination.
+    \end{enumerate}
+  \paragraph{Complications}
+    On the other hand,
+    the elaborate bookkeeping that is part of co-de-Bruijn syntax trees
+    makes the construction of expressions more complicated.
+    While this is partly mitigated by smart constructors,
+    the proofs about transformed expressions
+    are significantly more complex than their de Bruijn counterparts.
+    This became especially apparent during let-sinking.
+    It might be possible to create a general set of proof combinators
+    that help dealing with the smart constructors,
+    but so far we have not been able to find them.
