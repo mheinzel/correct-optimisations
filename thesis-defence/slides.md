@@ -447,6 +447,7 @@ Empty context is initial object!
     - caching?
 
 ## Dead Binding Elimination (direct approach)
+### Correctness
   - intrinsically typed syntax enforces some invariants
   - correctness proof is stronger, but what does "correctness" mean?
 
@@ -654,7 +655,30 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 
 ## Dead Binding Elimination (annotated)
 ### Correctness
-  - TODO (first decide on phrasing of specification)
+  - specification is the same as for direct approach
+  - but this time, we break it down
+
+  ```agda
+    dbe-correct :
+      (e : Expr σ Γ) (env : Env Γ) →
+      let e' ↑ θ = dbe e
+      in eval e' (project-Env θ env) ≡ eval e env
+  ```
+
+  - conceptually: `eval ◦ dbe ≡ eval`
+
+## Dead Binding Elimination (annotated)
+  - we start by proving a different statement
+
+  ```agda
+    eval ◦ transform ≡ eval ◦ forget
+      -- precompose analyse on both sides
+    eval ◦ transform ◦ analyse ≡ eval ◦ forget ◦ analyse
+      -- apply definition of dbe, law about analyse
+    eval ◦ dbe ≡ eval
+  ```
+
+  - a lot less shuffling to be done for each constructor
 
 ## Intrinsically Typed de Bruijn Representation
 ### Discussion
@@ -1307,13 +1331,42 @@ Optional, can be skipped if low on time.
 
 
 # Discussion
-  - TODO
 
+## Observations
+  - semantics: total evaluator makes it relatively easy
+    - what about recursive bindings or effects?
+
+  - reordering context not a good fit for thinnings
+    - use a more general notion of embedding?
+      - Allais et al. use `(∀ σ → Ref σ Δ → Ref σ Γ)`
+      - opaque, harder to reason about
+
+## Further Work
+  - unfinished proofs for let-sinking
+  - generic let-sinking
+    - which constructs not to sink into?
+  - correctness of generic transformations
+
+## Further Work
+  - more language constructs
+    - recursive bindings
+    - non-strict bindings
+    - branching
+    - ...
+  - more transformations
+    - let-floating (e.g. out of $\lambda$)
+    - common subexpression elimination
+      - co-de-Bruijn is useful for that, not indexed by variables in scope
+    - ...
 
 ## {.standout}
 
 <https://github.com/mheinzel/correct-optimisations>
 
-- extended slides
-- thesis
-- implementation
+::: center
+extended slides
+
+thesis
+
+implementation
+:::
