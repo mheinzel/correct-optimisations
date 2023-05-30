@@ -28,6 +28,7 @@
     Once the foundations are in place,
     we again perform dead binding elimination and let-sinking,
     but now without the distinction between plain and annotated syntax.
+    \Fixme{"primarily comparing them to the annotated versions"?}
 
 \section{Intrinsically Typed Syntax}
 \label{sec:co-de-bruijn-intrinsically-typed}
@@ -305,10 +306,35 @@
 
 \section{Dead Binding Elimination}
 \label{sec:co-de-bruijn-dbe}
-    TODO
+    Co-de-Bruijn expressions enforce that every variable in the context
+    must occur somewhere.
+    However, there can still be dead let-bindings:
+    the declaration of type |sigma| bound by |psi \\ e2 : ([ sigma ] ||- Expr tau) Gamma|
+    can be immediately discarded in |psi|,
+    never to occur in |e2|.
+    We need to identify such dead let-bindings and eliminate them.
+
+    Since an expression's context contains its \emph{weakly} live variables
+    and removing dead bindings can make some of them dead,
+    we return the result with a thinning.
+
+    \begin{code}
+      dbe : Expr tau Gamma -> Expr tau ^^ Gamma
+    \end{code}
 
   \paragraph{Transformation (weak)}
-    TODO
+    The change in context has several consequences:
+    Firstly, these new thinnings coming from each recursive call
+    need to be composed with the existing ones on the way up (e.g. using |thin^^|).
+    Secondly, we need to rebuild the variable usage information,
+    i.e. calculate new contexts and covers at each node
+    using the smart constructors |_\\R_| and |_,R_|.
+
+    The weakly live variables
+    are already present as part of the co-de-Bruijn representation,
+    so no further analysis is necessary.
+    We simply need to find all bindings with a thinning |o' oz : [] C= [ sigma ]|
+    in the input expression.
 
     \begin{code}
       dbe : Expr tau Gamma -> Expr tau ^^ Gamma
@@ -333,35 +359,18 @@
       thin|- phi (theta \\ t) = (theta .. phi) \\ t
     \end{code}
 
-    \Draft{
-      Co-de-Bruijn expressions enforce that every variable in an expression's context
-      must occur somewhere.
-      However, there can still be dead bindings:
-      The declaration of type |tau| bound by |[ tau ] ||- e| does not need to appear in the context of |e|.
-      It can be immediately discarded, making the binding dead.
-      We need to identify such let-bindings and eliminate them.
-      Due to the variable usage information already maintained within co-de-Bruijn expressions,
-      no further analysis is necessary.
-
-      Since the body is generally in a smaller context than the whole let-binding was,
-      we again need to return an expression with a thinning.
-      This has several consequences:
-      Firstly, these new thinnings need to be composed with the existing ones
-      on the way up (e.g. using |thin^^|).
-      Secondly, we need to rediscover the variable usage information,
-      i.e. calculate new contexts and covers at each node using |_\\R_| and |_,R_|.
-      And finally, this also means that (as in the de Bruijn setting)
-      previously live bindings might now have become dead,
-      requiring another iteration.
-    }
-
   \paragraph{Transformation (strong)}
-    TODO
+    To get the strong version,
+    we can do the recursive calls first and check the thinnings \emph{afterwards}.
+    For that we use a small helper function |Let?|
+    that behaves like the constructor |Let| if the binding is live,
+    but otherwise removes the declaration.
+    The other cases are the same as in the previous section.
 
     \begin{code}
       Let? : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
-      Let?         (pairR  _ ((o' oz \\ e2)  ^ theta2)  _)   = e2 ^ theta2
-      Let? (At(p)  (pairR  _ ((os oz \\ _)   ^ _)       _))  = Let p ^ oi
+      Let? (At(p)(pairR _ ((o' oz \\ e2)  ^ theta2)  _)) = e2 ^ theta2
+      Let? (At(p)(pairR _ ((os oz \\ _)   ^ _)       _)) = Let p ^ oi
     \end{code}
 
     \begin{code}
@@ -370,17 +379,30 @@
           (thin^^ phi1 (dbe e1) ,R thin^^ phi2 (map^^ (thin|- psi) (_ \\R dbe e2)))
     \end{code}
 
-    \Draft{
-      To avoid this,
-      instead of identifying unused bound variables in the input expression,
-      we can do the recursive call \emph{first} and check whether the variable is used
-      \emph{afterwards}.
-      \Fixme{unexplained operations, hard to follow}
-      The other cases are just the same as in the previous section.
-    }
+    Due to the combinators applying and mapping over thinnings,
+    the definition is concise, but opaque.
+    To give a better feeling for how much plumbing is involved,
+    we can also inline all combinators and compose the thinnings manually:
+
+    \begin{code}
+      dbe (Let (pairR (e1 ^ phi1) ((psi \\ e2) ^ phi2) c)) =
+        let  e1'            ^ phi1'  = dbe e1
+             (psi' \\ e2')  ^ phi2'  = _ \\R dbe e2
+             p' ^ theta   = (e1' ^ (phi1' .. phi1)) ,R (((psi' .. psi) \\ e2') ^ (phi2' .. phi2))
+             e' ^ theta'  = Let? p'
+        in
+          e' ^ (theta' .. theta)
+    \end{code}
+
+    Additionally inlining the smart constructors
+    to show how they construct their thinnings
+    would make the code even more noisy and difficult to follow.
 
   \paragraph{Correctness}
-    More complicated... TODO
+    As seen in the inlined version,
+    a lot of nontrivial operations are involved in constructing
+    the thinnings and covers in the result.
+    This also makes the proofs more complicated.
 
     \begin{code}
       dbe-correct :
@@ -389,26 +411,29 @@
         in eval e' (theta' .. theta) env ≡ eval e theta env
     \end{code}
 
-    \Draft{
-      We also prove that |dbe| preserves semantics.
-      \begin{code}
-        dbe-correct :
-          (e : Expr tau Gamma') (env : Env Gamma) (theta : Gamma' C= Gamma) ->
-          let e' ^ theta' = dbe e
-          in eval e' (theta' .. theta) env == eval e theta env
-      \end{code}
-      Even the more straight-forward cases require some massaging to get to work.
-      For relevant pairs,
-      we need to make use of associativity of |_.._| to apply some
-      equalities about the result of |_,R_|.
-      For bound variables,
-      to even be able to apply the induction hypothesis,
-      we need to make available some equalities about |_\\R_|.
-      It then remains to use that composition and concatenation of thinnings commute:
-      | (theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2) |.
+    While the combinators and smart constructors used in the implementation
+    compose seamlessly, the same is not quite true for proofs about them.
+    \Fixme{I kind of want to show some code here, but it is quite noisy, so probably not super helpful.}
+    We were able to factor out lemmas dealing with |_||-_| and |_><R_|,
+    such that e.g. the cases for application and addition in |dbe-correct|
+    are both instances of the same proof, using either |_S_| or |_+_| as an argument.
+    However, defining these building blocks in a way that allowed composing them
+    to handle |Let| proved more difficult than expected.
+    In the end, we simply handled |Let| as a similar but separate special case.
+    The main issue for proof composability seems to be
+    that some type equalities need to be matched on (e.g. using with-abstraction)
+    just for the required call to the induction hypothesis to typecheck.
+    Some attempts to break the proof into components
+    also failed to satisfy the termination checker.
+    \Fixme{More details?}
 
-      For let-bindings, we additionally use the semantics-preserving nature of |Let?|.
-    }
+    Often, conceptually simple parts of the proof require
+    extensive massaging of deeply buried thinnings
+    % buried deep in the expression being reasoned about.
+    using commutative laws or helpers with types like
+    |theta1' .. theta1 == theta2' .. theta2 -> theta1' .. (theta1 .. phi) == theta2' .. (theta2 .. phi)|.
+    For let-bindings in the strong version,
+    we additionally use the semantics-preserving nature of |Let?|.
 
     \begin{code}
       lemma-Let? :
@@ -416,6 +441,7 @@
         let e' ^ theta' = Let? p
         in eval e' (theta' .. theta) env ≡ eval (Let p) theta env
     \end{code}
+
 
 \section{Let-sinking}
 \label{sec:co-de-bruijn-let-sinking}
