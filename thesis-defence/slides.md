@@ -184,8 +184,6 @@ So far, we looked at it conceptually, but how does a compiler represent variable
   - evaluation requires an *environment*
     - a value for each variable in the context
 
-[comment]: # TODO: Remove definition of Env? Unless Cons used.
-
   ```agda
     data Env : List I → Set where
       Nil   : Env []
@@ -329,8 +327,6 @@ And many other useful operations we will see later.
       let e' ↑ θ = dbe e
       in eval e' (project-Env θ env) ≡ eval e env
   ```
-
-[comment]: # TODO: remove dbe-correct signatures?
 
 ::: notes
 There are many options, e.g. using `rename-Expr`, but in this case proof is similar.
@@ -519,157 +515,14 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     - de Bruijn indices pick from the context "as late as possible"
     - co-de-Bruijn gets rid of bindings "as early as possible"
       - using thinnings
-  - even harder for humans to reason about
   - our intuition:
     - expressions indexed by their (weakly) live context
 
-  - TODO: massively brush over details of representation!!!
-
-## Intrinsically Typed Co-de-Bruijn Representation
-  - how to deal with multiple subexpressions?
-  - basically, as with `LiveExpr` we need:
-    - a suitable overall context `Γ` (like `_∪_`)
-    - for each subexpression, a thinning into `Γ`
-  - building block: *relevant pair*
-
-## Intrinsically Typed Co-de-Bruijn Representation
-  ```agda
-    record _×ᴿ_ (S T : List I → Set) (Γ : List I) : Set where
-      constructor pairᴿ
-      field
-        outl  : S ⇑ Γ    -- S Δ₁ and Δ₁ ⊑ Γ
-        outr  : T ⇑ Γ    -- T Δ₂ and Δ₂ ⊑ Γ
-        cover : Cover (thinning outl) (thinning outr)
-  ```
-
-  - usage: `(Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ`
-
-. . .
-
-  - what is a cover?
-    - we just have some overall context `Γ`
-    - cover ensures that `Γ` is *relevant*, as small as possible
-
-## Intrinsically Typed Co-de-Bruijn Representation
-  - each element of `Γ` needs to be relevant
-  - i.e. at least one thinning keeps it
-
-  ```agda
-    data Cover : Γ₁ ⊑ Γ → Γ₂ ⊑ Γ → Set where
-      c's : Cover θ₁ θ₂ → Cover (o' θ₁) (os θ₂)
-      cs' : Cover θ₁ θ₂ → Cover (os θ₁) (o' θ₂)
-      css : Cover θ₁ θ₂ → Cover (os θ₁) (os θ₂)
-      czz : Cover oz oz
-  ```
-
-## Intrinsically Typed Co-de-Bruijn Representation
-  - how to deal with bindings?
-  - here, we allow multiple simultaneous bindings `Γ'`
-    - requires talking about context concatenation (replaces `pop`)
-
-. . .
-
-  - new construct `(Γ' ⊢ T) Γ`, consists of two things:
-
-  ```agda
-    ψ : Δ' ⊑ Γ'     -- which new variables are used?
-    t : T (Δ' ++ Γ)  -- used variables added to context
-  ```
-
-## Intrinsically Typed Co-de-Bruijn Representation
-  ```agda
-    record _⊢_ (Γ' : List I)
-               (T : List I → Set)
-               (Γ : List I) : Set where
-      constructor _\\_
-      field
-        {used}   : List I
-        thinning : used ⊑ Γ'
-        thing    : T (used ++ Γ)
-  ```
-
-::: notes
-Just for reference, skip this slide quickly.
-:::
-
-## Intrinsically Typed Co-de-Bruijn Representation
-
-  ```agda
-    data Expr : U → Ctx → Set where
-      Var :
-        Expr σ [ σ ]
-      App :
-        (Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ →
-        Expr τ Γ
-      Lam :
-        ([ σ ] ⊢ Expr τ) Γ →
-        Expr (σ ⇒ τ) Γ
-      Let :
-        (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ →
-        Expr τ Γ
-      ...
-  ```
-
-[comment]: # Could also talk about evaluation briefly. Precursor to `relax`, accumulating thinning.
-
-## Conversion From Co-de-Bruijn Syntax
-  - take all those thinnings at the nodes
-  - only use them at the latest moment, variables
-
-  ```agda
-    relax : Δ ⊑ Γ → Expr σ Δ → DeBruijn.Expr σ Γ
-  ```
-
-  - keep composing the thinning
-    - how do we deal with bindings (`ψ \\ e`)?
-
-  . . .
-
-  ```agda
-    _++⊑_ :
-      Δ₁ ⊑ Γ₁ → Δ₂ ⊑ Γ₂ →
-      (Δ₁ ++ Δ₂) ⊑ (Γ₁ ++ Γ₂)
-  ```
-
-[comment]: # TODO: Remove conversion? Not sure if actually useful.
-
-## Conversion From Co-de-Bruijn Syntax
-  ```agda
-    relax : Γ' ⊑ Γ → Expr σ Γ' → DeBruijn.Expr σ Γ
-    relax θ Var =
-      -- eventually turn thinning into Ref
-      DeBruijn.Var (ref-o θ)
-    relax θ (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) cover)) =
-      DeBruijn.App (relax (ϕ₁ ₒ θ) e₁) (relax (ϕ₂ ₒ θ) e₂)
-    relax θ (Lam (ψ \\ e)) =
-      DeBruijn.Lam (relax (ψ ++⊑ θ) e)
-    relax θ (Let (pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c)) =
-      -- combination of product and binding
-      DeBruijn.Let (relax (θ₁ ₒ θ) e₁) (relax (ψ ++⊑ (θ₂ ₒ θ)) e₂)
-    ...
-  ```
-
-## Conversion To Co-de-Bruijn Syntax
-  - other direction is harder
-  - we need to find all these thinnings
-  - resulting live context not known upfront, use `_⇑_`
-
-  ```agda
-    tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
-  ```
-
-## Conversion To Co-de-Bruijn Syntax
-  ```agda
-    _,ᴿ_ : S ⇑ Γ → T ⇑ Γ → (S ×ᴿ T) ⇑ Γ
-  ```
-
-  - implementation similar to `_∪_`, but also constructs cover
-
-  ```agda
-    _\\ᴿ_ : (Γ' : List I) → T ⇑ (Γ' ++ Γ) → (Γ' ⊢ T) ⇑ Γ
-  ```
-
-  - relies on the fact that thinnings can be split
+# Intrinsically Typed Co-de-Bruijn Representation
+  - complex bookkeeping
+    - each subexpression has its own context, connected by thinnings
+    - constructing expressions basically performs LVA
+  - building blocks with smart constructors hide complexity
 
 ## Conversion To Co-de-Bruijn Syntax
   ```agda
@@ -689,14 +542,9 @@ Just for reference, skip this slide quickly.
     -- map⇑ f (t ↑ θ) = f t ↑ θ
   ```
 
-## Conversion To Co-de-Bruijn Syntax
-  - also prove that conversion agrees with semantics
-
-    (in both directions)
-
 ## Dead Binding Elimination (co-de-Bruijn)
   - co-de-Bruijn: all variables in the context must occur
-  - but let-bindings can still be dead (`o' oz \\ e₂`)
+  - but let-bindings can still be dead
     - easy to identify now
     - remove them!
 
@@ -708,22 +556,7 @@ Just for reference, skip this slide quickly.
   ```agda
     dbe : Expr τ Γ → Expr τ ⇑ Γ
   ```
-
-## Dead Binding Elimination (co-de-Bruijn)
-  ```agda
-    dbe : Expr τ Γ → Expr τ ⇑ Γ
-    dbe Var =
-      Var ↑ oi
-    dbe (App (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
-      map⇑ App (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
-    dbe (Lam (_\\_ {Γ'} ψ e)) =
-      map⇑ (Lam ∘ map⊢ ψ) (Γ' \\ᴿ dbe e)
-    ...
-  ```
-
-  - rebuilding the live context and thinnings
-  - just `Let` is interesting
-
+[comment]: # TODO: Shorten more? E.g. weak version?
 
 ## Dead Binding Elimination (co-de-Bruijn)
   ```agda
@@ -756,23 +589,17 @@ Just for reference, skip this slide quickly.
 
 ## Dead Binding Elimination (co-de-Bruijn)
 ### Correctness
-  ```agda
-    dbe-correct :
-      (e : Expr τ Δ) (env : Env Γ) (θ : Δ ⊑ Γ) →
-      let e' ↑ θ' = dbe e
-      in eval e' (θ' ₒ θ) env ≡ eval e θ env
-  ```
-  - `θ` not strictly needed, but gives flexibility for inductive step
+  - correctness proof allows larger environment than needed
+    - gives flexibility for inductive step
+  - complex:
+    - requires extensive massaging of thinnings
+      - associativity, identities, ...
+    - laws about `project-Env` with `_ₒ_` and `oi`
+    - laws about thinnings created by `_,ᴿ_`
+    - `(θ ₒ θ') ++⊑ (ϕ ₒ ϕ') ≡ (θ ++⊑ ϕ) ₒ (θ' ++⊑ ϕ')`
 
-## Dead Binding Elimination (co-de-Bruijn)
-  - correctness proof requires extensive massaging of thinnings
-    - associativity, identities, ...
-  - laws about `project-Env` with `_ₒ_` and `oi`
-  - laws about thinnings created by `_,ᴿ_`
-  - `(θ ₒ θ') ++⊑ (ϕ ₒ ϕ') ≡ (θ ++⊑ ϕ) ₒ (θ' ++⊑ ϕ')`
-
-  - for strong version:
-    - `Let? p` semantically equivalent to `Let p`
+    - for strong version:
+      - `Let? p` semantically equivalent to `Let p`
 
 ## Intrinsically Typed Co-de-Bruijn Representation
 ### Discussion
@@ -780,69 +607,36 @@ Just for reference, skip this slide quickly.
     - liveness information available by design
   - some parts get simpler (just a single context)
   - some parts get more complicated (mainly proofs)
-    - thinnings in result requires reasoning about them a lot
+    - thinnings in result require reasoning about them a lot
     - operations on thinnings get quite complex
   - building blocks (e.g. relevant pair) allow code reuse
-
-::: notes
-We can take this further!
-:::
 
 
 # Syntax-generic Co-de-Bruijn Representation
 
 ::: notes
 Some might know datatype-generic programming, e.g. `GHC.Generics`.
+
+The code takes some time to understand in detail, so let's focus on the main ideas
 :::
 
 ## Syntax-generic Programming
   - based on work by Allais et al.
     - *A type- and scope-safe universe of syntaxes with binding: their semantics and proofs*
-  - problem:
-    - any time you define a language, you need common operations (renaming, substitution, ...) and laws about them
-    - for these, languages need variables and bindings, the rest is noise
-    - `Ctrl+C`, `Ctrl+V`?
-
-## Syntax-generic Programming
-
-::: notes
-The code takes some time to understand in detail, so let's focus on the main ideas
-:::
 
   - main idea:
     - define a datatype of syntax descriptions `Desc`
     - each `(d : Desc I)` describes a language of terms `Tm d σ Γ`
     - implement operations *once*, generically over descriptions
-
-      ```agda
-        foo : (d : Desc I) → Tm d σ Γ → ...
-      ```
-
     - describe your language using `Desc`, get operations for free
 
-. . .
-
-  - authors created Agda package `generic-syntax`
-    - we build on top of that
-    - made it compile with recent Agda versions
-      (had to remove sized types that were used to show termination)
 
 ## Syntax-generic Programming
-  ```agda
-    data Desc (I : Set) : Set₁ where
-      `σ : (A : Set) → (A → Desc I)  → Desc I
-      `X : List I → I → Desc I       → Desc I
-      `∎ : I                         → Desc I
-  ```
+  - description of our language (looks cryptic)
 
-  - let's describe our language!
-
-## Syntax-generic Programming
   ```agda
     data Tag : Set where
-      `App  : U → U → Tag
-      `Lam  : U → U → Tag
-      `Let  : U → U → Tag
+      `App `Lam `Let : U → U → Tag
       `Val  : U → Tag
       `Plus : Tag
 
@@ -856,134 +650,16 @@ The code takes some time to understand in detail, so let's focus on the main ide
   ```
 
 ## Syntax-generic Co-de-Bruijn Representation
-  - we interpret into co-de-Bruijn terms instead
-    - McBride had something similar, but for different `Desc` type
-
-  ```agda
-    _─Scoped : Set → Set₁
-    I ─Scoped = I → List I → Set
-  ```
-
-  - something indexed by sort and context
-    - e.g. `Expr : U ─Scoped`
-
-## Syntax-generic Co-de-Bruijn Representation
-  ```agda
-    data Tm (d : Desc I) : I ─Scoped where
-      `var : Tm d i [ i ]
-      `con : ⟦ d ⟧ (Scope (Tm d)) i Γ → Tm d i Γ
-  ```
-
-  - terms always have variables
-  - for the rest, interpret the description
-
-## Syntax-generic Co-de-Bruijn Representation
-  ```agda
-    Scope : I ─Scoped → List I → I ─Scoped
-    Scope T    []      i = T i
-    Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
-  ```
-
-  - `Scope` roughly corresponds to bindings
-  - empty scopes are very common, avoid trivial `[] ⊢_`
-
-## Syntax-generic Co-de-Bruijn Representation
-  ```agda
-    ⟦_⟧ : Desc I → (List I → I ─Scoped) → I ─Scoped
-    ⟦ `σ A d    ⟧ X i Γ = Σ[ a ∈ A ] (⟦ d a ⟧ X i Γ)
-    ⟦ `X Δ j d  ⟧ X i = X Δ j ×ᴿ ⟦ d ⟧ X i
-    ⟦ `∎ j      ⟧ X i Γ = i ≡ j × Γ ≡ []
-  ```
-
-  - context only contains live variables
-    - enforced by relevant pair and constraints in `` `∎``
-
-## Generic Conversion From Co-de-Bruijn Syntax
-  - we can convert between de Bruijn and co-de-Bruijn
+  - we interpret descriptions into co-de-Bruijn terms
+    - using building blocks
+  - we convert between de Bruijn and co-de-Bruijn
     - completely generically!
-  - implementation is concise (few cases to handle)
-
-  ```agda
-    relax :
-      (d : Desc I) → Δ ⊑ Γ →
-      CoDeBruijn.Tm d τ Δ →
-      DeBruijn.Tm d τ Γ
-
-    tighten :
-      (d : Desc I) →
-      DeBruijn.Tm d τ Γ →
-      CoDeBruijn.Tm d τ ⇑ Γ
-  ```
-
-## Dead Binding Elimination (generic co-de-Bruijn)
-  - DBE can be done generically as well
-  - we need let-bindings, the rest does not matter
-
-. . .
-
-  - descriptions are closed under sums:
-
-    ``Tm (d `+ `Let) τ Γ``
-
-## Dead Binding Elimination (generic co-de-Bruijn)
-  ```agda
-     _`+_ : Desc I → Desc I → Desc I
-     d `+ e = `σ Bool λ isLeft →
-       if isLeft then d else e
-
-    `Let : Desc I
-    `Let {I} = `σ (I × I) $ uncurry $ λ σ τ →
-      `X [] σ (`X [ σ ] τ (`∎ τ))
-
-    -- ⟦ d ⟧ or ⟦ e ⟧ in ⟦ d + e ⟧
-    pattern inl t = true  , t
-    pattern inr t = false , t
-  ```
-
-## Dead Binding Elimination (generic co-de-Bruijn)
-  - stay in co-de-Bruijn representation
-  - define mutually recursive functions
+  - we do DBE for all languages with let-bindings
 
   ```agda
     dbe :
       Tm (d `+ `Let) τ Γ →
       Tm (d `+ `Let) τ ⇑ Γ
-    dbe-⟦∙⟧ :
-      ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ Γ →
-      ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ ⇑ Γ
-    dbe-Scope :
-      (Δ : List I) →
-      Scope (Tm (d `+ `Let)) Δ τ Γ →
-      Scope (Tm (d `+ `Let)) Δ τ ⇑ Γ
-  ```
-
-## Dead Binding Elimination (generic co-de-Bruijn)
-  - recognise parts from the concrete implementation?
-
-  ```agda
-    dbe `var = `var ↑ oi
-    dbe (`con (inl t)) = map⇑ (`con ∘ inl) (dbe-⟦∙⟧ t)
-    dbe (`con (inr t)) = bind⇑ Let? (dbe-⟦∙⟧ {d = `Let} t)
-
-    Let? : ⟦ `Let ⟧ (...) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
-    Let? t@(a , pairᴿ (t₁ ↑ θ₁) (t₂ ↑ p) _)
-      with ×ᴿ-trivial⁻¹ p
-    ... | (o' oz \\ t₂) , refl = t₂ ↑ θ₂
-    ... | (os oz \\ t₂) , refl = `con (inr t) ↑ oi
-  ```
-
-## Dead Binding Elimination (generic co-de-Bruijn)
-  ```agda
-    dbe-⟦∙⟧ {d = `σ A d} (a , t) =
-      map⇑ (a ,_) (dbe-⟦∙⟧ t)
-    dbe-⟦∙⟧ {d = `X Δ j d} (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) =
-      thin⇑ θ₁ (dbe-Scope Δ t₁) ,ᴿ thin⇑ θ₂ (dbe-⟦∙⟧ t₂)
-    dbe-⟦∙⟧ {d = `∎ i} t =
-      t ↑ oi
-
-    dbe-Scope [] t = dbe t
-    dbe-Scope (_ ∷ _) (ψ \\ t) =
-      map⇑ (map⊢ ψ) (_ \\ᴿ dbe t)
   ```
 
 ## Generic Co-de-Bruijn Representation
@@ -992,12 +668,6 @@ The code takes some time to understand in detail, so let's focus on the main ide
   - in some sense nice to write
     - fewer cases to handle (abstraction)
   - but also more complex
-
-## Generic Co-de-Bruijn Representation
-### Discussion
-  - no correctness proofs yet
-    - using which semantics?
-    - or could at least prove it for a specific language
 
 
 # Other Transformations
@@ -1025,21 +695,6 @@ Optional, can be skipped if low on time.
   - to keep it manageable, we focus on one binding at a time
 
 ## Let-sinking
-  - top level signature remains somewhat simple
-  - should look similar to
-
-    `Let : Expr σ Γ → Expr τ (σ ∷ Γ) → Expr τ Γ`
-
-  - but as we go under binders, the binding doesn't stay on top
-
-  ```agda
-    sink-let :
-      Expr σ (Γ₁ ++ Γ₂) →
-      Expr τ (Γ₁ ++ σ ∷ Γ₂) →
-      Expr τ (Γ₁ ++ Γ₂)
-  ```
-
-## Let-sinking
   - also requires renaming, partitioning context into 4 parts
 
   ```agda
@@ -1052,8 +707,6 @@ Optional, can be skipped if low on time.
   - this gets cumbersome
   - especially for co-de-Bruijn:
     - need to partition and re-assemble thinnings
-      - same for covers?
-    - 12 thinnings in scope
 
 ## Let-sinking
 ### Discussion
@@ -1061,7 +714,6 @@ Optional, can be skipped if low on time.
     - exact phrasing of signatures has a big impact
   - maintaining the co-de-Bruijn structure is especially cumbersome
   - progress with co-de-Bruijn proof, but messy and unfinished
-  - for more details, see thesis
 
 
 # Discussion
@@ -1080,6 +732,7 @@ Optional, can be skipped if low on time.
   - generic let-sinking
     - which constructs not to sink into?
   - correctness of generic transformations
+    - using which semantics?
 
 ## Further Work
   - more language constructs
