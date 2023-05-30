@@ -206,7 +206,7 @@ sink-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl �
 sink-let Γ₁ Γ₂ decl e@(Lam _) refl ψ = -- don't push into lambdas!
   map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] _ e refl) ↑ ψ))
 
-sink-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ ↑ ϕ) c)) refl ψ
+sink-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ'} ψ' e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
   -- declaration not used at all (impossible!)
 ...  | split θ₁ (o' θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl)
@@ -214,10 +214,10 @@ sink-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ''} ψ' e₂ �
   -- declaration used in right subexpression
 ...  | split θ₁ (o' θ₂) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (os ϕ₂) (refl , refl)
     -- TODO: can we avoid this mess?
-    with e₂' ↑ ϕ' ← sink-let (Γ'' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
-                      (sym (++-assoc Γ'' Γ₁' (_ ∷ Γ₂')))
-                      (coerce (_⊑ (Γ'' ++ _)) (sym (++-assoc Γ'' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
-    with split ψ'' ϕ'' (refl , b) ← Γ'' ⊣ ϕ' =
+    with e₂' ↑ ϕ' ← sink-let (Γ' ++ Γ₁') Γ₂' (thin⇑ (oe ++⊑ oi) decl) e₂
+                      (sym (++-assoc Γ' Γ₁' (_ ∷ Γ₂')))
+                      (coerce (_⊑ (Γ' ++ _)) (sym (++-assoc Γ' Γ₁' Γ₂')) (oi ++⊑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
+    with split ψ'' ϕ'' (refl , b) ← Γ' ⊣ ϕ' =
     map⇑ Let ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ (((ψ'' ₒ ψ') \\ e₂') ↑ ϕ''))
   -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (os θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl) =

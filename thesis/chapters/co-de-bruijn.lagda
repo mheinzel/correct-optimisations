@@ -445,113 +445,140 @@
 
 \section{Let-sinking}
 \label{sec:co-de-bruijn-let-sinking}
-\Draft{
-  The main differences compared to the de-Bruijn-based implementation are that
-  \begin{itemize}
-    \item variable usage information is available without querying it repeatedly,
-    \item we can enforce that pushed declaration is used,
-    \item the changes in context (and thus thinnings and covers) require laborious bookkeeping.
-  \end{itemize}
-  \paragraph{Signature}
-  Since there are many properties and operations for thinnings and covers
-  related to concatenation of contexts,
-  we phrase the reordering of context differently than before:
-  Instead of using a |Ref| to specify a particular binding in the context we want to move,
-  we segment the context into a part before and after that binding.
-  In de Bruijn setting, this would correspond to the following signature:
-  \begin{code}
-    push-let :
-      (Gamma1 Gamma2 : Ctx) ->
-      Expr sigma (Gamma1 ++ Gamma2) ->
-      Expr tau (Gamma1 ++ sigma :: Gamma2) ->
-      Expr tau (Gamma1 ++ Gamma2)
-  \end{code}
-  But here, declaration and binding form a relevant pair,
-  each in their own context with an thinning into the overall context.
-  \begin{code}
-    push-let :
-      (Gamma1 Gamma2 : Ctx) ->
-      (decl : Expr sigma ^^ (Gamma1 ++ Gamma2)) ->
-      (body : Expr tau ^^ (Gamma1 ++ sigma :: Gamma2)) ->
-      Cover (thinning decl) (thinning body) ->
-      Expr tau (Gamma1 ++ Gamma2)
-  \end{code}
-  For now, we will ignore the cover and also return the result with a thinning
-  (i.e. without having to show that the whole context |Gamma1 ++ Gamma2| is relevant).
-  \begin{code}
-    push-let :
-      (Gamma1 Gamma2 : Ctx) ->
-      Expr sigma ^^ (Gamma1 ++ Gamma2) ->
-      Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
-      Expr tau ^^ (Gamma1 ++ Gamma2)
-  \end{code}
-  Finally, this representation is not as precise as it could be:
-  The context of the body is thinned into a precisely specified overall context,
-  but its on structure is opaque and needs to be discovered.
-  For example, it does not need to make use of |sigma| and treating this case separately
-  is cumbersome.
-  Also, it is clear that the inner context consists of two parts
-  (thinned into |Gamma1| and |Gamma2| respectively), but we first need to split it.
-  We therefore make stronger assumptions about the context of the body
-  (not just the context it is thinned into).
-  The structure of the overall context, on the other hand is less important to us.
-  \begin{code}
-    push-let :
-      (Gamma1 Gamma2 : Ctx) ->
-      Expr sigma ^^ Gamma ->
-      Expr tau (Gamma1 ++ sigma :: Gamma2) ->
-      Gamma1 ++ Gamma2 C= Gamma ->
-      Expr tau ^^ Gamma
-  \end{code}
+    In addition to the expected benefits
+    of readily available variable liveness information,
+    we will see that co-de-Bruijn representation also affords us more precision
+    when specifying the inputs to the transformation.
+    On the flipside, the reordering of the context inherent to let-sinking
+    causes even more complications than before.
+
+  \paragraph{Type signature}
+    We again start with the thought that the signature for let-sinking
+    should be similar to the |Let| constructor,
+    but allowing for a prefix in context that we will need when going under binders.
+    But here, declaration and binding form a relevant pair,
+    each in their own context with a thinning into the overall context.
+    To make it clear what this type consists of, we flatten the structure:
+
+    \begin{code}
+      sink-let :
+        (Gamma1 Gamma2 : Ctx) ->
+        (decl : Expr sigma ^^ (Gamma1 ++ Gamma2)) ->
+        (body : Expr tau ^^ (Gamma1 ++ sigma :: Gamma2)) ->
+        Cover (thinning decl) (thinning body) ->
+        Expr tau (Gamma1 ++ Gamma2)
+    \end{code}
+
+    For now, we will ignore the cover and return the result with a thinning
+    (i.e. without having to show that the whole context |Gamma1 ++ Gamma2| is relevant).
+    As we will see later, this keeps the implementation easier.
+
+    \begin{code}
+      sink-let :
+        (Gamma1 Gamma2 : Ctx) ->
+        Expr sigma ^^ (Gamma1 ++ Gamma2) ->
+        Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
+        Expr tau ^^ (Gamma1 ++ Gamma2)
+    \end{code}
+
+    However, this type is imprecise in a different way:
+    The context of the body is thinned into a precisely specified overall context,
+    but its own structure is opaque.
+    We know that it consists of two parts
+    (thinned into |Gamma1| and |Gamma2| respectively),
+    but that information first needs to be discovered.
+    Furthermore, it is useful to require that the declaration is live in the body
+    we want to move it into, so we know even more about the context.
+    To make that structure more apparent,
+    we can make stronger assumptions about the context of the body
+    (not just the context it is thinned into).
+    The structure of the overall context on the other hand is less important to us.
+
+    \begin{code}
+      sink-let :
+        (Gamma1 Gamma2 : Ctx) ->
+        Expr sigma ^^ Gamma ->
+        Expr tau (Gamma1 ++ sigma :: Gamma2) ->
+        Gamma1 ++ Gamma2 C= Gamma ->
+        Expr tau ^^ Gamma
+    \end{code}
+
+    The knowledge that the binding is used eliminates some edge cases
+    we previously had to deal with.
+    Using a simple wrapper, we can still get back the less restrictive type signature
+    that can be applied to any let-binding:
+
+    \begin{code}
+      sink-let-top : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
+      sink-let-top (pairR (decl ^ phi) ((os oz \\ e) ^ theta) c) =
+        sink-let [] _ (decl ^ phi) e refl theta
+      sink-let-top (pairR decl ((o' oz \\ e) ^ theta) c) =
+        e ^ theta   -- binding is unused, why bother?
+    \end{code}
+
   \paragraph{Variables}
-  \Fixme{reword, explain why there are not two cases anymore}
-  Here we know that we are in a context consisting of exactly the type of the variable.
-  After making this fact obvious to the typechecker,
-  we can replace the variable by the declaration.
+    We immediately observe this when dealing with variables.
+    Since we know that a variable's context contains exactly one element,
+    and also that the declaration is part of that of the context,
+    the variable \emph{must} refer to the declaration.
+    After making this clear to Agda using an absurd case,
+    we can always replace the variable with the declaration.
+    After making this fact obvious to the typechecker using an absurd pattern,
+    we can replace the variable by the declaration.
+
   \paragraph{Creating the binding}
-  As in the de Bruijn setting, we need to rename the body of the newly created binding.
-  However, it becomes more cumbersome here.
-  \begin{code}
-    reorder-Ctx :
-      Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
-      Expr tau (Gamma1 ++ Gamma3 ++ Gamma2 ++ Gamma4)
-  \end{code}
-  The context is split into four segments (where |Gamma3| is |[ sigma ]|).
-  Since subexpressions are in their own context,
-  we first need to split their context (and the thinnings) into segments as well.
-  This is also true for the cover, which then needs to be carefully reassembled.
-  Going under binders requires rewriting using list concatenation's associativity.
+    As in the de Bruijn setting, we need to rename the body of the newly created binding.
+    However, it becomes more cumbersome here.
+    \begin{code}
+      reorder-Ctx :
+        Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
+        Expr tau (Gamma1 ++ Gamma3 ++ Gamma2 ++ Gamma4)
+    \end{code}
+    The context is split into four segments (where |Gamma3| is |[ sigma ]|) that get reordered,
+    which means that we also need to split every thinning and cover into four parts
+    and carefully reassemble them.
+    \begin{code}
+      cover++C=4 :
+        (theta1 : Gamma1'  C= Gamma1) (theta2 : Gamma2'  C= Gamma2) (dots) ->
+        Cover (theta1 ++C= theta2 ++C= theta3 ++C= theta4) (phi1 ++C= phi2 ++C= phi3 ++C= phi4) ->
+        Cover (theta1 ++C= theta3 ++C= theta2 ++C= theta4) (phi1 ++C= phi3 ++C= phi2 ++C= phi4)
+    \end{code}
+
   \paragraph{Binary constructors}
-  Variable usage information is immediately available:
-  We split and examine the thinnings of the subexpressions to see where the declaration is used.
-  Using the cover, we can rule out the case where no subexpression uses the declaration.
-  No strengthening is necessary, discovering that a variable is unused is enough.
-  The subexpressions are then combined using |_,R_|, creating the new thinnings and cover for us.
+    Variable usage information is immediately available:
+    We split and examine the thinnings of the subexpressions to see where the declaration is used.
+    Using the cover, we can rule out the case where no subexpression uses the declaration.
+    In contrast to the previous implementation of let-sinking,
+    no strengthening is necessary: discovering that a variable is unused is enough.
+    The subexpressions are then combined using |_,R_|, creating new thinnings and a cover for us.
+
   \paragraph{Binders}
-  No weakening of the declaration is necessary anymore, we simply update its thinning.
-  But recursing into the body of another let-binding still complicates things:
-  Although we know that its variable usage should be unaffected,
-  the type signature of |push-let| does not enforce that
-  and we need to split its thinning.
+    No weakening of the declaration is necessary when going under a binder,
+    as we simply update its thinning.
+    But recursing into the body of another let-binding still complicates things:
+    Although we know that the liveness of the bound variable should be unaffected by let-sinking,
+    the imprecise type signature allows for changes in context,
+    so we need to find out again whether the binding is used or not.
+
   \paragraph{Correctness}
-  \OpenEnd{
-  Work on the proof is in progress, but it's messy.
-  There are many lemmas about splitting thinnings, reordering the context etc.
-  It seems like some of the complications could be avoided
-  if we manage to avoid the usage of |_,R_| as explained in the next paragraph.
-  }
+    Work on the proof is incomplete, as the sheer number of
+    operations and bindings involved makes it messy.
+    There are many lemmas about splitting thinnings and reordering the context
+    that are cumbersome to state and prove correct.
+    It seems like some of the complications could be avoided
+    if we managed to avoid the usage of |_,R_| as explained in the next paragraph.
+
   \paragraph{Covers}
-  As hinted at above, it should not be necessary to return a result with a thinning.
-  If all variables occur in either declaration or body, they will still occur in the result.
-  This would also simplify the implementation (and thus the proof),
-  since constructing a relevant pair directly is a simpler operation
-  than using |_,R_| to discover a coproduct with new thinnings.
-  However, constructing the required covers from the input requires non-trivial manipulation
-  (splitting, composition, concatenation) and observing some equalities.
-  \OpenEnd{
-  Can we get this to work? It seems like the ``right'' way of doing things, but not easy.
-  }
-}
+    As hinted at when choosing a type signature for the transformation,
+    it should not be necessary to return the result with a thinning.
+    If all variables occur in either declaration or body, they will still occur in the result,
+    so the context always remains the same.
+    This could potentially simplify parts of the implementation and especially the proof,
+    since constructing a relevant pair directly creates fewer indirections
+    than using |_,R_| to discover new thinnings.
+    However, making our observations clear to the typechecker
+    involves non-trivial manipulation of the covers.
+
 
 \section{Discussion}
 \label{sec:co-de-bruijn-discussion}

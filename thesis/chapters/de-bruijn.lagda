@@ -350,6 +350,7 @@
     We do not need the composed thinnings into the live context,
     as we will always distinguish the two cases of |theta2| anyways
     and can then rely on the thinnings defined for |_\/_|.
+    \Fixme{Add example showing difference between versions of combine!}
 
 
 \section{Dead Binding Elimination}
