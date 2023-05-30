@@ -6,8 +6,6 @@ institute: Utrecht University
 theme: metropolis
 ---
 
-[comment]: # TODO: Fix alignment, e.g. by setting math symbol width to agree with monospace font.
-
 
 # Analysis and Transformation
 
@@ -62,14 +60,10 @@ So far, we looked at it conceptually, but how does a compiler represent variable
 
 ## Named Representation
   - what we have done so far, just use strings
-  - pitfall: $\alpha$-equivalence
-    - is $\lambda x.\ x$ equivalent to $\lambda y.\ y$ or not?
   - pitfall: shadowing, variable capture
     - e.g. inline $y$ in expression $\textbf{let } y = x + 1 \textbf{ in } \lambda x.\ y$
-    - GHC adopts Barendregt convention, creates *the rapier*
-      - relies on invariants upheld by convention
-    - Dex reports several bugs, creates *the foil*
-      - uses types to "make it harder to poke your eye out"
+    - usually avoided by convention/discipline
+    - mistakes still happen
 
 ## De Bruijn Representation
   - no names, de Bruijn indices are natural numbers
@@ -99,7 +93,6 @@ So far, we looked at it conceptually, but how does a compiler represent variable
 
 ::::::
 
-  - $\alpha$-equivalence for free!
   - pitfall: need to rename when adding/removing bindings
   - not intuitive for humans
 
@@ -125,13 +118,10 @@ So far, we looked at it conceptually, but how does a compiler represent variable
       Var  : Nat → Expr
       App  : Expr → Expr → Expr
       Lam  : Expr → Expr
-      Let  : Expr → Expr → Expr
-      Num  : Nat → Expr
-      Bln  : Bool → Expr
-      Plus : Expr → Expr → Expr
+      ...
   ```
 
-  - What about `Plus (Bln False) (Var 42)`?
+  - What about `App (Bln False) (Var 42)`?
   - error-prone, evaluation is partial
 
 ## Sorts
@@ -155,12 +145,10 @@ So far, we looked at it conceptually, but how does a compiler represent variable
       Var  : Nat → Expr σ
       App  : Expr (σ ⇒ τ) → Expr σ → Expr τ
       Lam  : Expr τ → Expr (σ ⇒ τ)
-      Let  : Expr σ → Expr τ → Expr τ
-      Val  : ⟦ σ ⟧ → Expr σ
-      Plus : Expr NAT → Expr NAT → Expr NAT
+      ...
   ```
 
-  - helps, e.g. addition now only on numbers
+  - helps, e.g. can only apply functions to matching arguments
   - but variables are still not safe!
 
 ## Context
@@ -194,48 +182,38 @@ So far, we looked at it conceptually, but how does a compiler represent variable
 
 ## Intrinsically Typed de Bruijn Representation
   - evaluation requires an *environment*
+    - a value for each variable in the context
 
-    (a value for each variable in the context)
+[comment]: # TODO: Remove definition of Env? Unless Cons used.
 
   ```agda
     data Env : List I → Set where
       Nil   : Env []
       Cons  : ⟦ σ ⟧ → Env Γ → Env (σ :: Γ)
+  ```
 
+  - lookup and evaluation are total
+
+  ```agda
+    lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
+  ```
+
+  ```agda
     eval : Expr σ Γ → Env Γ → ⟦ σ ⟧
   ```
 
-## Intrinsically Typed de Bruijn Representation
-  ```agda
-    lookup : Ref σ Γ → Env Γ → ⟦ σ ⟧
-    lookup Top      (Cons v env)   = v
-    lookup (Pop i)  (Cons v env)   = lookup i env
-  ```
-
-  - lookup is total
-  - evaluation is total
-
 ## Variable Liveness
   - we want to talk about the *live* context (result of LVA)
+  - conceptually: for each variable in scope, is it live or dead?
 
-  ```agda
-    foo : Expr (NAT ⇒ NAT) [ NAT , NAT ]
-    foo = Lam (Plus (Var Top) (Var (Pop Top)))
-  ```
 
-## Variable Liveness
-  ```agda
-    foo : Expr (NAT ⇒ NAT) [ NAT , NAT ]
-    foo = Lam (Plus (Var Top) (Var (Pop Top)))
-  ```
+  - we use *thinnings*
 
-  - here: only the innermost binding *outside* of `foo` is live
-  - but how to represent that fact in Agda?
-    - `[ NAT ]` is live context, but which variable does that refer to?
-    - conceptually: for each variable, do we keep or drop it?
+::: notes
+There are many other options, but thinnings are generally useful and have nice operations.
+:::
 
 ## Thinnings
-  - we use *thinnings* (order-preserving embeddings) from source into target
 
   ```agda
     data _⊑_ : List I → List I → Set where
@@ -244,20 +222,12 @@ So far, we looked at it conceptually, but how does a compiler represent variable
       oz : [] ⊑ []                         -- done
   ```
 
-  ```
-    a ------ a      os
-           - b      o'
-    c ------ c      os
-                    oz
-  ```
-
   ```agda
     os (o' (os oz)) : [ a , c ] ⊑ [ a , b , c ]
   ```
 
-::: notes
-There are many other options, but thinnings are generally useful and have nice operations.
-:::
+  - can be seen as "bitvector"
+  - or as order-preserving embedding from source into target
 
 ## Thinnings, Categorically
 
@@ -276,29 +246,9 @@ For example, category with thinnings as morphisms between contexts.
            - c     c ------ c            - c
   ```
 
-:::::: columns
 
-::: {.column width=25%}
-  ```agda
-    oi : Γ ⊑ Γ
-  ```
-
-  ```
-    a ------ a
-    b ------ b
-    c ------ c
-  ```
-:::
-
-::: {.column width=65%}
-  ```agda
-    law-ₒoi : θ ₒ oi ≡ θ
-    law-oiₒ : oi ₒ θ ≡ θ
-    law-ₒₒ : θ ₒ (ϕ ₒ ψ) ≡ (θ ₒ ϕ) ₒ ψ
-  ```
-:::
-
-::::::
+  - composition is associative
+  - composition has an identity `oi : Γ ⊑ Γ`
 
 ::: notes
 And many other useful operations we will see later.
@@ -306,56 +256,30 @@ And many other useful operations we will see later.
 
 ## Dead Binding Elimination (direct approach)
   - first, we attempt DBE in a single pass
-  - return result in its live context
+  - we want to return result in its live context `Δ`
     - not known upfront, but should embed into original context `Γ`
+
+  - precisely, we want to return
+    - expression `e : Expr σ Δ`
+    - thinning `θ : Δ ⊑ Γ`
+  - wrapped into a datatype
+    - `e ↑ θ : Expr σ ⇑ Γ`
 
   ```agda
     dbe : Expr σ Γ → Expr σ ⇑ Γ
   ```
 
-. . .
-
-  ```agda
-    record _⇑_ (T : List I → Set) (Γ : List I) : Set where
-      constructor _↑_
-      field
-        {support} : List I
-        thing     : T support
-        thinning  : support ⊑ Γ
-  ```
-
 ## Dead Binding Elimination (direct approach)
-
-::: notes
-Expression structure will not change much:
-Remove some bindings, but then also need to rename variables.
-:::
-
-  - removing bindings changes context, makes renaming necessary
-  - we will do it based on thinnings
+  - most of the expression structure stays unchanged
+  - generally:
+    - transform all subexpressions, find out their live context
+    - find combined live context (and thinnings)
+    - rename subexpressions into that
 
   ```agda
     rename-Ref  : Δ ⊑ Γ → Ref σ Δ  → Ref σ Γ
-
     rename-Expr : Δ ⊑ Γ → Expr σ Δ → Expr σ Γ
   ```
-
-## Dead Binding Elimination (direct approach)
-  ```agda
-    dbe (Val v) =
-      Val v ↑ oe
-  ```
-
-  - in values, no variable is live
-  - empty thinning
-
-  ```agda
-    oe : [] ⊑ Γ
-  ```
-
-::: notes
-Empty context is initial object!
-:::
 
 ## Dead Binding Elimination (direct approach)
   ```agda
@@ -363,45 +287,11 @@ Empty context is initial object!
       Var Top ↑ o-Ref x
   ```
 
-  - variables have exactly one live variable
+  - variables have exactly one live variable `[ σ ]`
   - thinnings from singleton context are isomorphic to references
 
   ```agda
-    o-Ref : Ref τ Γ → [ τ ] ⊑ Γ
-  ```
-
-## Dead Binding Elimination (direct approach)
-  ```agda
-    dbe (App e₁ e₂) =
-      let e₁' ↑ θ₁ = dbe e₁  -- θ₁ : Δ₁ ⊑ Γ
-          e₂' ↑ θ₂ = dbe e₂  -- θ₂ : Δ₂ ⊑ Γ
-      in App (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
-             (rename-Expr (un-∪₂ θ₁ θ₂) e₂')
-         ↑ (θ₁ ∪ θ₂)
-  ```
-
-  - find *minimal* live context (only keep if θ₁ or θ₂ keep!)
-  - rename subexpressions into that context
-
-  ```agda
-    _∪_   : ∀ θ₁ θ₂ → ∪-domain θ₁ θ₂ ⊑ Γ
-    un-∪₁ : ∀ θ₁ θ₂ → Δ₁ ⊑ ∪-domain θ₁ θ₂
-    un-∪₂ : ∀ θ₁ θ₂ → Δ₂ ⊑ ∪-domain θ₁ θ₂
-  ```
-
-## Dead Binding Elimination (direct approach)
-  ```agda
-    dbe (Lam e₁) =
-      let e₁' ↑ θ = dbe e₁  -- θ : Δ ⊑ (σ ∷ Γ)
-      in Lam (rename-Expr (un-pop θ) e₁') ↑ pop θ
-  ```
-
-  - pop off the top element
-    - corresponding to variable bound by `Lam`
-
-  ```agda
-    pop    : ∀ θ → pop-domain θ ⊑ Γ
-    un-pop : ∀ θ → Δ ⊑ (σ ∷ pop-domain θ)
+    o-Ref : Ref σ Γ → [ σ ] ⊑ Γ
   ```
 
 ## Dead Binding Elimination (direct approach)
@@ -422,62 +312,29 @@ Empty context is initial object!
   - this corresponds to *strongly* live variable analysis
 
 ## Dead Binding Elimination (direct approach)
-  ```agda
-    dbe (Let e₁ e₂) with dbe e₁ | dbe e₂
-    ... | e₁' ↑ θ₁  | e₂' ↑ o' θ₂ =
-      e₂' ↑ θ₂
-    ... | e₁' ↑ θ₁  | e₂' ↑ os θ₂ =
-      Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
-          (rename-Expr (os (un-∪₂ θ₁ θ₂)) e₂')
-      ↑ (θ₁ ∪ θ₂)
-  ```
-
-  - look at binary constructors again
-  - repeated renaming, inefficient!
-  - hard to avoid
-    - in which context do we need the transformed subexpressions?
-    - we can query it upfront, but that's also quadratic
-
-## Dead Binding Elimination (direct approach)
 ### Correctness
   - intrinsically typed syntax enforces some invariants
   - correctness proof is stronger, but what does "correctness" mean?
 
 . . .
 
-  - here: preservation of semantics (based on `eval`)
+  - preservation of semantics (based on `eval`)
+    - conceptually: `eval ◦ dbe ≡ eval`
+
+. . .
 
   ```agda
-    project-Env : Δ ⊑ Γ → Env Γ → Env Δ
-
     dbe-correct :
       (e : Expr σ Γ) (env : Env Γ) →
       let e' ↑ θ = dbe e
       in eval e' (project-Env θ env) ≡ eval e env
   ```
+
+[comment]: # TODO: remove dbe-correct signatures?
 
 ::: notes
 There are many options, e.g. using `rename-Expr`, but in this case proof is similar.
 :::
-
-## Dead Binding Elimination (direct approach)
-  ```agda
-    dbe-correct :
-      (e : Expr σ Γ) (env : Env Γ) →
-      let e' ↑ θ = dbe e
-      in eval e' (project-Env θ env) ≡ eval e env
-  ```
-
-  - equality on result of evaluation is simple, but:
-    - only works for total language (e.g. no unbounded recursion)
-    - values include functions, so we need extensional equality
-
-  ```agda
-    postulate
-      extensionality :
-        {S : Set} {T : S → Set} (f g : (x : S) → T x) →
-        (∀ x → f x ≡ g x) → f ≡ g
-  ```
 
 ## Dead Binding Elimination (direct approach)
   ```agda
@@ -507,26 +364,40 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
         ∎
   ```
 
-  - binary constructors similarly with `_∪_` (for each subexpression)
+  - binary constructors similarly with (for each subexpression)
   - for `Let`, distinguish cases again
 
   ```
 
   ```
 
-[comment]: # TODO: Make this look nicer, e.g. only shrink the code block?
+## Dead Binding Elimination (direct approach)
+  ```agda
+    dbe (Let e₁ e₂) with dbe e₁ | dbe e₂
+    ... | e₁' ↑ θ₁  | e₂' ↑ o' θ₂ =
+      e₂' ↑ θ₂
+    ... | e₁' ↑ θ₁  | e₂' ↑ os θ₂ =
+      Let (rename-Expr (un-∪₁ θ₁ θ₂) e₁')
+          (rename-Expr (os (un-∪₂ θ₁ θ₂)) e₂')
+      ↑ (θ₁ ∪ θ₂)
+  ```
+
+  - remember: repeated renaming for each binary constructor
+  - inefficient! (quadratic complexity)
+  - hard to avoid
+    - in which context do we need the transformed subexpressions?
+    - we can query it upfront, but that's also quadratic
 
 
 ## Dead Binding Elimination (annotated)
   - repeated renaming can be avoided by an analysis pass
     - so we know upfront which which context to use
   - common in compilers
-  - annotated syntax tree
+  - we define annotated syntax tree
     - again using thinnings, constructed as before
     - for `{θ : Δ ⊑ Γ}`, we have `LiveExpr σ θ`
 
-
-## Dead Binding Elimination (annotated) {frameoptions="shrink"}
+## Dead Binding Elimination (annotated)
   ```agda
     data LiveExpr {Γ : Ctx} : {Δ : Ctx} → U → Δ ⊑ Γ → Set where
       Var :
@@ -541,9 +412,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
         {θ : Δ ⊑ (σ ∷ Γ)} →
         LiveExpr τ θ →
         LiveExpr (σ ⇒ τ) (pop θ)
-      Let : ...
-      Val : ...
-      Plus : ...
+      ...
   ```
 
 ## Dead Binding Elimination (annotated)
@@ -555,22 +424,14 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
   ```
 
   - in direct approach, handled in two cases
-  - for analysis, we have a choice:
+  - for strong analysis, same:
 
-    1. weak: treat `Let` as an immediately `App`lied  `Lam`
+    ```agda
+      combine θ₁ (o' θ₂) = θ₂
+      combine θ₁ (os θ₂) = θ₁ ∪ θ₂
+    ```
 
-        ```agda
-          combine θ₁ θ₂ = θ₁ ∪ pop θ₂
-        ```
-
-    2. strong: custom operation
-
-        ```agda
-          combine θ₁ (o' θ₂) = θ₂
-          combine θ₁ (os θ₂) = θ₁ ∪ θ₂
-        ```
-
-        (only consider declaration if binding is live!)
+    (only consider declaration if binding is live!)
 
 ## Dead Binding Elimination (annotated)
   - now, construct an annotated expression
@@ -589,6 +450,8 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     forget : {θ : Δ ⊑ Γ} → LiveExpr σ θ → Expr σ Γ
   ```
 
+  - `forget ◦ analyse ≡ id`
+
 ## Dead Binding Elimination (annotated)
   - implementation does not surprise
 
@@ -605,33 +468,19 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 ## Dead Binding Elimination (annotated)
   - after analysis, do transformation
   - caller can choose the context (but at least live context)
-  - together, same type signature as direct approach
 
   ```agda
     transform : {θ : Δ ⊑ Γ} →
       LiveExpr σ θ → Δ ⊑ Γ' → Expr σ Γ'
-
-    dbe : Expr σ Γ → Expr σ ⇑ Γ
-    dbe e =
-      let Δ , θ , le = analyse e
-      in transform le oi ↑ θ
   ```
 
-## Dead Binding Elimination (annotated)
+  - `dbe ≡ transform ◦ analyse`
+  - together, same type signature as direct approach
+
+## Dead Binding Elimination ()
+  - for `Let`, again split on thinning (annotation)
   - no renaming anymore, directly choose desired context
 
-  ```agda
-    transform (Var x) θ' = Var (ref-o θ')
-    transform (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) θ' =
-      App (transform e₁ (un-∪₁ θ₁ θ₂ ₒ θ'))
-          (transform e₂ (un-∪₂ θ₁ θ₂ ₒ θ'))
-    transform (Lam {θ = θ} e₁) θ' =
-      Lam (transform e₁ (un-pop θ ₒ os θ'))
-    ...
-  ```
-
-## Dead Binding Elimination (annotated)
-  - for `Let`, again split on thinning (annotation)
   ```agda
     ...
     transform (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) θ' =
@@ -645,19 +494,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
 ## Dead Binding Elimination (annotated)
 ### Correctness
   - specification is the same as for direct approach
-  - but this time, we break it down
-
-  ```agda
-    dbe-correct :
-      (e : Expr σ Γ) (env : Env Γ) →
-      let e' ↑ θ = dbe e
-      in eval e' (project-Env θ env) ≡ eval e env
-  ```
-
-  - conceptually: `eval ◦ dbe ≡ eval`
-
-## Dead Binding Elimination (annotated)
-  - we start by proving a different statement
+  - but this time, we start proving another thing:
 
   ```agda
     eval ◦ transform ≡ eval ◦ forget
@@ -667,15 +504,10 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     eval ◦ dbe ≡ eval
   ```
 
-  - a lot less shuffling to be done for each constructor
+  - less shuffling to be done for each constructor
 
 ## Intrinsically Typed de Bruijn Representation
 ### Discussion
-
-::: notes
-Discussion also includes insight from other transformations.
-:::
-
   - analysis requires an extra pass, but pays off
   - currently, transformations get rid of annotations
     - maintaining them would require more effort
@@ -688,7 +520,10 @@ Discussion also includes insight from other transformations.
     - co-de-Bruijn gets rid of bindings "as early as possible"
       - using thinnings
   - even harder for humans to reason about
-  - observation: expressions indexed by their (weakly) live context
+  - our intuition:
+    - expressions indexed by their (weakly) live context
+
+  - TODO: massively brush over details of representation!!!
 
 ## Intrinsically Typed Co-de-Bruijn Representation
   - how to deal with multiple subexpressions?
@@ -796,7 +631,7 @@ Just for reference, skip this slide quickly.
       (Δ₁ ++ Δ₂) ⊑ (Γ₁ ++ Γ₂)
   ```
 
-[comment]: # TODO: Not sure if this is actually needed for the presentation.
+[comment]: # TODO: Remove conversion? Not sure if actually useful.
 
 ## Conversion From Co-de-Bruijn Syntax
   ```agda
