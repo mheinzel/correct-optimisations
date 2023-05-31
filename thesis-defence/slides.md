@@ -518,29 +518,11 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
   - our intuition:
     - expressions indexed by their (weakly) live context
 
-# Intrinsically Typed Co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   - complex bookkeeping
     - each subexpression has its own context, connected by thinnings
     - constructing expressions basically performs LVA
   - building blocks with smart constructors hide complexity
-
-## Conversion To Co-de-Bruijn Syntax
-  ```agda
-    tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
-    tighten (DeBruijn.Var x) =
-      Var ↑ o-Ref x
-    tighten (DeBruijn.App e₁ e₂) =
-      map⇑ App (tighten e₁ ,ᴿ tighten e₂)
-    tighten (DeBruijn.Lam e) =
-      map⇑ Lam ([ _ ] \\ᴿ tighten e)
-    tighten (DeBruijn.Let e₁ e₂) =
-      map⇑ Let (tighten e₁ ,ᴿ ([ _ ] \\ᴿ tighten e₂))
-    ...
-  ```
-
-  ```agda
-    -- map⇑ f (t ↑ θ) = f t ↑ θ
-  ```
 
 ## Dead Binding Elimination (co-de-Bruijn)
   - co-de-Bruijn: all variables in the context must occur
@@ -593,23 +575,19 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     - gives flexibility for inductive step
   - complex:
     - requires extensive massaging of thinnings
-      - associativity, identities, ...
     - laws about `project-Env` with `_ₒ_` and `oi`
     - laws about thinnings created by `_,ᴿ_`
     - `(θ ₒ θ') ++⊑ (ϕ ₒ ϕ') ≡ (θ ++⊑ ϕ) ₒ (θ' ++⊑ ϕ')`
-
-    - for strong version:
-      - `Let? p` semantically equivalent to `Let p`
 
 ## Intrinsically Typed Co-de-Bruijn Representation
 ### Discussion
   - co-de-Bruijn representation keeps benefits of `LiveExpr`
     - liveness information available by design
   - some parts get simpler (just a single context)
+    - building blocks (e.g. relevant pair) allow code reuse
   - some parts get more complicated (mainly proofs)
     - thinnings in result require reasoning about them a lot
     - operations on thinnings get quite complex
-  - building blocks (e.g. relevant pair) allow code reuse
 
 
 # Syntax-generic Co-de-Bruijn Representation
