@@ -204,7 +204,6 @@ So far, we looked at it conceptually, but how does a compiler represent variable
   - we want to talk about the *live* context (result of LVA)
   - conceptually: for each variable in scope, is it live or dead?
 
-
   - we use *thinnings*
 
 ::: notes
@@ -212,7 +211,6 @@ There are many other options, but thinnings are generally useful and have nice o
 :::
 
 ## Thinnings
-
   ```agda
     data _⊑_ : List I → List I → Set where
       o' : Δ ⊑ Γ →       Δ  ⊑ (τ :: Γ)  -- drop
@@ -225,7 +223,7 @@ There are many other options, but thinnings are generally useful and have nice o
   ```
 
   - can be seen as "bitvector"
-  - or as order-preserving embedding from source into target
+  - or as *order-preserving embedding* from source into target
 
 ## Thinnings, Categorically
 
@@ -322,6 +320,8 @@ And many other useful operations we will see later.
 . . .
 
   ```agda
+    project-Env : Δ ⊑ Γ → Env Γ → Env Δ
+
     dbe-correct :
       (e : Expr σ Γ) (env : Env Γ) →
       let e' ↑ θ = dbe e
@@ -360,7 +360,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
         ∎
   ```
 
-  - binary constructors similarly with (for each subexpression)
+  - binary constructors similarly with `_∪_` (for each subexpression)
   - for `Let`, distinguish cases again
 
   ```
@@ -473,7 +473,7 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
   - `dbe ≡ transform ◦ analyse`
   - together, same type signature as direct approach
 
-## Dead Binding Elimination ()
+## Dead Binding Elimination (annotated)
   - for `Let`, again split on thinning (annotation)
   - no renaming anymore, directly choose desired context
 
@@ -518,29 +518,11 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
   - our intuition:
     - expressions indexed by their (weakly) live context
 
-# Intrinsically Typed Co-de-Bruijn Representation
+## Intrinsically Typed Co-de-Bruijn Representation
   - complex bookkeeping
     - each subexpression has its own context, connected by thinnings
     - constructing expressions basically performs LVA
   - building blocks with smart constructors hide complexity
-
-## Conversion To Co-de-Bruijn Syntax
-  ```agda
-    tighten : DeBruijn.Expr σ Γ → Expr σ ⇑ Γ
-    tighten (DeBruijn.Var x) =
-      Var ↑ o-Ref x
-    tighten (DeBruijn.App e₁ e₂) =
-      map⇑ App (tighten e₁ ,ᴿ tighten e₂)
-    tighten (DeBruijn.Lam e) =
-      map⇑ Lam ([ _ ] \\ᴿ tighten e)
-    tighten (DeBruijn.Let e₁ e₂) =
-      map⇑ Let (tighten e₁ ,ᴿ ([ _ ] \\ᴿ tighten e₂))
-    ...
-  ```
-
-  ```agda
-    -- map⇑ f (t ↑ θ) = f t ↑ θ
-  ```
 
 ## Dead Binding Elimination (co-de-Bruijn)
   - co-de-Bruijn: all variables in the context must occur
@@ -556,7 +538,6 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
   ```agda
     dbe : Expr τ Γ → Expr τ ⇑ Γ
   ```
-[comment]: # TODO: Shorten more? E.g. weak version?
 
 ## Dead Binding Elimination (co-de-Bruijn)
   ```agda
@@ -593,23 +574,19 @@ There are many options, e.g. using `rename-Expr`, but in this case proof is simi
     - gives flexibility for inductive step
   - complex:
     - requires extensive massaging of thinnings
-      - associativity, identities, ...
     - laws about `project-Env` with `_ₒ_` and `oi`
     - laws about thinnings created by `_,ᴿ_`
     - `(θ ₒ θ') ++⊑ (ϕ ₒ ϕ') ≡ (θ ++⊑ ϕ) ₒ (θ' ++⊑ ϕ')`
-
-    - for strong version:
-      - `Let? p` semantically equivalent to `Let p`
 
 ## Intrinsically Typed Co-de-Bruijn Representation
 ### Discussion
   - co-de-Bruijn representation keeps benefits of `LiveExpr`
     - liveness information available by design
   - some parts get simpler (just a single context)
+    - building blocks (e.g. relevant pair) allow code reuse
   - some parts get more complicated (mainly proofs)
     - thinnings in result require reasoning about them a lot
     - operations on thinnings get quite complex
-  - building blocks (e.g. relevant pair) allow code reuse
 
 
 # Syntax-generic Co-de-Bruijn Representation
@@ -629,25 +606,6 @@ The code takes some time to understand in detail, so let's focus on the main ide
     - each `(d : Desc I)` describes a language of terms `Tm d σ Γ`
     - implement operations *once*, generically over descriptions
     - describe your language using `Desc`, get operations for free
-
-
-## Syntax-generic Programming
-  - description of our language (looks cryptic)
-
-  ```agda
-    data Tag : Set where
-      `App `Lam `Let : U → U → Tag
-      `Val  : U → Tag
-      `Plus : Tag
-
-    Lang : Desc U
-    Lang = `σ Tag λ where
-      (`App σ τ) → `X [] (σ ⇒ τ) (`X [] σ (`∎ τ))
-      (`Lam σ τ) → `X [ σ ] τ (`∎ (σ ⇒ τ))
-      (`Let σ τ) → `X [] σ (`X [ σ ] τ (`∎ τ))
-      (`Val τ)   → `σ Core.⟦ τ ⟧ λ _ → `∎ τ
-      `Plus      → `X [] NAT (`X [] NAT (`∎ NAT))
-  ```
 
 ## Syntax-generic Co-de-Bruijn Representation
   - we interpret descriptions into co-de-Bruijn terms
@@ -684,7 +642,7 @@ Optional, can be skipped if low on time.
 
 ## Let-sinking
 
-  - pretty similar to DBE
+  - results similar to DBE
     - also requires liveness information to find location
     - can be done directly, with repeated liveness querying
     - annotations make it more efficient
@@ -695,13 +653,12 @@ Optional, can be skipped if low on time.
   - to keep it manageable, we focus on one binding at a time
 
 ## Let-sinking
-  - also requires renaming, partitioning context into 4 parts
+  - requires renaming, partitioning context into 4 parts
 
   ```agda
     rename-top-Expr :
-      (Γ' : Ctx) →
-      Expr τ (Γ' ++ Γ₁ ++ σ ∷ Γ₂) →
-      Expr τ (Γ' ++ σ ∷ Γ₁ ++ Γ₂)
+      Expr τ (Γ₁ ++ Γ₂ ++ σ ∷ Γ₃) →
+      Expr τ (Γ₁ ++ σ ∷ Γ₂ ++ Γ₃)
   ```
 
   - this gets cumbersome
