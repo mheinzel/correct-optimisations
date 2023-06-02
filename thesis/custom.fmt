@@ -1,4 +1,5 @@
 %if style == poly
+%format Set1 = Set "_{1}"
 %format forall = "\forall"
 %format (Irrelevant (a)) = ".(" a ")"
 %format (Exists (e) (t)) = "\Sigma[\ " e "\in" t "\ ]"
@@ -111,7 +112,7 @@
 %format map|- = "\Varid{map}{\vdash}"
 %format pairR = "\Varid{pair}_R"
 %format cover++C=4 = "\Varid{cover}" ++ C= "\Varid{4}"
-%format \'sigma = "\Varid{`}\sigma"
+%format \'o = "\Varid{`}\sigma"
 %format \'# = "\Varid{`}\blacksquare"
 %format \'X = "\Varid{`}X"
 %format \'+ = "\Varid{`+}"
