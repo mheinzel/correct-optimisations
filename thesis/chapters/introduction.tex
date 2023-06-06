@@ -4,11 +4,12 @@
     an important consideration is the treatment of binders and variables.
     \Fixme{Maybe briefly motivate importance of compiler correctness in general?}
     They are part of most languages and
-    there are several options for representing them in a compiler,
+    there are several options for representing them,
     each with different implications for operating on and reasoning about programs.
-    Often, it is possible to represent ill-formed programs
+    Often, it is possible to represent ill-formed syntax trees
     where variables do not refer to a suitable binding.
-    This makes it easy to introduce bugs when manipulating programs.
+    This makes it easy to introduce compiler bugs that change the meaning of a program
+    or make it invalid.
 
     When using a dependently typed programming language such as Agda
     \cite{Norell2008Agda},
@@ -45,7 +46,7 @@
     that type- and scope-correctness invariants are preserved,
     which can be cumbersome.
     The goal of this thesis is to understand these consequences better
-    and explore different techniques for dealing with them.
+    and explore techniques for dealing with them.
 
     A crucial aspect is that of \emph{variable liveness}.
     Whether it is safe to apply a binding-related transformation
@@ -60,12 +61,12 @@
     as well as different binding representations and their pitfalls.
 
     In chapter \ref{ch:de-bruijn} we start by
-    showing a typical intrinsically typed de Bruijn representation of a simple expression language.
+    showing a typical intrinsically typed de Bruijn representation of our simple expression language.
     We then explain thinnings and motivate their application to computing variable liveness.
     Equipped with these tools,
     we implement dead binding elimination and let-sinking,
     first on the standard de Bruijn representation,
-    later on a syntax tree annotated with the results of live variable analysis.
+    later more efficiently on a syntax tree annotated with the results of live variable analysis.
     We prove that both versions of dead binding elimination preserve semantics.
 
     Chapter \ref{ch:co-de-bruijn} continues the development by showing that variable liveness information
@@ -74,31 +75,41 @@
     \cite{McBride2018EveryBodysGotToBeSomewhere}.
     After explaining how co-de-Bruijn terms work and can be constructed from de Bruijn terms,
     we again implement dead binding elimination and prove it correct.
-    Finally, we manage to implement dead-binding elimination, but encounter several complications
+    Finally, we also manage to implement let-sinking, but encounter several complications
     and struggle with the proof of correctness.
 
-    In chapter \ref{ch:generic-co-de-bruijn}, we explain the basic ideas of syntax-generic programming
+    In chapter \ref{ch:generic-co-de-bruijn}, we explain the idea of syntax-generic programming
     as presented by Allais et al.
     \cite{Allais2018UniverseOfSyntaxes}
-    and extend it with basic support for co-de-Bruijn representation.
-    This allows us to generically convert between de Bruijn and co-de-Bruijn representation
+    and extend it with basic support for the co-de-Bruijn representation.
+    This allows us to generically convert between de Bruijn and co-de-Bruijn terms
     and perform dead binding elimination.
-    \Fixme{Can be fleshed out a little bit once everything stabilised. Also list main points of Discussion chapter.}
+
+    In the end, chapter \ref{ch:discussion} discusses our main observations,
+    open questions, and opportunities to continue the work presented here.
 
   \paragraph{Contributions}
     Our main contributions are:
     \begin{itemize}
       \item an implementation of (strongly) live variable analysis resulting in annotated intrinsically typed syntax trees
-      \item an implementation of dead binding elimination and let-sinking on intrinsically typed syntax trees of three different flavours: de Bruijn, annotated de Bruijn, and co-de-Bruijn
-      \item proofs of correctness (preservation of semantics) for the implementations of dead binding elimination
+        (sections \ref{sec:de-bruijn-liveness} and \ref{sec:de-bruijn-dbe-live})
+      \item an implementation of dead binding elimination on intrinsically typed syntax trees of three different flavours:
+        de Bruijn (section \ref{sec:de-bruijn-dbe-direct}),
+        annotated de Bruijn (section \ref{sec:de-bruijn-dbe-live}),
+        and co-de-Bruijn (section \ref{sec:co-de-bruijn-dbe})
+      \item proofs of correctness (preservation of semantics) for each implementations of dead binding elimination
+      \item an implementation of let-sinking on intrinsically typed syntax trees of three different flavours
+        (sections \ref{sec:de-bruijn-let-sinking-direct}, \ref{sec:de-bruijn-let-sinking-live} and \ref{sec:co-de-bruijn-let-sinking})
       \item an incomplete proof of correctness for co-de-Bruijn let-sinking, with an explanation of the main challenges
       \item a generic interpretation of the syntax descriptions presented by Allais et al. \cite{Allais2018UniverseOfSyntaxes} into co-de-Bruijn terms
+        (section \ref{sec:generic-co-de-bruijn-terms})
       \item syntax-generic conversion between de Bruijn and co-de-Bruijn terms
+        (section \ref{sec:generic-co-de-bruijn-conversion})
       \item a syntax-generic implementation of dead binding elimination on co-de-Bruijn terms
+        (section \ref{sec:generic-co-de-bruijn-dbe})
     \end{itemize}
-    \Fixme{Add forward references onces structure is stable.}
     The source code is available online%
-    \footnote{\url{https://git.science.uu.nl/m.h.heinzel/correct-optimisations}}.
+    \footnote{\url{https://github.com/mheinzel/correct-optimisations}}.
 
   \paragraph{Ethics review}
     The Ethics and Privacy Quick Scan of the Utrecht University Research Institute of Information and Computing Sciences was conducted (see Appendix \ref{app:ethics-quick-scan}).
