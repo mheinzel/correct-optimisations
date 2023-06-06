@@ -16,14 +16,13 @@
     For brevity, we will make use of Agda's ability to quantify over variables implicitly.
     The types of these variables should be clear from their names and context.
 
-
 \section{Intrinsically Typed Syntax}
 \label{sec:de-bruijn-intrinsically-typed}
     Whether we use explicit names or de Bruijn indices,
     the language as seen so far makes it possible to represent expressions
     that are ill-typed (e.g. performing addition on Booleans)
     or -scoped.
-    In Agda, we can similarly define expressions as follows.
+    In Agda, we can similarly define expressions as follows:
     \begin{code}
       data UnsafeExpr : Set where
         Var   : Nat -> UnsafeExpr
@@ -34,10 +33,12 @@
         Bln   : Bool -> UnsafeExpr
         Plus  : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
     \end{code}
+
     But how should expressions like |Plus (Bln False) (Var 42)| be evaluated?
     What is the result of adding Booleans and how do we ensure that a value
     (of the right type) is provided for each variable used?
     Clearly, evaluating such an expression leads to a runtime error.
+
   \paragraph{Sorts}
     The first problem can be addressed by indexing each expression
     with its \emph{sort} |U|, the type that it should be evaluated to.
@@ -63,10 +64,19 @@
         Val   : (interpretU(sigma)) -> UnsafeExpr sigma
         Plus  : UnsafeExpr NAT -> UnsafeExpr NAT -> UnsafeExpr NAT
     \end{code}
+
+    Note that the values not only consist of natural numbers and Booleans,
+    but also functions between them,
+    introduced by $\lambda$-abstraction.
+    Sorts can further be interpreted as Agda types,
+    which we use to represent values in Agda, for example during evaluation.
+
   \paragraph{Context}
-    This helps, but to know if a variable occurrence is valid, one must consider its \emph{context},
+    Sorts help, but to know if a variable occurrence is valid,
+    one must consider its \emph{context},
     the (typed) bindings that are in scope.
-    We represent the context as a list of sorts: One for each binding in scope, from innermost to outermost.
+    We represent the context as a list of sorts:
+    One for each binding in scope, from innermost to outermost.
     \begin{code}
       Ctx = List U
 
@@ -79,6 +89,7 @@
         Top  : Ref sigma (sigma :: Gamma)
         Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
     \end{code}
+
     By also indexing expressions with their context,
     the invariants can finally guarantee type- and scope-correctness by construction.
     \begin{code}
@@ -92,14 +103,16 @@
     \end{code}
     Note how the context changes when introducing a new binding
     that is then available in the body of a |Let|.
+
   \paragraph{Evaluation}
     During evaluation, each variable in scope has a value.
-    Together, these are called an \emph{environment} in a given context.
+    Together, these are called an \emph{environment} for a given context.
     \begin{code}
       data Env : Ctx -> Set where
         Nil   : Env []
         Cons  : (interpretU(sigma)) -> Env Gamma -> Env (sigma :: Gamma)
     \end{code}
+
     Since variable |Ref sigma Gamma| acts as a proof that
     the environment |Env Gamma| contains an element of type |sigma|,
     variable lookup is total.
@@ -108,6 +121,7 @@
       lookup Top      (Cons v env)   = v
       lookup (Pop i)  (Cons v env)   = lookup i env
     \end{code}
+
     As a result, we can define a total evaluator
     that can only be called with an environment that matches the expression's context.
     \begin{code}
@@ -126,18 +140,17 @@
     we want some machinery for talking about how different contexts relate to each other.
     One such relation, which will prove useful soon, is that of subcontexts,
     or more precisely contexts that embed into each other.
-    This is formalised in the form of \emph{thinnings},
+    We formalise this notion in the form of \emph{thinnings},
     also called \emph{order-preserving embeddings} (OPE)
     \cite{Chapman2009TypeCheckingNormalisation}.
     As several operations on thinnings are used pervasively
     throughout the rest of the thesis,
-    we introduce them here in a central location we can refer to.
+    we briefly introduce them here in a central location we can refer back to.
 
     We closely follow the syntactic conventions of McBride
     \cite{McBride2018EveryBodysGotToBeSomewhere},
     but grow our lists towards the left
     instead of using backwards lists and postfix operators.
-
     \begin{code}
       data _C=_ {I : Set} : List I -> List I -> Set where
         o' : Delta C= Gamma ->          Delta   C= (tau :: Gamma)    -- drop
@@ -145,52 +158,51 @@
         oz : [] C= []                                                -- empty
     \end{code}
 
+    Intuitively, a thinning tells us for each element of the target context
+    whether it also occurs in the source target or not (\emph{keep} or \emph{drop}).
     As an example, let us embed |[ a , c ]| into |[ a , b , c ]|:
     \Fixme{Some nice little diagrams?}
-
     \begin{code}
-      os (o' (os oz)) : [ a , c ] ⊑ [ a , b , c ]
+      os (o' (os oz)) : [ a , c ] C= [ a , b , c ]
     \end{code}
 
   \paragraph{Identity and composition}
     Contexts and the thinnings between them form a category
     with the inital object |[]|.
-    Concretely this means that we have an empty and identity thinning
-    (keeping none or all element, respectively),
-    composition of thinnings in sequence,
-    as well as identity and associativity laws.
+    Concretely, this means that there is an empty and identity thinning
+    (keeping none or all elements, respectively),
+    as well as composition of thinnings in sequence
+    with identity and associativity laws.
     \begin{code}
       oe : [] C= Gamma
-      oe {Gamma = []} = oz
-      oe {Gamma = _ :: _} = o' oe
+      oe {Gamma = []}      = oz
+      oe {Gamma = _ :: _}  = o' oe
 
       oi : Gamma C= Gamma
-      oi {Gamma = []} = oz
-      oi {Gamma = _ :: _} = os oi
+      oi {Gamma = []}      = oz
+      oi {Gamma = _ :: _}  = os oi
 
       _.._ : Gamma1 C= Gamma2 -> Gamma2 C= Gamma3 -> Gamma1 C= Gamma3
       theta     .. o' phi  = o' (theta .. phi)
       o' theta  .. os phi  = o' (theta .. phi)
       os theta  .. os phi  = os (theta .. phi)
       oz        .. oz      = oz
+
       law-..oi  :  (theta : Delta C= Gamma) -> theta .. oi == theta
       law-oi..  :  (theta : Delta C= Gamma) -> oi .. theta == theta
       law-....  :  (theta : Gamma1 C= Gamma2) (phi : Gamma2 C= Gamma3) (psi : Gamma3 C= Gamma4) ->
                    theta .. (phi .. psi) == (theta .. phi) .. psi
     \end{code}
-    \Fixme{Rendering of names could be prettier.}
 
   \paragraph{Concatenating thinnings}
     Thinnings cannot just be composed in sequence, but also concatenated.
-
     \begin{code}
       _++C=_ : Delta1 C= Gamma1 -> Delta2 C= Gamma2 -> (Delta1 ++ Delta2) C= (Gamma1 ++ Gamma2)
       o' theta  ++C= phi = o'  (theta ++C= phi)
       os theta  ++C= phi = os  (theta ++C= phi)
       oz        ++C= phi = phi
     \end{code}
-
-    This commutes nicely, i.e. 
+    This commutes, i.e.
     |(theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2)|
 
   \paragraph{Splitting thinnings}
@@ -211,33 +223,27 @@
     \begin{code}
       _-|_ : (Gamma1 : List I) (theta : Delta C= (Gamma1 ++ Gamma2)) -> Split Gamma1 theta
     \end{code}
-    % []               -| theta                                                          = split oz theta (refl , refl)
-    % (tau :: Gamma1)  -| o' theta                  with Gamma1 -| theta
-    % (tau :: Gamma1)  -| o' .(theta1 ++C= theta2)  | split theta1 theta2 (refl , refl)  = split (o' theta1) theta2 (refl , refl)
-    % (tau :: Gamma1)  -| os theta                  with Gamma1 -| theta
-    % (tau :: Gamma1)  -| os .(theta1 ++C= theta2)  | split theta1 theta2 (refl , refl)  = split (os theta1) theta2 (refl , refl)
 
   \paragraph{Things with thinnings}
     We will later deal with things (e.g. expressions) indexed by a context
     that we do not statically know.
-    We do know, however, that it embeds it a specific context |Gamma| via some thinning.
+    We do know, however, that it embeds into a specific context |Gamma| via some thinning.
     As we have so far been careful to always use the context as the last argument,
     this concept of a thing with a thinning can be used for a wide range of different datatypes.
-
     \begin{code}
       record _^^_ (T : List I -> Set) (Gamma : List I) : Set where
         constructor _^_
         field
-          {support} : List I
-          thing : T support
-          thinning : support C= Gamma
+          {Delta} : List I
+          thing : T Delta
+          thinning : Delta C= Gamma
     \end{code}
+
     To avoid manual un- and re-packing, some combinators come in handy:
     \begin{code}
-      map^^   : (forall {Delta} -> S Delta -> T Delta) -> S ^^ Gamma -> T ^^ Gamma
-      mult^^  : ((T ^^_) ^^_) Gamma -> T ^^ Gamma
-      bind^^  : (forall {Delta} -> S Delta -> T ^^ Delta) -> S ^^ Gamma -> T ^^ Gamma
-      thin^^  : Delta C= Gamma -> T ^^ Delta -> T ^^ Gamma
+      map^^   : (forall {Delta} -> S Delta -> T Delta)     -> S ^^ Gamma -> T ^^ Gamma
+      bind^^  : (forall {Delta} -> S Delta -> T ^^ Delta)  -> S ^^ Gamma -> T ^^ Gamma
+      thin^^  : Delta C= Gamma                             -> T ^^ Delta -> T ^^ Gamma
     \end{code}
 
 
@@ -251,18 +257,19 @@
     For example, live variables |[ NAT ]| in context |[ NAT , NAT ]|
     could refer to the first or second variable in scope,
     but the thinnings |os (o' oz)| and |o' (os oz)| distinguish the two cases.
-    \Fixme{Is the example from the slides more helpful?}
     We now define the operations needed to calculate the live context
     of expressions bottom-up.
+
   \paragraph{Values}
     Values do not use any variables.
-    The thinning from the empty context drops everything.
+    The thinning from the empty context consequently drops everything.
     \begin{code}
       oe : [] C= Gamma
     \end{code}
+
   \paragraph{Variables}
     A variable occurrence trivially has one live variable.
-    To obtain a suitable thinning, We can make use of the fact that
+    To obtain a suitable thinning, we can make use of the fact that
     thinnings from a singleton context are isomorphic to references.
     \begin{code}
       o-Ref : Ref sigma Gamma -> [ sigma ] C= Gamma
@@ -274,9 +281,7 @@
       Ref-o (o' theta)  = Pop (Ref-o theta)
       Ref-o (os theta)  = Top
     \end{code}
-    % \begin{code}
-    %   law-ref-o-Ref : (x : Ref sigma Gamma) -> ref-o (o-Ref x) == x
-    % \end{code}
+
   \paragraph{Binary constructors}
     Variables from the context are live if they are live in one of the subexpressions (i.e. some thinning is |os _|).
     \begin{code}
@@ -296,6 +301,7 @@
       os theta1  \/ os theta2  = os  (theta1 \/ theta2)
       oz         \/ oz         = oz
     \end{code}
+
     Furthermore, we can construct the two thinnings \emph{into} the combined live context
     and show that this is exactly what we need to obtain the original thinnings.
     \begin{code}
@@ -305,11 +311,12 @@
       law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
       law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
     \end{code}
+
   \paragraph{Binders}
     When moving up over a binder, the bound variable gets removed from the context.
     In case it was part of the live variables, it also has to be removed there.
     This is done using |pop|,
-    again wiht thinnings into and out of the resulting list.
+
     \begin{code}
       pop-domain : Delta C= Gamma -> List I
       pop-domain {Delta = Delta}       (o' theta)  = Delta
@@ -324,20 +331,21 @@
 
       law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
     \end{code}
+
   \paragraph{Let-bindings}
     For let-bindings, one way is to treat them as an immediate application
     of a $\lambda$-abstraction, combining the methods we just saw.
     This corresponds to a weakly live variable analysis,
-    since even if the variable is dead, we end up considering its declaration
-    for the live context.
+    since even if the variable is dead, we end up considering variables live
+    if they are used in its declaration.
     \begin{code}
       combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-domain theta1 (pop theta2) C= Gamma
       combine theta1 theta2 = theta1 \/ pop theta2
     \end{code}
+
     The other option is to do strongly live variable analysis
     with a custom operation |combine|,
     which ignores the declaration's context if it is unused in the body.
-    \Fixme{Is there a better name than |combine|?}
     \begin{code}
       combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
       combine-domain {Delta2 = Delta2}  theta1 (o' theta2)  = Delta2
@@ -350,7 +358,7 @@
     We do not need the composed thinnings into the live context,
     as we will always distinguish the two cases of |theta2| anyways
     and can then rely on the thinnings defined for |_\/_|.
-    \Fixme{Add example showing difference between versions of combine!}
+    \Fixme{Add example showing difference between versions of combine?}
 
 
 \section{Dead Binding Elimination}
@@ -365,15 +373,14 @@
     Precisely, we return |Expr sigma ^^ Gamma|,
     the transformed expression in its live context,
     together with a thinning into the original one.
-    % We could query that information on demand (and we will see a similar approach in section \ref{sec:de-bruijn-let-sinking-direct}),
+
   \paragraph{Transformation}
     The transformation proceeds bottom up.
     Once all subexpressions have been transformed and we know their live contexts,
-    we can use of the variable liveness operations we just define
+    we can use the variable liveness operations we just defined
     to calculate the overall live context with its corresponding thinnings.
     Since the constructors of |Expr| require the subexpressions' context to match their own,
     we need to rename the subexpressions accordingly.
-
     \begin{code}
       rename-Ref   : Delta C= Gamma -> Ref sigma Delta   -> Ref sigma Gamma
       rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
@@ -386,10 +393,12 @@
     we could immediately produce the result in that context.
     However, we only find out which variables are live
     \emph{after} doing the recursive call.
-    Querying liveness before doing the recursive calls would also require
-    redundant traversals,
+    Separately querying liveness before doing the recursive calls
+    would also require redundant traversals,
     but we will show a solution to this issue in the next section.
 
+    Most cases of the implementation keep the expression's structure unchanged,
+    only manipulating the context:
     \begin{code}
       dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
       dbe (Var x) =
@@ -411,16 +420,12 @@
       dbe (Val v) =
         (Val v) ^ oe
       dbe (Plus e1 e2) =
-        let  e1' ^ theta1 = dbe e1
-             e2' ^ theta2 = dbe e2
-        in Plus (rename-Expr (un-\/1 theta1 theta2) e1') (rename-Expr (un-\/2 theta1 theta2) e2')
-             ^ (theta1 \/ theta2)
+        (dots)  -- just as App
     \end{code}
-
-    For |Let|, we split on the binding being live or dead in |dbe e2|
+    For |Let|, we split on the binding being live or dead in |dbe e2|.
     Only if it is dead will the typechecker allow us to return |e2'|
     without the binding.
-    Finally, note that checking liveness after already removing dead bindings
+    Finally, note that checking liveness \emph{after} already removing dead bindings
     from the body corresponds to \emph{strongly} live variable analysis.
 
   \paragraph{Correctness}
@@ -429,7 +434,6 @@
     This does not impact the soundness of the proof
     and could be avoided by moving to a different setting,
     such as homotopy type theory \cite{Univalent2013HomotopyTypeTheory}.
-
     \begin{code}
       postulate
         extensionality :
@@ -441,7 +445,6 @@
     we cannot immediately evaluate it under the same environment.
     Instead of using the thinning to rename the expression,
     we project the environment to match the smaller context.
-
     \begin{code}
       project-Env : Delta C= Gamma -> Env Gamma -> Env Delta
     \end{code}
@@ -451,10 +454,8 @@
         let e' ^ theta = dbe e
         in eval e' (project-Env theta env) == eval e env
     \end{code}
-
-    As we show, both are equivalent,
+    As we show, both statements are equivalent,
     but in this case it turned out to be more convenient to reason about context projection.
-
     \begin{code}
       law-eval-rename-Expr :
         (e : Expr sigma Delta) (theta : Delta C= Gamma) (env : Env Gamma) ->
@@ -465,8 +466,7 @@
     evaluation, renaming, environment projection and the thinnings we constructed.
     The |Lam| case exemplifies that.
     We omit most of the proof terms except for the inductive hypothesis, as they are rather long.
-    The intermediate terms still show, how we apply different lemmas.
-
+    The intermediate terms still demonstrate how we need to apply several lemmas.
     \begin{code}
       dbe-correct (Lam e1) env =
         let e1' ^ theta1 = dbe e1
@@ -488,23 +488,21 @@
     but are even longer, as they need to apply laws once for each subexpression.
     Since the implementation uses a \textbf{with}-abstraction for the |Let|-case,
     the proof does the same:
-
     \begin{code}
       dbe-correct (Let e1 e2) env with dbe e1 | dbe e2 | dbe-correct e1 | dbe-correct e2
       ... | e1' ↑ theta1 | e2' ^ o' theta2 | h1 | h2 =
         h2 (Cons (eval e1 env) env)
       ... | e1' ↑ theta1 | e2' ^ os theta2 | h1 | h2 =
-        let v = eval (rename-Expr (un-∪1 theta1 theta2) e1') (project-Env (theta1 ∪ theta2) env)
+        let v = eval (rename-Expr (un-\/1 theta1 theta2) e1') (project-Env (theta1 \/ theta2) env)
         in
-          eval (rename-Expr (os (un-∪2 theta1 theta2)) e2')
-            (Cons v (project-Env (theta1 ∪ theta2) env))
+          eval (rename-Expr (os (un-\/2 theta1 theta2)) e2')
+            (Cons v (project-Env (theta1 \/ theta2) env))
         ==<[ (dots) ]>
           (dots)      -- long proof
         ==<[ (dots) ]>
           eval e2 (Cons (eval e1 env) env)
         QED
     \end{code}
-
     Note that we also \textbf{with}-abstract over the inductive hypothesis.
     When abstracting over e.g. |dbe e1|,
     the statement we need to prove gets generalised and then talks about |e1'|.
@@ -530,7 +528,6 @@
     |LiveExpr tau theta|.
     The thinning |theta| here plays the same role as
     the one returned from the transformation in section \ref{sec:de-bruijn-dbe-direct}.
-
     \begin{code}
       data LiveExpr {Gamma : Ctx} : U -> {Delta : Ctx} -> Delta C= Gamma -> Set where
         Var :
@@ -559,8 +556,7 @@
           LiveExpr NAT theta2 ->
           LiveExpr NAT (theta1 \/ theta2)
     \end{code}
-
-    |combine| can refer to either one we introduced,
+    |combine| can refer to either one of the two versions we introduced,
     but for the remainder of this thesis we will use the strongly live version.
 
   \paragraph{Analysis}
@@ -573,13 +569,15 @@
     directly following the expression's structure.
     \begin{code}
       analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
-      analyse (Var {sigma} x) = [ sigma ] , o-Ref x , Var x
+      analyse (Var {sigma} x) =
+        [ sigma ] , o-Ref x , Var x
       analyse (App e1 e2) =
         let  Delta1 , theta1 , le1 = analyse e1
              Delta2 , theta2 , le2 = analyse e2
         in \/-domain theta1 theta2 , (theta1 \/ theta2) , App le1 le2
       (dots)
     \end{code}
+
     It is sensible to assume that the only thing analysis does
     is to attach annotations without changing the structure of the expression.
     We capture this property by stating that we can always forget the annotations
@@ -592,14 +590,15 @@
         let _ , _ , le = analyse e
         in forget le == e
     \end{code}
+
     Note that we can evaluate |LiveExpr| directly, differing from |eval| in two points:
     Firstly, since the annotations make it easy to identify dead let-bindings,
     we can skip their evaluation.
-    Secondly, evaluation works under any environment containing (at least) the live context.
+    Secondly, evaluation works under any environment containing \emph{at least} the live context.
     This makes it possible to get by with the minimal required environment,
     but still gives some flexibility.
     For example, we can avoid projecting the environment for each recursive call,
-    instead just manipulating the thinning.
+    just manipulating the thinning instead.
     \begin{code}
       evalLive : {theta : Delta C= Gamma} -> LiveExpr tau theta -> Env Gamma' -> Delta C= Gamma' -> (interpretU(tau))
       (dots)
@@ -614,14 +613,15 @@
     We will later use this to split the correctness proof into multiple small parts.
     % NOTE: If this text about evalLive ever gets removed,
     % we need to move some of it to the explanation of co-de-Bruijn evaluation.
+
   \paragraph{Transformation}
     The second pass we perform is similar to |dbe| in the direct approach,
     but with a few key differences.
     Firstly, it operates on annotated expressions |LiveExpr tau theta|
     for a known thinning |theta : Delta C= Gamma| instead of discovering the
     thinning and returning it with the result.
-    However, the transformed expression will not just be indexed by
-    the live context |Delta|, but any chosen larger context |Gamma'|.
+    However, the transformed expression will not necessarily be returned in its
+    live context |Delta|, but any chosen larger context |Gamma'|.
     Instead of inefficiently renaming afterwards,
     the result gets created in the desired context straight away.
     Most cases now simply recurse while accumulating the thinning
@@ -646,58 +646,59 @@
         Plus  (transform e1 (un-\/1 theta1 theta2 .. theta'))
               (transform e2 (un-\/2 theta1 theta2 .. theta'))
     \end{code}
-    We can now compose analysis and transformation into an operation
+
+    Finally, we can compose analysis and transformation into an operation
     with the same signature as the direct implementation
     in section \ref{sec:de-bruijn-dbe-direct}.
-
-  \begin{code}
-    dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
-    dbe e = let _ , theta , le = analyse e in transform le oi ^ theta
-  \end{code}
+    \begin{code}
+      dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
+      dbe e = let _ , theta , le = analyse e in transform le oi ^ theta
+    \end{code}
 
   \paragraph{Correctness}
     The goal is again to show that dead binding elimination preserves semantics,
     which we can express with the same statement as before,
     or conceptually as |eval . dbe == eval|.
-    \begin{code}
-      dbe-correct :
-        (e : Expr sigma Gamma) (env : Env Gamma) ->
-        let e' ^ theta = dbe e
-        in eval e' (project-Env theta env) == eval e env
-    \end{code}
-    % |eval . transform . analyse == eval|.
     We could again immediately attempt a proof by structural induction,
     but each case would require cumbersome massaging
     of the thinnings supplied to various operations.
-    Instead, we aim to simplify the proof by breaking it down into
-    smaller parts.
-    The first observation is that it is sufficient to show the following:
-    \begin{code}
-      eval . transform == eval . forget
-    \end{code}
-    We can then pre-compose |analyse| on both sides and remove
+    Instead, we aim to simplify the proof by breaking it down into smaller parts
+    using the optimised semantics:
+    \begin{align*}
+      \Varid{evalLive} &\equiv \Varid{eval} \circ \Varid{forget}   \\
+      \Varid{evalLive} &\equiv \Varid{eval} \circ \Varid{transform}
+    \end{align*}
+    Both proofs work inductively on the expression,
+    with most cases being a straightforward congruence.
+    The interesting one is again |Let|,
+    where we split cases on the variable being used or not
+    and need some auxiliary facts about evaluation, renaming and contexts.
+
+    After doing two relatively simple proofs,
+    we can combine them and do the remaining reasoning
+    without having to handle each constructor separately.
+    Conceptually, we pre-compose |analyse| on both sides and remove
     |forget . analyse| (which we know forms an identity)
-    to obtain the desired |eval . transform . analyse == eval|.
-    The proof gets simpler if we split it up using the optimised semantics:
-    \begin{code}
-      evalLive == eval . forget
-      evalLive == eval . transform
-    \end{code}
-    \Outline{
-      The actual proof statements in Agda are more involved,
-      since they quantify over the expression and environment used for evaluation.
-      As foreshadowed in the definition of |evalLive|,
-      the statements are also generalised to evaluation under any |Env Gamma'|,
-      as long as it contains the live context.
-      This gives us more flexibility when using the inductive hypothesis.
+    to obtain the desired equality.
+    \begin{align*}
+      &\Varid{eval} \circ \Varid{transform}&
+      &\equiv&
+      &\Varid{eval} \circ \Varid{forget}
+      \\
+      &\Varid{eval} \circ \Varid{transform} \circ \Varid{analyse}&
+      &\equiv&
+      &\Varid{eval} \circ \Varid{forget} \circ \Varid{analyse}
+      \\
+      &\Varid{eval} \circ \Varid{dbe}&
+      &\equiv&
+      &\Varid{eval}
+    \end{align*}
 
-      Both proofs work inductively on the expression, with most cases being a straight-forward congruence.
-      The interesting one is again |Let|, where we split cases on the variable being used or not
-      and need some auxiliary facts about evaluation, renaming and contexts.
-    }
-    \Fixme{show exact proof statements}
-    \OpenEnd{Some details to be figured out to make sure the modular proof is indeed simpler.}
-
+    Just as |transform| itself,
+    the proof statements in Agda are generalised
+    to evaluation under any |Env Gamma'|,
+    as long as it contains the live context.
+    This gives us more flexibility when using the inductive hypothesis.
 
 \section{Let-sinking}
 \label{sec:de-bruijn-let-sinking}
