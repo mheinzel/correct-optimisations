@@ -117,7 +117,7 @@
     At the end they are terminated by |\'#|, which means that even constructing a unary product
     |(interpretC(\'X Delta i (\'# j)))| requires trivial thinnings and covers, which be abstract over:
     \begin{code}
-      ><R-trivial : {T : List I -> Set} → T Gamma → (T ><R lambda Delta -> tau == tau >< Delta == []) Gamma
+      ><R-trivial : {T : List I -> Set} -> T Gamma -> (T ><R lambda Delta -> tau == tau >< Delta == []) Gamma
       ><R-trivial t = pairR (t ^ oi) ((refl , refl) ^ oe) cover-oi-oe
     \end{code}
     Similarly, when deconstructing a term, we get additional thinnings
@@ -177,7 +177,7 @@
     \end{code}
     \begin{code}
       _\'+_ : Desc I -> Desc I -> Desc I
-      d \'+ e = \'o Bool lambda isLeft →
+      d \'+ e = \'o Bool lambda isLeft ->
                   if isLeft then d else e
     \end{code}
     \begin{code}
@@ -206,16 +206,15 @@
     For strong version: Instead of checking for unused bindings before doing recursive calls,
     we do it afterwards.
     \begin{code}
-      Let? : Tm (d \'+ Let) sigma ^^ Gamma -> ([ sigma ] |- Tm (d \'+ Let) tau) ^^ Gamma → Tm (d \'+ Let) tau ^^ Gamma
-      Let? (t1 ^ theta1) ((oz o' \\ t2) ^ theta2) = t2 ^ theta2  -- Binding dead, just keep body.
-      Let? (t1 ^ theta1) ((oz os \\ t2) ^ theta2) =              -- Assemble constructor.
+      Let? : Tm (d \'+ Let) sigma ^^ Gamma -> ([ sigma ] |- Tm (d \'+ Let) tau) ^^ Gamma -> Tm (d \'+ Let) tau ^^ Gamma
+      Let? (t1 ^ theta1) ((oz o' \\ t2) ^ theta2) =
+        t2 ^ theta2
+      Let? (t1 ^ theta1) ((oz os \\ t2) ^ theta2) =
         let t' ^ theta' = (t1 ^ theta1) ,R (><R-trivial (oz os \\ t2) ^ theta2)
         in `con (inr (_ , t')) ^ theta'
     \end{code}
     \begin{code}
-      dbe (`con (inr (a , pairR (t1 ^ theta1) (pairR ((psi \\ t2) ^ _) ((refl , refl) ^ _) c ^ theta2) _)))
-        with refl <- cover-oi-oe⁻¹ c =
-          Let? (thin^^ theta1 (dbe t1)) (thin^^ theta2 (map^^ (map|- psi) (_ \\R dbe t2)))
+      dbe (`con (inr t)) = bind^^ Let? (dbe-[.] {d = `Let} t)
     \end{code}
     \Fixme{Who's gonna try parsing this? Probably too much detail.}
   }
