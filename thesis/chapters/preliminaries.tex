@@ -15,7 +15,6 @@
       \\ \big|&\ v
       \\ \big|&\ P + Q
     \end{align*}
-
     To reduce the number of required parentheses,
     we give function application the highest
     and let-bindings the lowest precedence.
@@ -44,9 +43,9 @@
     \emph{common subexpression elimination} and
     \emph{dead binding elimination},
     which is explained below.
+
   \paragraph{Dead Binding Elimination}
-    An expression is not forced to make use of the whole context to which it has access.
-    \Fixme{explain ``context'' somewhere?}
+    An expression is not forced to make use of all bindings to which it has access.
     Specifically, a let-binding introduces a new variable, but it might never be used
     in the body.
     Consider for example the following expression:
@@ -65,41 +64,45 @@
     Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
     by only considering variables to be live
     if they are used in declarations of variables that are live themselves.
+
   \paragraph{Let-sinking}
     Even when a binding cannot be removed,
     it can still be beneficial to move it to a different location.
     Several such strategies have for example been described and evaluated
     in the context of lazy functional programs
     \cite{Jones1996LetFloating}.
-
     Of those, we will focus on the \emph{let-sinking} transformation
     (called let-floating in the paper).
     Generally, the further inward a let binding is moved, the better:
-    Further optimisations might get unlocked and in the presence of branching,
-    the binding it might never be executed.
-    Of course, we must be careful that the binding remains in scope
-    for all of the variable's occurrences
-    and consider some exceptions to the heuristic of pushing as far as possible.
-    We do not want to duplicate the binding
-    or move it inside a $\lambda$-abstraction, which duplicates work
-    if evaluated multiple times.
-    Let us look at what this means when let-sinking $x$ in the following example with free variables $a$ and $f$:
+    further optimisations might get unlocked, and in the presence of branching,
+    the declaration might never be evaluated.
 
+    Of course, we must ensure that the binding remains in scope
+    for all of the variable's occurrences
+    and should consider some exceptions to the rule of sinking as far as possible.
+    We generally do not want to duplicate bindings
+    or move them inside $\lambda$-abstractions, which duplicates work
+    if evaluated multiple times.
+
+    Let us look at what this means when sinking the binding for $x$
+    in the following example with free variables $f$ and $g$:
     \begin{align*}
-      \Let{x} f\ 42 \In b\ (a + 1)\ (f\ x + x)
+      \Let{x} f\ 42 \In (g\ 1)\ (f\ x + x)
     \end{align*}
     \begin{align*}
       \Downarrow
     \end{align*}
     \begin{align*}
-      b\ (a + 1)\ (\Let{x} f\ 42 \In f\ x + x)
+      (g\ 1)\ (\Let{x} f\ 42 \In f\ x + x)
     \end{align*}
+    $x$ is only used in the right side of the function application,
+    but we cannot sink it any further,
+    since it occurs on both sides of the addition.
 
     Interestingly, let-sinking also covers a central part of \emph{inlining}.
     When a variable only occurs once (and would thus benefit from inlining),
     the binding will be moved inwards until it reaches the single occurence,
     which can then be replaced by the binding's declaration.
-
     \begin{align*}
       &\Let{x} f\ 42 \In          \\
       &\ \ \Let{y} f\ 43 \In      \\
@@ -127,8 +130,9 @@
     and makes it fairly natural to match a variable with its binding.
     For representing variables in a compiler or mechanised proof, however,
     different tradeoffs apply.
+
   \paragraph{Explicit names}
-    It is quite common to use strings for variables in practical compilers,
+    Using strings for variables is quite common in practical compilers,
     but comes with several disadvantages.
     For example, additional work is necessary
     if we want the equality of expressions to be independent of the specific variable names chosen
@@ -137,35 +141,32 @@
     requiring the careful application of variable renamings
     \cite{Barendregt1985LambdaCalculus}.
     Consider for example the following expression, where $x$ is a free variable:
-
     \begin{align*}
-      \Let{y} x + 1 \In \Lam{x} (x + y)
+      \Let{y} x + 1 \In \Lam{x} y
     \end{align*}
-
     Naively inlining $y$ here causes $x$ to be captured
     by the $\lambda$-abstraction, incorrectly resulting in the program
-    $\Lam{x} (x + (x + 1))$.
+    $\Lam{x} (x + 1)$.
 
     There have been various approaches to help compiler writers
     maintain the relevant invariants,
     such as GHC's \emph{rapier} \cite{Jones2002GHCInliner},
     but these are generally still error-prone.
     The developers of Dex for example used the rapier,
-    but introduced multiple binding-related compiler bugs,
+    but found multiple binding-related compiler bugs,
     leading them to create \emph{the foil}
     to ``make it harder to poke your eye out''
     \cite{Maclaurin2022Foil}.
 
-  \paragraph{De Bruijn Indices}
+  \paragraph{De Bruijn indices}
     With \emph{de Bruijn indices}
     \cite{DeBruijn1972NamelessIndices},
-    we instead adopt a \emph{nameless} representation.
+    one can instead adopt a \emph{nameless} representation.
     Each variable is represented as a natural number,
     counting the number of nested bindings between variable occurrence and its binding:
     $\DeBruijn{0}$ refers to the innermost binding, $\DeBruijn{1}$ to the next-innermost etc.
     If we adapt the syntax for let-bindings to omit the unnecessary variable name,
     the example expression from dead binding elimination is represented as follows:
-
     \begin{align*}
       &\Let{x} 42 \In            & &\LetB 42 \In                       \\
       &\ \ \Let{y} x + 6 \In     & &\ \ \LetB \DeBruijn{0} + 6 \In     \\
@@ -175,13 +176,12 @@
 
     This makes $\alpha$-equivalence of expressions trivial and avoids variable capture,
     but there are still opportunities for mistakes during transformations.
-    Adding or removing a binding
+    Inserting or removing a binding
     requires us to traverse the binding's body and add or subtract 1 from all its free variables.
     We can see this in our example when removing the innermost (unused) let-binding.
     If we leave the variable $\DeBruijn{2}$ untouched,
     it will not refer to the declaration $42$ anymore,
     but become a free variable:
-
     \begin{align*}
       &\LetB 42 \In                   \\
       &\ \ \LetB \DeBruijn{0} + 6 \In \\
@@ -191,24 +191,13 @@
     While useful for machines, de Bruijn representation can be unintuitive
     for humans to reason about.
     This can be alleviated by formally describing the necessary invariants
-    and using tooling to make sure they are upheld.
-    Intrinsically typed de Bruijn representation is one
+    and using tools to make sure they are upheld.
+    An intrinsically typed de Bruijn representation is one
     possible way to achieve that, as demonstrated in section
     \ref{sec:de-bruijn-intrinsically-typed}.
 
-  \paragraph{Other Representations}
-    There are many other techniques%
-    \footnote{
-    There is an introductory blogpost by Jesper Cockx
-    \cite{Cockx2021RepresentationsBinding}
-    comparing several approaches and their properties using Agda.
-    }
-    such as higher-order abstract syntax
-    \cite{Pfenning1988HOAS}
-    and also combinations of multiple techniques, e.g. the locally nameless representation
-    \cite{Chargueraud2011LocallyNameless}.
-
-    Another nameless option we only brief mention here is the
+  \paragraph{Co-de-Bruijn representation}
+    Another nameless option we only briefly mention here is the
     \emph{co-de-Bruijn representation}
     \cite{McBride2018EveryBodysGotToBeSomewhere}.
     It does not only admit a trivial $\alpha$-equivalence,
@@ -222,3 +211,15 @@
     and makes heavy use of Agda's dependent type system.
     We follow his approach closely, as shown in section
     \ref{sec:co-de-bruijn-intrinsically-typed}.
+
+  \paragraph{Other representations}
+    There are many other techniques%
+    \footnote{
+    There is an introductory blogpost by Jesper Cockx
+    \cite{Cockx2021RepresentationsBinding}
+    comparing several approaches and their properties using Agda.
+    }
+    such as higher-order abstract syntax
+    \cite{Pfenning1988HOAS}
+    and also combinations of multiple techniques, e.g. the locally nameless representation
+    \cite{Chargueraud2011LocallyNameless}.
