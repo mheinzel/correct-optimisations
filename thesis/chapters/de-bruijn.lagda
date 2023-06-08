@@ -241,9 +241,9 @@
 
     To avoid manual un- and re-packing, some combinators come in handy:
     \begin{code}
-      map^^   : (forall {Delta} -> S Delta -> T Delta)     -> S ^^ Gamma -> T ^^ Gamma
-      bind^^  : (forall {Delta} -> S Delta -> T ^^ Delta)  -> S ^^ Gamma -> T ^^ Gamma
-      thin^^  : Delta C= Gamma                             -> T ^^ Delta -> T ^^ Gamma
+      map^^   : (forall {Delta} -> S Delta -> T Delta)     -> S  ^^ Gamma  -> T ^^ Gamma
+      bind^^  : (forall {Delta} -> S Delta -> T ^^ Delta)  -> S  ^^ Gamma  -> T ^^ Gamma
+      thin^^  : Delta C= Gamma                             -> T  ^^ Delta  -> T ^^ Gamma
     \end{code}
 
 
@@ -285,80 +285,111 @@
   \paragraph{Binary constructors}
     Variables from the context are live if they are live in one of the subexpressions (i.e. some thinning is |os _|).
     \begin{code}
-      \/-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
-      \/-domain                       (o' theta1)  (o' theta2)  = \/-domain theta1 theta2
-      \/-domain {Gamma = sigma :: _}  (o' theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
-      \/-domain {Gamma = sigma :: _}  (os theta1)  (o' theta2)  = sigma :: \/-domain theta1 theta2
-      \/-domain {Gamma = sigma :: _}  (os theta1)  (os theta2)  = sigma :: \/-domain theta1 theta2
-      \/-domain                       oz           oz           = []
+      \/-ctx : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
+      \/-ctx                       (o' theta1)  (o' theta2)  = \/-ctx theta1 theta2
+      \/-ctx {Gamma = sigma :: _}  (o' theta1)  (os theta2)  = sigma :: \/-ctx theta1 theta2
+      \/-ctx {Gamma = sigma :: _}  (os theta1)  (o' theta2)  = sigma :: \/-ctx theta1 theta2
+      \/-ctx {Gamma = sigma :: _}  (os theta1)  (os theta2)  = sigma :: \/-ctx theta1 theta2
+      \/-ctx                       oz           oz           = []
     \end{code}
     We then construct the thinning from this combined live context.
     \begin{code}
-      _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-domain theta1 theta2 C= Gamma
+      _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-ctx theta1 theta2 C= Gamma
       o' theta1  \/ o' theta2  = o'  (theta1 \/ theta2)
       o' theta1  \/ os theta2  = os  (theta1 \/ theta2)
       os theta1  \/ o' theta2  = os  (theta1 \/ theta2)
       os theta1  \/ os theta2  = os  (theta1 \/ theta2)
       oz         \/ oz         = oz
     \end{code}
-
     Furthermore, we can construct the two thinnings \emph{into} the combined live context
     and show that this is exactly what we need to obtain the original thinnings.
     \begin{code}
-      un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-domain theta1 theta2
-      un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-domain theta1 theta2
-
-      law-\/1-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
-      law-\/2-inv : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
+      un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-ctx theta1 theta2
+      un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-ctx theta1 theta2
+    \end{code}
+    \begin{code}
+      law-\/1-inv :  (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) ->
+                     un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
+      law-\/2-inv :  (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) ->
+                     un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
     \end{code}
 
   \paragraph{Binders}
     When moving up over a binder, the bound variable gets removed from the context.
     In case it was part of the live variables, it also has to be removed there.
     This is done using |pop|,
-
+    again with thinnings from and into the resulting context.
     \begin{code}
-      pop-domain : Delta C= Gamma -> List I
-      pop-domain {Delta = Delta}       (o' theta)  = Delta
-      pop-domain {Delta = _ :: Delta}  (os theta)  = Delta
-      pop-domain                       oz          = []
+      pop-ctx : Delta C= Gamma -> List I
+      pop-ctx {Delta = Delta}       (o' theta)  = Delta
+      pop-ctx {Delta = _ :: Delta}  (os theta)  = Delta
+      pop-ctx                       oz          = []
 
-      pop : (theta : Delta C= (sigma :: Gamma)) -> pop-domain theta C= Gamma
+      pop : (theta : Delta C= (sigma :: Gamma)) -> pop-ctx theta C= Gamma
       pop (o' theta)  = theta
       pop (os theta)  = theta
-
-      un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-domain theta)
+    \end{code}
+    \begin{code}
+      un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-ctx theta)
 
       law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
     \end{code}
 
   \paragraph{Let-bindings}
-    For let-bindings, one way is to treat them as an immediate application
+    For let-bindings, one option is to treat them as an immediate application
     of a $\lambda$-abstraction, combining the methods we just saw.
-    This corresponds to a weakly live variable analysis,
+    This corresponds to weakly live variable analysis,
     since even if the variable is dead, we end up considering variables live
     if they are used in its declaration.
     \begin{code}
-      combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-domain theta1 (pop theta2) C= Gamma
-      combine theta1 theta2 = theta1 \/ pop theta2
+      _\l/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-ctx theta1 (pop theta2) C= Gamma
+      theta1 \l/ theta2 = theta1 \/ pop theta2
     \end{code}
-
     The other option is to do strongly live variable analysis
-    with a custom operation |combine|,
+    with a custom operation |_\l/_|,
     which ignores the declaration's context if it is unused in the body.
     \begin{code}
-      combine-domain : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
-      combine-domain {Delta2 = Delta2}  theta1 (o' theta2)  = Delta2
-      combine-domain                    theta1 (os theta2)  = \/-domain theta1 theta2
+      \l/-ctx : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
+      \l/-ctx {Delta2 = Delta2}  theta1 (o' theta2)  = Delta2
+      \l/-ctx                    theta1 (os theta2)  = \/-ctx theta1 theta2
 
-      combine : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> combine-domain theta1 theta2 C= Gamma
-      combine theta1 (o' theta2)  = theta2
-      combine theta1 (os theta2)  = theta1 \/ theta2
+      _\l/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \l/-ctx theta1 theta2 C= Gamma
+      theta1 \l/ (o' theta2)  = theta2
+      theta1 \l/ (os theta2)  = theta1 \/ theta2
     \end{code}
     We do not need the composed thinnings into the live context,
     as we will always distinguish the two cases of |theta2| anyways
     and can then rely on the thinnings defined for |_\/_|.
-    \Fixme{Add example showing difference between versions of combine?}
+
+    To illustrate the difference, let us return to an example shown earlier:
+    \begin{align*}
+      &\Let{x} 42 \In            & &\LetB 42 \In                       \\
+      &\ \ \Let{y} x + 6 \In     & &\ \ \LetB \DeBruijn{0} + 6 \In     \\
+      &\ \ \ \ \Let{z} y + 7 \In & &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
+      &\ \ \ \ \ \ x             & &\ \ \ \ \ \ \DeBruijn{2}
+    \end{align*}
+    If we focus on the subexpression in the last two lines,
+    we see that in our syntax representation it is an |Expr NAT [ NAT , NAT ]|,
+    where the first element of the context correspondes to $y$,
+    the second to $x$.
+    \begin{code}
+      Let (Plus (Var Top) (Val 7))
+        (Var (Pop (Pop Top)))
+    \end{code}
+    In the declaration, only the innermost binding $y$ is live,
+    so we have a thinning |os (o' oz)|.
+    In the body (with an additional binding in scope),
+    we have |o' (o' (os oz))|.
+    With the weak version of |_\l/_| we get
+    \begin{code}
+      os (o' oz) \l/ o' (o' (os oz)) = os (o' oz) \/ o' (os oz) = os (os oz)
+    \end{code}
+    stating that both variables in scope are live.
+    With the strong version, on the other hand,
+    only $y$ is considered live:
+    \begin{code}
+      os (o' oz) \l/ o' (o' (os oz)) = os (o' oz)
+    \end{code}
 
 
 \section{Dead Binding Elimination}
@@ -546,7 +577,7 @@
           {theta1 : Delta1 C= Gamma} {theta2 : Delta2 C= (sigma :: Gamma)} ->
           LiveExpr sigma theta1 ->
           LiveExpr tau theta2 ->
-          LiveExpr tau (combine theta1 theta2)
+          LiveExpr tau (theta1 \l/ theta2)
         Val :
           (interpretU(sigma)) ->
           LiveExpr sigma oe
@@ -556,7 +587,7 @@
           LiveExpr NAT theta2 ->
           LiveExpr NAT (theta1 \/ theta2)
     \end{code}
-    |combine| can refer to either one of the two versions we introduced,
+    |_\l/_| can refer to either one of the two versions we introduced,
     but for the remainder of this thesis we will use the strongly live version.
 
   \paragraph{Analysis}
@@ -574,7 +605,7 @@
       analyse (App e1 e2) =
         let  Delta1 , theta1 , le1 = analyse e1
              Delta2 , theta2 , le2 = analyse e2
-        in \/-domain theta1 theta2 , (theta1 \/ theta2) , App le1 le2
+        in \/-ctx theta1 theta2 , (theta1 \/ theta2) , App le1 le2
       (dots)
     \end{code}
 
@@ -709,17 +740,21 @@
 \subsection{Direct Approach}
 \label{sec:de-bruijn-let-sinking-direct}
   \paragraph{Type signature}
-    We want to replace a |Let decl e| with the result of |sink-let decl e|.
-    As we initially deal with the topmost entry in the context,
-    the signature could look like
+    We want to replace a |Let decl e| with |sink-let decl e|,
+    which suggests a signature like
     |sink-let : Expr sigma Gamma -> Expr tau (sigma :: Gamma) -> Expr tau Gamma|.
-    However, recursively going under binders requires more flexibility.
+    However, while we initially deal with the topmost entry in the context,
+    this changes when going under other binders.
     The solution chosen here uses list concatenation in the context
     to allow |sigma| to occur at any position.
     \begin{code}
-      sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+      sink-let :
+        Expr sigma (Gamma1 ++ Gamma2) ->
+        Expr tau (Gamma1 ++ sigma :: Gamma2) ->
+        Expr tau (Gamma1 ++ Gamma2)
     \end{code}
     Choosing |[]| as the prefix then again results in the signature above.
+
   \paragraph{Transformation}
     Just as dead binding elimination, let-sinking heavily relies on variable liveness information.
     To know where a binding should be moved, we need to know where it is used.
@@ -731,17 +766,16 @@
 
     More concretely, we need to find out for each subexpression
     whether it uses the binding we are let-sinking or not.
-    If the binding is unused, we usually need to make that clear to the typechecker
+    If the binding is unused, we need to make that clear to the typechecker
     by removing it from the subexpression's context.
     Therefore, we combine querying and the context change into a single operation
     we refer to as \emph{strengthening}.
-
     \begin{code}
       strengthen :  Expr tau (Gamma1 ++ sigma :: Gamma2) -> Maybe (Expr tau (Gamma1 ++ Gamma2))
     \end{code}
 
-    We now give the complete implementation before highlighting specific parts.
-
+    We now give the complete implementation of let-sinking
+    before highlighting specific parts.
     \begin{code}
       sink-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (Gamma1 ++ Gamma2)
       sink-let decl (Var x) with rename-top-Ref x
@@ -753,7 +787,7 @@
       ... | just e1'  | nothing   = App e1' (sink-let decl e2)
       ... | nothing   | nothing   = Let decl (rename-top e)
       sink-let decl (At(e)(Lam e1)) =
-        Let decl (rename-top e) -- Do not push into $\lambda$-abstractions!
+        Let decl (rename-top e) -- Do not sink into $\lambda$-abstractions!
       sink-let decl (At(e)(Let e1 e2)) with strengthen e1 | strengthen e2
       ... | just e1'  | just e2'  = Let e1' e2'
       ... | nothing   | just e2'  = Let (sink-let decl e1) e2'
@@ -769,7 +803,7 @@
     \end{code}
 
   \paragraph{Variables}
-    When pushing a binding into a variable, there are two possible cases:
+    When sinking a binding into a variable, there are two possible cases:
     \begin{enumerate}
       \item If the variable references exactly the let-binding we are sinking,
         we can replace it by the declaration,
@@ -786,16 +820,18 @@
     If the result is |Top|, we learn that |sigma == tau| and can return the declaration.
     If it is |Pop x'|, we can return |x'|,
     as it does not have the variable of the declaration in its context anymore.
+
   \paragraph{Creating the binding}
-    Once we stop pushing the let-binding (e.g. when we reach a $\lambda$-abstraction),
+    Once we stop sinking the let-binding (e.g. when we reach a $\lambda$-abstraction),
     We insert the declaration.
-    However, the typechecker will not accept |Let decl e|.
+    However, the typechecker will not accept a plain |Let decl e|.
     It is still necessary to rename the expression,
     since it makes use of the newly created binding,
     but expects it at a different de Bruijn index.
     \begin{code}
       rename-top : Expr tau (Gamma1 ++ sigma :: Gamma2) -> Expr tau (sigma :: Gamma1 ++ Gamma2)
     \end{code}
+
   \paragraph{Binary constructors}
     For binary operators, we need to check which subexpressions make use of the declaration.
     There are four possible cases:
@@ -813,9 +849,10 @@
         We recurse into the right one.
       \item
         Neither subexpression can be strengthened, as both use the declaration.
-        To avoid dupliating code, we do not push further,
+        To avoid dupliating code, we do not sink further,
         but create a let-binding at the current location.
     \end{enumerate}
+
   \paragraph{Binders}
     If we recurse into the body of a let-binding,
     an additional variable comes into scope.
@@ -826,17 +863,21 @@
       weaken = rename-Expr (o' oi)
     \end{code}
     This traverses the declaration for each binder it is moved across,
-    but in the next section we use a simple trick to only do a single renaming.
-    \vspace{1cm}
+    but in the next section we will use a simple trick to avoid that.
+    \vspace{0.7cm}
     \OpenEnd{No correctness proof yet, how hard is it for the direct approach?}
 
 \subsection{Using Annotations}
 \label{sec:de-bruijn-let-sinking-live}
     Perhaps unsurprisingly, we can avoid the repeated querying
     using liveness annotations.
-    As during dead binding elimination, we first |analyse| and then
-    (instead of strengthening) look at the thinnings
-    to find out where the declaration is used.
+    As during dead binding elimination, we first do an analysis pass
+    so we can simply look at the thinnings
+    to find out where a declaration is used.
+
+    The structure of the implementation is the same as for the direct approach,
+    so we will only highlight a few differences.
+
   \paragraph{Type signature}
     Similarly to section \ref{sec:de-bruijn-dbe-live},
     we first perform the analysis and then a transformation
@@ -853,13 +894,14 @@
       sink-let : Expr sigma (Gamma1 ++ Gamma2) -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
       sink-let decl e = let _ , theta , le = analyse e in transform (decl ^ oi) le
     \end{code}
+
     Note that only the body is annotated,
     as we do not need liveness information for the declaration.
     The declaration however is passed with a thinning.
     This change is independent of the others,
-    but will avoid repeatedly having to rename the declaration.
-    The structure of the implementation is the same as for the direct approach,
-    so we will only highlight a few differences.
+    but will avoid repeatedly having to rename the declaration
+    when going under binders.
+
   \paragraph{Binary constructors}
     The |Let| case shows all major changes.
     The main one is that instead of traversing the subexpressions
@@ -895,7 +937,7 @@
     we could forget the annotations followed by renaming,
     but we instead use the already defined |DBE.transform|,
     which does the job in a single traversal.
-    \Fixme{More consistent naming of thinnings involved?}
+
   \paragraph{Binders}
     Instead of weakening the declaration every time we go under a binder,
     we manipulate the thinning it is wrapped in (|thin^^ (o' oi)|).
@@ -970,7 +1012,10 @@
     To talk about removing an element from the context at a specific position,
     we used list concatenation.
     \begin{code}
-      sink-let : Expr sigma (Gamma1 ++ Gamma2)  -> Expr tau (Gamma1 ++ sigma :: Gamma2)  -> Expr tau (Gamma1 ++ Gamma2)
+      sink-let :
+        Expr sigma (Gamma1 ++ Gamma2) ->
+        Expr tau (Gamma1 ++ sigma :: Gamma2) ->
+        Expr tau (Gamma1 ++ Gamma2)
     \end{code}
     Note that we could alternatively have used other ways to achieve the same,
     such as insertion at a position |n : Fin (length Gamma)|
@@ -987,7 +1032,7 @@
     \end{code}
     Using list concatenation, however, seems more principled
     and allows us to make use of general operations and properties
-    about concatenation of contexts and thinnings.
+    of the concatenation of contexts and thinnings.
 
   \paragraph{Keeping annotations}
     In both transformations, we used annotated expressions for the input,
