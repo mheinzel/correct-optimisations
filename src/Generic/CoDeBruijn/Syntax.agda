@@ -6,7 +6,6 @@ open import Data.Product as Prod using (_×_; Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Function using (_∋_)
 
-open import Stdlib using (∀[_]; _⇒_)
 open import Data.Var using (_─Scoped)
 open import Data.Thinning using (oi; oe; _↑_)
 open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
@@ -35,7 +34,7 @@ Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
 
 data Tm (d : Desc I) : I ─Scoped where
   `var  : Tm d i [ i ]
-  `con  : ∀[ ⟦ d ⟧ (Scope (Tm d)) i ⇒ Tm d i ]
+  `con  : ⟦ d ⟧ (Scope (Tm d)) i Γ → Tm d i Γ
 
 -- Convenience function for the construction of ⟦ `X Δ σ (`∎ τ) ⟧ ,
 -- which as a product requires a (trivial) Cover.

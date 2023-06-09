@@ -96,23 +96,43 @@
 
 \section{Intrinsically Typed Syntax}
 \label{sec:generic-co-de-bruijn-terms}
-  \Draft{
     The \texttt{generic-syntax} package only interprets syntax descriptions into de Bruijn terms.
     McBride shows an interpretation into co-de-Bruijn terms
     \cite{McBride2018EveryBodysGotToBeSomewhere},
-    but it is based on a different structure for syntax descriptions.
-    Since we want to interpret a single description into both types of terms,
-    we create our own co-de-Bruijn interpretation based on the de Bruijn version.
-      \begin{code}
-        _-Scoped : Set -> Set1
-        I -Scoped = I -> List I -> Set
-      \end{code}
+    but it is based on a different structure of syntax descriptions.
+    Since we want to interpret a single description type into both types of terms,
+    it is not directly reusable.
+    However, the building blocks for bindings and relevant pairs
+    still help us to create our own co-de-Bruijn interpretation.
+
+    We start be interpreting descriptions into flat (non-recursive)
+    types representing a single syntax node,
+    where the argument |X| marks the recursive occurrences
+    and can later be used to form a fixpoint.
+    \begin{code}
+      _-Scoped : Set -> Set1
+      I -Scoped = I -> List I -> Set
+    \end{code}
     \begin{code}
       interpretC_ : Desc I -> (List I -> I -Scoped) -> I -Scoped
-      (interpretC(\'o A d))    X i Gamma  = (Exists(a)(A)) ((interpretC(d a)) X i Gamma)
-      (interpretC(\'X Delta j d))  X i        = X Gamma j ><R (interpretC(d)) X i
+      (interpretC(\'o A d))        X i Gamma  = (Exists(a)(A)) ((interpretC(d a)) X i Gamma)
+      (interpretC(\'X Delta j d))  X i        = X Delta j ><R (interpretC(d)) X i
       (interpretC(\'# j))          X i Gamma  = i == j >< Gamma == []
     \end{code}
+    The interpretation of |\'o| is exactly the same as for de Bruijn terms,
+    storing a value of type A and (based on its value)
+    continuing with the remaining description.
+    The other two cases however need to enforce the invariants on the live context |Gamma|
+    by which the expressions are indexed:
+    |\'X| uses \emph{relevant} pairs and |\'#| requires
+    that the context starts out empty until something explicitly extends it.
+
+    Based on that, we can build the recursive type of terms.
+    At each recursive occurrence, a is introduced.
+    While this could be done as |Delta ||- T i|
+    independent of the bound variables |Delta|,
+    a single case distinction avoids a trivial wrapper with a thinning
+    |[] C= []|.
     \begin{code}
       Scope : I -Scoped -> List I -> I -Scoped
       Scope T []                   i = T i
@@ -121,43 +141,79 @@
     \begin{code}
       data Tm (d : Desc I) : I -Scoped where
         `var  : Tm d i [ i ]
-        `con  : (Forall (interpretC(d) (Scope (Tm d)) i => Tm d i))
+        `con  : (interpretC(d)) (Scope (Tm d)) i Gamma -> Tm d i Gamma
     \end{code}
-    The differences are that
-    \begin{itemize}
-      \item we use relevant pairs (|_><R_|) instead of products
-      \item at the leaves (|\'#|), we constrain the context to be empty
-      \item a (non-empty) scope is not just a change in context,
-        but comes with an explicit wrapper (|_||-_|)
-      \item variables live in a singleton context and therefore do not need an index into the context
-    \end{itemize}
-  }
-  \paragraph{Terms of our language}
-  \Draft{
-    We obtain terms by interpreting our syntax description we gave before.
+    We also see that variables always have a singleton live context.
+
+  \paragraph{Instantiation the terms}
+    We can obtain co-de-Bruijn terms of our expression language
+    using the description we created.
     \begin{code}
       Expr : U -Scoped
       Expr = Tm Lang
     \end{code}
-    This has some consequences when working with co-de-Bruijn terms,
-    as ``products'' now come with thinnings and covers.
-    At the end they are terminated by |\'#|, which means that even constructing a unary product
-    |(interpretC(\'X Delta i (\'# j)))| requires trivial thinnings and covers, which be abstract over:
+    These are isomorphic to the co-de-Bruijn syntax tree we defined manually.
+    However, there are some practical differences coming from
+    the way relevant products are used in the interpretation.
+    At the end, each description is terminated by a |\'#|
+    resulting in an expression with empty live context,
+    which means that even constructing a unary product
+    |(interpretC(\'X Delta i (\'# j)))|
+    requires trivial thinnings and covers.
+
+    This is not an issue when working generically,
+    but when constructing a term for a concrete description,
+    it causes some boilerplate,
+    even for a simple program such as $\text{foo} = f\ 1$.
+
     \begin{code}
-      ><R-trivial : {T : List I -> Set} -> T Gamma -> (T ><R lambda Delta -> tau == tau >< Delta == []) Gamma
+      -- de Bruijn
+      foo :: Expr BOOL [ NAT => BOOL ]
+      foo = App (Var Top) (Val 1)
+
+      -- co-de-Bruijn
+      foo :: Expr BOOL [ NAT => BOOL ]
+      foo = App (pairR (os oz ^ Var) (o' oz ^ Val 1) (cs' czz))
+
+      -- syntax-generic co-de-Bruijn
+      foo : Expr BOOL [ NAT => BOOL ]
+      foo =
+        `con ( `App NAT BOOL ,
+          pairR
+            (`var ^ os oz)
+            (pairR  ((`con ((`Val NAT) , (1 , (refl , refl)))) ^ oz)
+                    ((refl , refl) ^ oz)
+                    czz
+              ^ o' oz)
+            (cs' czz))
+    \end{code}
+
+    Luckily, the boilerplate during construction of terms
+    can be reduced using smart constructors (e.g. pattern synonyms |App|, |Lam|, \ldots)
+    or a general helper of this shape:
+    \begin{code}
+      ><R-trivial : {T : List I -> Set} ->
+        T Gamma -> (T ><R lambda Delta -> tau == tau >< Delta == []) Gamma
       ><R-trivial t = pairR (t ^ oi) ((refl , refl) ^ oe) cover-oi-oe
     \end{code}
-    Similarly, when deconstructing a term, we get additional thinnings
-    and first need to make the fact obvious that they must be the identity and empty thinning.
-    (This is not an issues when working generically, but for concrete descriptions! Example, e.g. |Lam|?)
+    However, when deconstructing a term,
+    it is not clear to the typechecker that the redundant thinnings must be
+    identity and empty thinning (|oi| and |oe|) respectively,
+    so we cannot just use pattern synonyms to hide them away.
+    We first need to make the fact obvious in a \textbf{with}-abstraction
+    calling a helper function:
+    \begin{code}
+      ><R-trivial-1 : {T : List I -> Set} ->
+        (T ><R lambda Delta -> tau == tau' >< Delta == []) Gamma -> T Gamma >< tau == tau'
+      ><R-trivial-1 (pairR (t ^ theta1) ((refl , refl) ^ theta2) cover)
+        with refl ← cover-oi-oe-1 cover =
+          t , refl
+    \end{code}
+    This affects any operation on our language
+    by introducing additional \textbf{with}-abstractions.
+    Evaluation or also converting into the concrete co-de-Bruijn representation,
+    for example, should be absolutely trivial, but end up somewhat verbose.
 
-    The evaluation function can be written in a similar way as in the concrete setting.
-    It is just slightly more verbose.
-    We also convince ourselves that the generic representation of this language
-    indeed corresponds to the concrete one.
-    We can convert between the two using structural recursion,
-    the only slight pain point are the trivial relevant pairs (described above).
-  }
 
 \section{Conversion From/To de Bruijn Syntax}
 \label{sec:generic-co-de-bruijn-conversion}

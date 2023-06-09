@@ -1,16 +1,15 @@
 module Language.Generic.CoDeBruijn where
 
-open import Data.List using (List ; _∷_ ; []; _++_)
+open import Data.List using (List ; _∷_ ; []; [_]; _++_)
 open import Data.Product as Prod using (_×_; Σ-syntax; _,_)
 open import Data.Nat using (_+_)
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Function using (const; _$_; _∘_)
 open import Data.Unit using (⊤; tt)
 
-open import Stdlib using (∀[_]; _⇒_)
 open import Data.Var using (_─Scoped)
-open import Data.Thinning using (_⊑_; oz; oi; oe; _ₒ_; _++⊑_; _↑_)
-open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_)
+open import Data.Thinning using (_⊑_; oz; o'; os; oi; oe; _ₒ_; _++⊑_; _↑_)
+open import Data.Relevant as Relevant using (_×ᴿ_; pairᴿ; _⊢_; _\\_; cs'; czz)
 open import Generic.Syntax hiding (`Let)
 open import Generic.CoDeBruijn.Syntax
 
@@ -26,6 +25,15 @@ private
 
 Expr : U ─Scoped
 Expr = Tm Lang
+
+-- Example: f 1
+foo : Expr BOOL [ NAT ⇒ BOOL ]
+foo =
+  `con ( `App _ _ ,
+    pairᴿ
+      (`var ↑ os oz)
+      (pairᴿ ((`con ((`Val _) , (1 , (refl , refl)))) ↑ oz) ((refl , refl) ↑ oz) czz ↑ o' oz)
+      (cs' czz))
 
 -- Evaluation
 
@@ -63,7 +71,7 @@ module _ where
 
   -- This is a bit annoying to match on.
   -- We have two θ₂ and covers, and have to reveal the fact that one of them is trivial (e.g. oi).
-  from : ∀ {Γ τ} → Expr τ Γ → CoDeBruijn.Expr τ Γ
+  from : Expr τ Γ → CoDeBruijn.Expr τ Γ
   from `var =
     CoDeBruijn.Var
   from (`con (`App σ τ , pairᴿ (e₁ ↑ θ₁) (pairᴿ (e₂ ↑ θ₂') ((refl , refl) ↑ θ₂'') c ↑ θ₂) cover))
