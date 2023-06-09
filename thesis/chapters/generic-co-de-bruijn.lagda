@@ -3,52 +3,74 @@
 
 \chapter{Syntax-generic Co-de-Bruijn Representation}
 \label{ch:generic-co-de-bruijn}
+    So far, we worked with specialised types for the syntax trees
+    of the language we defined.
+    Modifying the language or defining a new one
+    would require us to also modify the implementations
+    of each transformation.
+    However, the core of the transformation would likely remain unchanged:
+    dead binding elimination for example only needs to know
+    where variables are bound and occur in the expression,
+    and then exclusively modifies let-bindings.
+    All other parts of the syntax tree simply get traversed in a highly uniform way.
+
+    This problem is addressed by Allais et al.
     \cite{Allais2018UniverseOfSyntaxes}
-    \Draft{
-      \begin{itemize}
-        \item problem: any time you define a language, you need common operations (renaming, substitution, ...) and laws about them
-        \item for these, languages need variables and bindings, the rest is noise
-        \item copy paste?
-      \end{itemize}
-    }
-    \Draft{
-      \begin{itemize}
-        \item define a datatype of syntax descriptions `Desc`
-        \item each `(d : Desc I)` describes a language of terms `Tm d sigma Gamma`
-        \item implement operations *once*, generically over descriptions
-        \item describe your language using `Desc`, get operations for free
-      \end{itemize}
-    }
-    \Draft{
-      We build on top of \texttt{generic-syntax}
-      (issues with sized types, which were used to show termination)
-    }
+    with the concept of syntax-generic programming,
+    although based on a de Bruijn representation.
+    The main idea is to:
+    \begin{enumerate}
+      \item define a datatype of syntax descriptions |Desc|
+      \item describe a family of terms |Tm d sigma Gamma| for each |(d : Desc I)|
+      \item implement operations \emph{once}, generically over descriptions
+      \item describe your language using |Desc| to get access to all generic operations
+    \end{enumerate}
+
+    To define the syntax-generic co-de-Bruijn terms,
+    we build on top of the \texttt{generic-syntax}
+    \footnote{\url{https://github.com/gallais/generic-syntax}}
+    Agda package,
+    which is an artefact of the abovementioned paper.
+    It failed to compile with recent versions of Agda,
+    mainly due to issues with sized types, which were used to show termination.
+    Therefore, we trimmed the package down to the parts interesting to us
+    and removed the size information from all types.
+    The paper still serves as a great introduction to the topic,
+    but we will start with a short overview of the main
+    constructions we use.
+
 
 \section{Descriptions of Syntax}
 \label{sec:generic-co-de-bruijn-descriptions}
-    \Draft{For an explanation of its design, see the paper.}
+    At the core of this chapter is the the type of syntax descriptions,
+    taken verbatim from Allais et al.
     \begin{code}
       data Desc (I : Set) : Set1 where
         \'o : (A : Set) -> (A -> Desc I) -> Desc I
         \'X : List I -> I -> Desc I -> Desc I
         \'# : I -> Desc I
     \end{code}
-    \Draft{
-      \begin{itemize}
-        \item variables are assumed, no need to describe them
-        \item |\'o| is for storing data, e.g. which constructor it is
-        \item |\'X| is for recursion (subexpressions)
-        \item also allows us to build product types
-        \item new variables bound in subexpression
-        \item sort of subexpression
-        \item |\'#| terminates description
-      \end{itemize}
-    }
-  \paragraph{An example language}
-    \Draft{
-      Using the syntax-generic approach,
-      we give a description of a language equivalent to the one we used so far.
-    }
+    |I| is the type associated with each expression and variable brought into scope,
+    typically their sort.
+    Variable occurrences do not need to be modeled in the description,
+    are part of any language implicitly.
+
+    The constructor |\'o| is then used to store data of some type |A|.
+    Since the remaining description can then depend on the value of the data,
+    it can be used as a tag deciding which constructor of the syntax tree is present.
+    |\'X| can be used for recursion (i.e. subexpressions)
+    with a list of variables that come into scope and specified sort.
+    After building a product-like structure
+    (including sums by using the dependent product |\'o|),
+    the descriptions are terminated with |\'#|,
+    stating their sort.
+
+  \paragraph{Example}
+    Let us give a description of our expression language
+    to get a feeling for syntax descriptions.
+    We start by defining a type of tags for each type of syntax node
+    (except variable occurrences, as noted above).
+    Each tag also carries the sorts it will use.
     \begin{code}
       data `Lang : Set where
         `App  : U -> U -> `Lang
@@ -57,6 +79,11 @@
         `Val  : U -> `Lang
         `Plus : `Lang
     \end{code}
+    Once we plug the type into |\'o|, we can give a description
+    for each of the constructors.
+    Those are typically a product of multiple subexpressions.
+    While the details can be hard to follow,
+    some similarities with the original |Expr| type we defined should become apparent.
     \begin{code}
       Lang : Desc U
       Lang = \'o `Lang lambda where
