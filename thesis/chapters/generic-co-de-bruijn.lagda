@@ -217,32 +217,23 @@
 
 \section{Conversion From/To de Bruijn Syntax}
 \label{sec:generic-co-de-bruijn-conversion}
-  \paragraph{Relax}
-  \Draft{
-    This is similar to the concrete implementation.
-    Straightforward traversal, composing thinnings as we go.
+    The conversion between de Bruijn and co-de-Bruijn terms
+    can be done generically for any description.
     \begin{code}
-      relax :
-        (d : Desc I) -> Delta C= Gamma ->
-        CoDeBruijn.Tm d tau Delta ->
-        DeBruijn.Tm d tau Gamma
+      relax : (d : Desc I) -> Delta C= Gamma ->
+        CoDeBruijn.Tm d tau Delta -> DeBruijn.Tm d tau Gamma
+      tighten : (d : Desc I) ->
+        DeBruijn.Tm d tau Gamma -> CoDeBruijn.Tm d tau ^^ Gamma
     \end{code}
-    \Fixme{Already show how it uses mutually recursive functions?}
-  }
-  \paragraph{Tighten}
-  \Draft{
-    This is more involved than the other direction,
-    but we have already seen the crucial points in the concrete implementation.
-    Relevant contexts, as well as their thinnings and covers,
-    need to be discovered using |_,R_| and |_\\R_|.
-    \begin{code}
-    tighten :
-      (d : Desc I) ->
-      DeBruijn.Tm d tau Gamma ->
-      CoDeBruijn.Tm d tau ^^ Gamma
-    \end{code}
-    Proving correctness would require some definition of semantics (e.g. evaluation).
-  }
+    While the operations used in the implementation are generally the same
+    as in the concrete setting,
+    the structure is noticeably different.
+    Instead of handling each constructor of the language,
+    we use three mutually recursive functions to handle scopes,
+    variables and constructors, respectively.
+    We will see the same approach in more detail
+    when doing dead binding elimination
+    in the next section.
 
 \section{Dead Binding Elimination}
 \label{sec:generic-co-de-bruijn-dbe}
