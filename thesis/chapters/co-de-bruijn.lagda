@@ -5,10 +5,10 @@
 \label{ch:co-de-bruijn}
     After showing that de Bruijn representation can be made type- and scope-correct
     by indexing expressions with their context (the variables in scope),
-    we found out how useful it is to also know the \emph{live} context
-    consisting only of the (weakly or strongly) live variables.
-    The type of annotated expressions we created was indexed by both of these contexts,
-    but here we will work with McBride's co-de-Bruijn syntax
+    we found out how useful it is to also know the \emph{live} context.
+    The type of annotated expressions we created
+    was therefore indexed (perhaps redundantly) by both of these contexts.
+    Here however, we will work with McBride's co-de-Bruijn syntax
     \cite{McBride2018EveryBodysGotToBeSomewhere},
     another nameless intrinsically typed representation,
     which is indexed by its weakly live context alone.
@@ -20,15 +20,14 @@
     but Agda's typechecker helps us maintain the invariants.
 
     We will begin by giving an intuition for the co-de-Bruijn representation
-    and show how it translates into a few core building blocks
-    with smart constructors.
-    With these, we define another version of our expression language
+    and show how it translates into a few core building blocks,
+    each with a convenient smart constructor.
+    Based on these, we define another version of our expression language
     and demonstrate that it can be converted to and from
     our original de Bruijn expressions.
     Once the foundations are in place,
     we again perform dead binding elimination and let-sinking,
-    but now without the distinction between plain and annotated syntax.
-    \Fixme{"primarily comparing them to the annotated versions"?}
+    making use of the variable liveness information inherent in co-de-Bruijn terms.
 
 \section{Intrinsically Typed Syntax}
 \label{sec:co-de-bruijn-intrinsically-typed}
@@ -46,7 +45,8 @@
 
     After dealing with live variable analysis in the previous chapter,
     we can also think about it in a way similar to liveness annotations:
-    starting from the variables, the live context gets collected bottom-up.
+    starting from the variables, the live context gets collected
+    and annotated, bottom-up.
 
   \paragraph{Relevant pairs}
     The most insightful situation to consider is that of handling
@@ -54,8 +54,8 @@
     Assuming we have
     |e1 : Expr NAT Delta1| and
     |e2 : Expr NAT Delta2|, each indexed by their live context,
-    how do we construct the syntax node representing their application?
-    It should be indexed by some |Gamma| with thinnings
+    how do we construct the syntax node representing $e_1 + e_2$?
+    It should be indexed by the smallest |Gamma| with thinnings
     |theta1 : Delta1 C= Gamma| and
     |theta2 : Delta2 C= Gamma|.
     For |LiveExpr|, we specified the resulting context using |_\/_|,
@@ -66,7 +66,6 @@
     |Delta1|, |Delta2|, or both
     (``everybody's got to be somewhere'').
     Note that we can never construct a |Cover (o' _) (o' _)|.
-
     \begin{code}
       data Cover : Delta1 C= Gamma -> Delta2 C= Gamma -> Set where
         c's  : Cover theta1 theta2  -> Cover (o' theta1) (os theta2)
@@ -75,16 +74,15 @@
         czz  : Cover oz oz
     \end{code}
 
-    As each binary operator will in some form contain these
-    two subexpressions, two thinnings and a cover,
+    As each binary operator will in some form contain
+    these two thinnings and a cover,
     we combine them into a reusable datatype called \emph{relevant pair}.
-
     \begin{code}
       record _><R_ (S T : List I -> Set) (Gamma : List I) : Set where
         constructor pairR
         field
-          outl   : S ^^ Gamma    -- |S Delta1| and |Delta1 C= Gamma|
-          outr   : T ^^ Gamma    -- |T Delta2| and |Delta2 C= Gamma|
+          outl   : S ^^ Gamma    -- containing |S Delta1| and |Delta1 C= Gamma|
+          outr   : T ^^ Gamma    -- containing |T Delta2| and |Delta2 C= Gamma|
           cover  : Cover (thinning outl) (thinning outr)
     \end{code}
 
@@ -106,11 +104,9 @@
     Any shared context will do,
     since we only need it to relate the two subexpressions' contexts
     and can still shrink it down to the part that is live.
-
     \begin{code}
       _,R_ : S ^^ Gamma -> T ^^ Gamma -> (S ><R T) ^^ Gamma
     \end{code}
-
     We will not show the implementation here,
     but it is generally similar to that of |_\/_|,
     recursing over each element of |Gamma| to check which of the thinnings use it,
@@ -136,9 +132,9 @@
       record _|-_ (Gamma' : List I) (T : List I -> Set) (Gamma : List I) : Set where
         constructor _\\_
         field
-          {used}    : List I
-          thinning  : used C= Gamma'
-          thing     : T (used ++ Gamma)
+          {Delta'}  : List I
+          thinning  : Delta' C= Gamma'
+          thing     : T (Delta' ++ Gamma)
     \end{code}
 
     Given an expression, wrapping it into this datatype
@@ -149,7 +145,6 @@
     \begin{code}
       _\\R_ : (Gamma' : List I) -> T ^^ (Gamma' ++ Gamma) -> (Gamma' |- T) ^^ Gamma
     \end{code}
-
     Again, we will not spend much time explaining the implementation,
     but briefly mention that it relies on the ability to split the thinning
     that goes into |Gamma' ++ Gamma| into two parts using |_-||_|,
@@ -213,7 +208,7 @@
     to do a lookup on the environment.
     The thinning |psi| for bindings that get introduced needs to concatenated
     with the accumulated binding.
-    Finally note that despite all the differences to |evalLive|,
+    Finally note that despite all the similarities to |evalLive|,
     we do not skip the declaration's evaluation
     when encountering a dead let-binding.
 
@@ -228,7 +223,6 @@
     Since the converted expression often needs to be placed in a larger context
     than just its live variables,
     we allow to specify the desired context using a thinning.
-
     \begin{code}
       relax :  Delta C= Gamma -> CoDeBruijn.Expr sigma Delta -> DeBruijn.Expr sigma Gamma
     \end{code}
@@ -244,7 +238,6 @@
       %   Val v
       % relax theta (Plus (pairR (e1 ^ theta1) (e2 ^ theta2) cover)) =
       %   Plus (relax (theta1 .. theta) e1) (relax (theta2 .. theta) e2)
-
     The recursive calls work the exact same way as during evaluation,
     composing the thinning on the way down
     to turn it into into a de Bruijn index when reaching a variable.
@@ -253,10 +246,10 @@
 
   \paragraph{Tighten}
     The other direction is slightly more work,
-    but we benefit greatly from the smart constructors.
+    as it effectively needs to perform live variable analysis.
+    Luckily, we benefit greatly from the smart constructors.
     As we do not know the context of de resulting co-de-Bruijn expression upfront,
     we once more return the result with a thinning.
-
     \begin{code}
       tighten : DeBruijn.Expr sigma Gamma -> CoDeBruijn.Expr sigma ^^ Gamma
       tighten (Var x) =
@@ -272,7 +265,6 @@
       tighten (Plus e1 e2) =
         map^^ Plus (tighten e1 ,R tighten e2)
     \end{code}
-
     After using the smart constructors
     to obtain a relevant pair or binder (with a thinning),
     it only remains to wrap things up using the right constructor.
@@ -281,21 +273,18 @@
     While the conversion is pretty straightforward,
     mapping constructors one-to-one to their counterparts,
     we can prove that the semantics of the two representations agree.
-
     \begin{code}
       relax-correct :
         (e : CoDeBruijn.Expr tau Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
         let e' = relax theta e
         in DeBruijn.eval e' env == CoDeBruijn.eval e theta env
     \end{code}
-
     \begin{code}
       tighten-correct :
         (e : DeBruijn.Expr tau Gamma) (env : Env Gamma) ->
         let e' ^ theta = tighten e
         in CoDeBruijn.eval e' theta env == DeBruijn.eval e env
     \end{code}
-
     The first proof works by a completely straightforward structural induction,
     without requiring any further lemmas.
     The other direction is more interesting:
@@ -316,26 +305,26 @@
 
     Since an expression's context contains its \emph{weakly} live variables
     and removing dead bindings can make some of them dead,
-    we return the result with a thinning.
+    we return the result in a (generally) smaller context with a thinning.
 
     \begin{code}
       dbe : Expr tau Gamma -> Expr tau ^^ Gamma
     \end{code}
 
   \paragraph{Transformation (weak)}
-    The change in context has several consequences:
-    Firstly, these new thinnings coming from each recursive call
-    need to be composed with the existing ones on the way up (e.g. using |thin^^|).
-    Secondly, we need to rebuild the variable usage information,
-    i.e. calculate new contexts and covers at each node
-    using the smart constructors |_\\R_| and |_,R_|.
-
     The weakly live variables
     are already present as part of the co-de-Bruijn representation,
     so no further analysis is necessary.
     We simply need to find all bindings with a thinning |o' oz : [] C= [ sigma ]|
     in the input expression.
 
+    The change in context caused by the transformation
+    has several consequences:
+    Firstly, these new thinnings coming from each recursive call
+    need to be composed with the existing ones on the way up (e.g. using |thin^^|).
+    Secondly, we need to rebuild the variable usage information,
+    i.e. calculate new contexts and covers at each node
+    using the smart constructors |_\\R_| and |_,R_|.
     \begin{code}
       dbe : Expr tau Gamma -> Expr tau ^^ Gamma
       dbe Var =
@@ -353,7 +342,6 @@
       dbe (Plus (pairR (e1 ^ phi1) (e2 ^ phi2) c)) =
         map^^ Plus (thin^^ phi1 (dbe e1) ,R thin^^ phi2 (dbe e2))
     \end{code}
-
     \begin{code}
       thin|- : Gamma1 C= Gamma2 -> (Gamma1 |- T) Gamma -> (Gamma2 |- T) Gamma
       thin|- phi (theta \\ t) = (theta .. phi) \\ t
@@ -366,13 +354,11 @@
     that behaves like the constructor |Let| if the binding is live,
     but otherwise removes the declaration.
     The other cases are the same as in the previous section.
-
     \begin{code}
       Let? : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
       Let? (At(p)(pairR _ ((o' oz \\ e2)  ^ theta2)  _)) = e2 ^ theta2
       Let? (At(p)(pairR _ ((os oz \\ _)   ^ _)       _)) = Let p ^ oi
     \end{code}
-
     \begin{code}
       dbe (Let (pairR (e1 ^ phi1) ((psi \\ e2) ^ phi2) c)) =
         bind^^ Let?
@@ -383,7 +369,6 @@
     the definition is concise, but opaque.
     To give a better feeling for how much plumbing is involved,
     we can also inline all combinators and compose the thinnings manually:
-
     \begin{code}
       dbe (Let (pairR (e1 ^ phi1) ((psi \\ e2) ^ phi2) c)) =
         let  e1'            ^ phi1'  = dbe e1
@@ -393,7 +378,6 @@
         in
           e' ^ (theta' .. theta)
     \end{code}
-
     Additionally inlining the smart constructors
     to show how they construct their thinnings
     would make the code even more noisy and difficult to follow.
@@ -403,17 +387,20 @@
     a lot of nontrivial operations are involved in constructing
     the thinnings and covers in the result.
     This also makes the proofs more complicated.
+    Often, conceptually simple parts of the proof require
+    extensive massaging of deeply buried thinnings
+    using commutative laws or helpers with types like
+    |theta1' .. theta1 == theta2' .. theta2 -> theta1' .. (theta1 .. phi) == theta2' .. (theta2 .. phi)|.
 
     \begin{code}
       dbe-correct :
         (e : Expr tau Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
         let e' ^ theta' = dbe e
-        in eval e' (theta' .. theta) env ≡ eval e theta env
+        in eval e' (theta' .. theta) env == eval e theta env
     \end{code}
 
     While the combinators and smart constructors used in the implementation
     compose seamlessly, the same is not quite true for proofs about them.
-    \Fixme{I kind of want to show some code here, but it is quite noisy, so probably not super helpful.}
     We were able to factor out lemmas dealing with |_||-_| and |_><R_|,
     such that e.g. the cases for application and addition in |dbe-correct|
     are both instances of the same proof, using either |_S_| or |_+_| as an argument.
@@ -421,26 +408,21 @@
     to handle |Let| proved more difficult than expected.
     In the end, we simply handled |Let| as a similar but separate special case.
     The main issue for proof composability seems to be
-    that some type equalities need to be matched on (e.g. using with-abstraction)
-    just for the required call to the induction hypothesis to typecheck.
+    that some type equalities need to be matched on
+    (e.g. using \textbf{with}-abstraction)
+    just for the required call to the lemma or induction hypothesis to typecheck.
     Some attempts to break the proof into components
     also failed to satisfy the termination checker.
-    \Fixme{More details?}
 
-    Often, conceptually simple parts of the proof require
-    extensive massaging of deeply buried thinnings
-    % buried deep in the expression being reasoned about.
-    using commutative laws or helpers with types like
-    |theta1' .. theta1 == theta2' .. theta2 -> theta1' .. (theta1 .. phi) == theta2' .. (theta2 .. phi)|.
     For let-bindings in the strong version,
-    we additionally use the semantics-preserving nature of |Let?|.
-
-    \begin{code}
-      lemma-Let? :
-        (p : (Expr sigma ><R ([ sigma ] |- Expr tau)) Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
-        let e' ^ theta' = Let? p
-        in eval e' (theta' .. theta) env ≡ eval (Let p) theta env
-    \end{code}
+    we additionally use a lemma for the fact that
+    |Let? p| and |Let p| are semantically equivalent.
+    % \begin{code}
+    %   lemma-Let? :
+    %     (p : (Expr sigma ><R ([ sigma ] |- Expr tau)) Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
+    %     let e' ^ theta' = Let? p
+    %     in eval e' (theta' .. theta) env == eval (Let p) theta env
+    % \end{code}
 
 
 \section{Let-sinking}
@@ -450,32 +432,27 @@
     we will see that co-de-Bruijn representation also affords us more precision
     when specifying the inputs to the transformation.
     On the flipside, the reordering of the context inherent to let-sinking
-    causes even more complications than before.
+    causes even more complications than in the de Bruijn version.
 
   \paragraph{Type signature}
-    We again start with the thought that the signature for let-sinking
+    We again start from the observation that the signature for let-sinking
     should be similar to the |Let| constructor,
-    but allowing for a prefix in context that we will need when going under binders.
+    but allowing for a prefix in context that we need when going under binders.
     But here, declaration and binding form a relevant pair,
     each in their own context with a thinning into the overall context.
     To make it clear what this type consists of, we flatten the structure:
-
     \begin{code}
       sink-let :
-        (Gamma1 Gamma2 : Ctx) ->
         (decl : Expr sigma ^^ (Gamma1 ++ Gamma2)) ->
         (body : Expr tau ^^ (Gamma1 ++ sigma :: Gamma2)) ->
         Cover (thinning decl) (thinning body) ->
         Expr tau (Gamma1 ++ Gamma2)
     \end{code}
-
     For now, we will ignore the cover and return the result with a thinning
     (i.e. without having to show that the whole context |Gamma1 ++ Gamma2| is relevant).
-    As we will see later, this keeps the implementation easier.
-
+    As we will see later, this avoids complicated reasoning about covers.
     \begin{code}
       sink-let :
-        (Gamma1 Gamma2 : Ctx) ->
         Expr sigma ^^ (Gamma1 ++ Gamma2) ->
         Expr tau ^^ (Gamma1 ++ sigma :: Gamma2) ->
         Expr tau ^^ (Gamma1 ++ Gamma2)
@@ -487,33 +464,29 @@
     We know that it consists of two parts
     (thinned into |Gamma1| and |Gamma2| respectively),
     but that information first needs to be discovered.
-    Furthermore, it is useful to require that the declaration is live in the body
+    Furthermore, we want to require that the declaration is live in the body
     we want to move it into, so we know even more about the context.
     To make that structure more apparent,
     we can make stronger assumptions about the context of the body
     (not just the context it is thinned into).
     The structure of the overall context on the other hand is less important to us.
-
     \begin{code}
       sink-let :
-        (Gamma1 Gamma2 : Ctx) ->
         Expr sigma ^^ Gamma ->
         Expr tau (Gamma1 ++ sigma :: Gamma2) ->
         Gamma1 ++ Gamma2 C= Gamma ->
         Expr tau ^^ Gamma
     \end{code}
-
     The knowledge that the binding is used eliminates some edge cases
     we previously had to deal with.
     Using a simple wrapper, we can still get back the less restrictive type signature
     that can be applied to any let-binding:
-
     \begin{code}
       sink-let-top : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
       sink-let-top (pairR (decl ^ phi) ((os oz \\ e) ^ theta) c) =
         sink-let [] _ (decl ^ phi) e refl theta
       sink-let-top (pairR decl ((o' oz \\ e) ^ theta) c) =
-        e ^ theta   -- binding is unused, why bother?
+        e ^ theta   -- binding is unused, why bother with let-sinking?
     \end{code}
 
   \paragraph{Variables}
@@ -523,12 +496,10 @@
     the variable \emph{must} refer to the declaration.
     After making this clear to Agda using an absurd case,
     we can always replace the variable with the declaration.
-    After making this fact obvious to the typechecker using an absurd pattern,
-    we can replace the variable by the declaration.
 
   \paragraph{Creating the binding}
     As in the de Bruijn setting, we need to rename the body of the newly created binding.
-    However, it becomes more cumbersome here.
+    However, it becomes more cumbersome here:
     \begin{code}
       reorder-Ctx :
         Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
@@ -566,29 +537,18 @@
     There are many lemmas about splitting thinnings and reordering the context
     that are cumbersome to state and prove correct.
     It seems like some of the complications could be avoided
-    if we managed to avoid the usage of |_,R_| as explained in the next paragraph.
-
-  \paragraph{Covers}
-    As hinted at when choosing a type signature for the transformation,
-    it should not be necessary to return the result with a thinning.
-    If all variables occur in either declaration or body, they will still occur in the result,
-    so the context always remains the same.
-    This could potentially simplify parts of the implementation and especially the proof,
-    since constructing a relevant pair directly creates fewer indirections
-    than using |_,R_| to discover new thinnings.
-    However, making our observations clear to the typechecker
-    involves non-trivial manipulation of the covers.
+    if we managed to avoid the usage of |_,R_| as explained in
+    section \ref{sec:co-de-bruijn-alternative-designs}.
 
 
 \section{Discussion}
 \label{sec:co-de-bruijn-discussion}
-  \Fixme{These are just some quick notes, revisit!}
   \paragraph{Useful properties}
     Co-de-Bruijn expressions generally seem promising for defining transformations,
     with several useful properties:
     \begin{enumerate}
       \item Liveness information is present at each syntax node.
-      \item Changing the context in a way compatible with thinnings usually does not require a traversal of the expression.
+      \item Changing the context in a way expressible with thinnings does not require a traversal of the expression.
       \item The type of an expression only depends on the expression itself, not on the presence of unused bindings around it.
         One situation where can be useful is when identifying identical expressions for common subexpression elimination.
     \end{enumerate}
@@ -603,3 +563,25 @@
     It might be possible to create a general set of proof combinators
     that help dealing with the smart constructors,
     but so far we have not been able to find them.
+
+\subsection{Alternative Designs}
+\label{sec:co-de-bruijn-alternative-designs}
+  \paragraph{Covers}
+    As hinted at when choosing a type signature
+    for the let-sinking transformation,
+    it should not be necessary to return the result with a thinning.
+    If all variables occur in either declaration or body, they will still occur in the result,
+    no matter where exactly the declaration is moved.
+    Therefore, the context should always remain the same,
+    just the thinnings and covers have to be rebuilt.
+    This could potentially simplify parts of the implementation and especially the proof,
+    since directly constructing a relevant pair creates fewer indirections
+    than using |_,R_| to discover new thinnings.
+
+    It seems desirable to reflect this observation in the type signature,
+    specifying the result more precisely.
+    However, making it clear to the typechecker
+    involves relatively complex manipulation of the covers.
+    The problem corresponds to associativity of |_\/_|
+    (the operator for merging the live context of subexpressions),
+    but is not as straightforward to express for covers.
