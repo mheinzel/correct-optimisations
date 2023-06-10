@@ -311,11 +311,12 @@
       dbe : Expr tau Gamma -> Expr tau ^^ Gamma
     \end{code}
 
-  \paragraph{Transformation (weak)}
+  \paragraph{Transformation}
     The weakly live variables
     are already present as part of the co-de-Bruijn representation,
     so no further analysis is necessary.
-    We simply need to find all bindings with a thinning |o' oz : [] C= [ sigma ]|
+    For the weak version of dead binding elimination,
+    we simply need to find all let-bindings with a thinning |o' oz : [] C= [ sigma ]|
     in the input expression.
 
     The change in context caused by the transformation
@@ -347,11 +348,10 @@
       thin|- phi (theta \\ t) = (theta .. phi) \\ t
     \end{code}
 
-  \paragraph{Transformation (strong)}
     To get the strong version,
     we can do the recursive calls first and check the thinnings \emph{afterwards}.
-    For that we use a small helper function |Let?|
-    that behaves like the constructor |Let| if the binding is live,
+    For that we use a small helper function |Let?|,
+    which behaves like the constructor |Let| if the binding is live,
     but otherwise removes the declaration.
     The other cases are the same as in the previous section.
     \begin{code}
