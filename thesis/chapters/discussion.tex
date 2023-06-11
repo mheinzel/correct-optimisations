@@ -1,13 +1,55 @@
 \chapter{Discussion}
 \label{ch:discussion}
-  \paragraph{Semantics}
-    \Outline{Very simple semantics. Citations for how to reason about more complicated semantics? (operational, relations)}
+    \Outline{Quick summary: Did transformations, learned that liveness information is nice to have in syntax tree, this can be achieved by using co-de-Bruijn, at cost of some complexity}
+    \Outline{Alternative: thinnings as functions to avoid mismatch with reordering? Challenges with that.}
+
 
 \section{Related Work}
 \label{sec:related-work}
+    \Outline{Heavily used work by McBride and Allais et al.}
+  \paragraph{Program analysis in Agda}
+    \Outline{\cite{VanWijk2017DependentlyTypedMonotoneFrameworks}}
+    \Fixme{Is this worth citing?}
+  \paragraph{Liveness annotations}
+    \Outline{Ornamentation? \cite{Dagand2014TransportingFunctionsAcrossOrnaments}?}
+  \Fixme{More?}
+
 
 \section{Further Work}
 \label{sec:further-work}
+    \Fixme{Copy some stuff from the proposal}
+
+    \Draft{
+      Shortcomings and unfinished work:
+      \begin{itemize}
+        \item finish proofs for let-sinking
+        \item manipulating covers
+        \item generic let-sinking (not that easy to specify desired behaviour: what to push into and what not?)
+        \item semantics of syntax-generic transformations
+        \item properly explore generic co-de-Bruijn to allow working with Semantics etc. (as mentioned by Allais)
+      \end{itemize}
+    }
+
 \subsection{Extending the Language}
+  \paragraph{Effects}
+    \Outline{
+      We used a very simple semantics, but it does not account for effects,
+      including non-termination.
+      Citations for how to reason about more complicated semantics? (operational, relations)
+      \cite{Capretta2005GeneralRecursion}
+      \cite{Danielsson2012PartialityMonad}
+      \cite{McBride2015TuringCompletenessTotallyFree}
+      Maybe something from Amal Ahmed?
+    }
+    \Outline{
+      Also affects transformations we do.
+      Bindings cannot be removed or reordered if the evaluation of their declaration
+      is effectful.
+    }
   \paragraph{Recursive bindings}
-    \Outline{consequences for semantics}
+    \Outline{Non-termination, see effects. But also analysis gets more complicated.}
+
+\subsection{Other Transformations}
+  \paragraph{Common subexpression elimination}
+  \paragraph{Let-floating}
+    \Outline{Floating out of lambdas, aka full laziness transformation}
