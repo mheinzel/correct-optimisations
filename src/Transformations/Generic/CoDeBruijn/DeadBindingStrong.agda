@@ -27,21 +27,21 @@ Let? t@(a , pairᴿ (t₁ ↑ θ₁) (p ↑ θ₂) _)
 ... | (os oz \\ t₂) , refl = `con (inr t) ↑ oi
 
 dbe : Tm (d `+ `Let) τ Γ → Tm (d `+ `Let) τ ⇑ Γ
-dbe-⟦∙⟧ : ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ Γ → ⟦ d ⟧ (Scope (Tm (d' `+ `Let))) τ ⇑ Γ
+dbe-⟦∙⟧ : (d' : Desc I) → ⟦ d' ⟧ (Scope (Tm (d `+ `Let))) τ Γ → ⟦ d' ⟧ (Scope (Tm (d `+ `Let))) τ ⇑ Γ
 dbe-Scope : (Δ : List I) → Scope (Tm (d `+ `Let)) Δ τ Γ → Scope (Tm (d `+ `Let)) Δ τ ⇑ Γ
 
 dbe `var = `var ↑ oi
-dbe (`con (inl t)) = map⇑ (`con ∘ inl) (dbe-⟦∙⟧ t)
-dbe (`con (inr t)) = bind⇑ Let? (dbe-⟦∙⟧ {d = `Let} t)
+dbe (`con (inl t)) = map⇑ (`con ∘ inl) (dbe-⟦∙⟧ _ t)
+dbe (`con (inr t)) = bind⇑ Let? (dbe-⟦∙⟧ `Let t)
 -- It would be more efficient to first only run DBE on the body,
 -- and only run DBE on the declaration if it turned out to be needed.
 -- This however requires some restructuring to appease the termination checker.
 
-dbe-⟦∙⟧ {d = `σ A d} (a , t) =
-  map⇑ (a ,_) (dbe-⟦∙⟧ t)
-dbe-⟦∙⟧ {d = `X Δ j d} (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) =
-  thin⇑ θ₁ (dbe-Scope Δ t₁) ,ᴿ thin⇑ θ₂ (dbe-⟦∙⟧ t₂)
-dbe-⟦∙⟧ {d = `∎ i} t =
+dbe-⟦∙⟧ (`σ A d) (a , t) =
+  map⇑ (a ,_) (dbe-⟦∙⟧ (d a) t)
+dbe-⟦∙⟧ (`X Δ j d) (pairᴿ (t₁ ↑ θ₁) (t₂ ↑ θ₂) c) =
+  thin⇑ θ₁ (dbe-Scope Δ t₁) ,ᴿ thin⇑ θ₂ (dbe-⟦∙⟧ d t₂)
+dbe-⟦∙⟧ (`∎ i) t =
   t ↑ oi
 
 dbe-Scope [] t = dbe t

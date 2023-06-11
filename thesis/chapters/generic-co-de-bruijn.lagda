@@ -235,20 +235,24 @@
     when doing dead binding elimination
     in the next section.
 
+
 \section{Dead Binding Elimination}
 \label{sec:generic-co-de-bruijn-dbe}
-  \Draft{Note that we cannot simply remove any unused |Scope|, as we have to adhere to the (opaque) description.}
-  \Draft{
-    We do this generically for any language with let-bindings.
-    \OpenEnd{Using this for you own description. How to instantiate?}
-    \OpenEnd{What about not moving into a lambda? Currently we do!
-    But we would want to move into other let-bindings,
-    so how can a user specify where to push and where not?}
-    \begin{code}
-      Let : Desc I
-      Let {I} = \'o (I >< I) $ uncurry $ lambda sigma tau ->
-        \'X [] sigma (\'X [ sigma ] tau (\'# tau))
-    \end{code}
+    Dead binding elimination can be written in a way that abstracts
+    over most of the language, but it does not quite work for any description.
+    The description at least needs to feature let-bindings,
+    but how can we express this requirement in the type signature?
+    While it would be useful to be able to directly plug in our description type
+    together with some kind of witness of how it contains let-bindings,
+    this comes with some complexity.
+    Since this is mainly an issue of ergonomics
+    and not directly relevant to our goal of performing transformations,
+    we adopt a simpler solution from Allais et al.'s paper.
+
+  \paragraph{Type signature}
+    We make use of the fact that descriptions are closed under sums.
+    This allows to describe constructors of a language separately
+    and then combine them.
     \begin{code}
       _\'+_ : Desc I -> Desc I -> Desc I
       d \'+ e = \'o Bool lambda isLeft ->
@@ -258,44 +262,100 @@
       pattern inl t = true , t
       pattern inr t = false , t
     \end{code}
-    The implementation is similar to the concrete version,
+    For our use case, we describe let-bindings
+    and then define dead binding elimination for any description
+    explicitly extended with them.
+    \begin{code}
+      `Let : Desc I
+      `Let {I} = \'o (I >< I) $ uncurry $ lambda sigma tau ->
+        \'X [] sigma (\'X [ sigma ] tau (\'# tau))
+    \end{code}
+    \begin{code}
+      dbe : Tm (d \'+ `Let) sigma Gamma -> Tm (d \'+ `Let) sigma ^^ Gamma
+    \end{code}
+
+    The observations made about the return type in the concrete setting still apply,
+    so the result again comes with a thinning.
+
+  \paragraph{Transformation}
+    The implementation is mostly similar to the concrete version,
     but we split it into three mutually recursive functions,
     each handling a different ``layer'' of the term datatype.
     \begin{code}
       dbe :
-        Tm (d \'+ Let) sigma Gamma ->
-        Tm (d \'+ Let) sigma ^^ Gamma
+        Tm (d \'+ `Let) sigma Gamma ->
+        Tm (d \'+ `Let) sigma ^^ Gamma
+
       dbe-[.] :
-        (interpretC(d)) (Scope (Tm (d' \'+ Let))) tau Gamma ->
-        (interpretC(d)) (Scope (Tm (d' \'+ Let))) tau ^^ Gamma
+        (d' : Desc I) ->
+        (interpretC(d')) (Scope (Tm (d \'+ `Let))) tau Gamma ->
+        (interpretC(d')) (Scope (Tm (d \'+ `Let))) tau ^^ Gamma
+
       dbe-Scope :
         (Delta : List I) ->
-        Scope (Tm (d \'+ Let)) Delta tau Gamma ->
-        Scope (Tm (d \'+ Let)) Delta tau ^^ Gamma
+        Scope (Tm (d \'+ `Let)) Delta tau Gamma ->
+        Scope (Tm (d \'+ `Let)) Delta tau ^^ Gamma
     \end{code}
-    The implementation of |dbe| is split into
-    a case for constructors of the unknown description |d|
-    and a case for let-bindings, where most of the work happens.
+    The last two of these functions traverse a single syntax node,
+    apply |dbe| to each subexpression and combine the
+    resulting live contexts using the co-de-Bruijn smart constructors.
+    \begin{code}
+      dbe-[.] (\'o A d) (a , t) =
+        map^^ (a ,_) (dbe-[.] (d a) t)
+      dbe-[.] (\'X Delta j d) (pairR (t1 ^ theta1) (t2 ^ theta2) c) =
+        thin^^ theta1 (dbe-Scope Delta t1) ,R thin^^ theta2 (dbe-[.] d t2)
+      dbe-[.] (\'# i) t =
+        t ^ oi
 
-    For strong version: Instead of checking for unused bindings before doing recursive calls,
-    we do it afterwards.
-    \begin{code}
-      Let? : Tm (d \'+ Let) sigma ^^ Gamma -> ([ sigma ] |- Tm (d \'+ Let) tau) ^^ Gamma -> Tm (d \'+ Let) tau ^^ Gamma
-      Let? (t1 ^ theta1) ((oz o' \\ t2) ^ theta2) =
-        t2 ^ theta2
-      Let? (t1 ^ theta1) ((oz os \\ t2) ^ theta2) =
-        let t' ^ theta' = (t1 ^ theta1) ,R (><R-trivial (oz os \\ t2) ^ theta2)
-        in `con (inr (_ , t')) ^ theta'
+      dbe-Scope [] t = dbe t
+      dbe-Scope (_ :: _) (psi \\ t) = map^^ (map|- psi) (_ \\R dbe t)
     \end{code}
+
+    The implementation of |dbe| itself is split into
+    a case for variables,
+    a case for the description |d|
+    and finally a case for let-bindings, where most of the work happens.
+    We would like to write the following:
     \begin{code}
-      dbe (`con (inr t)) = bind^^ Let? (dbe-[.] {d = `Let} t)
+      dbe `var = `var ^ oi
+      dbe (`con (inl t)) = map^^ (`con . inl) (dbe-[.] _ t)
+      dbe (`con (inr (At(t)(a , pairR (t1 ^ theta1) (p ^ theta2) _))))
+        with ><R-trivial-1 p
+      ...  | (o' oz \\ t2) , refl =
+          thin^^ theta2 (dbe t2)
+      ...  | (os oz \\ t2) , refl =
+          map^^ (`con . inr) (dbe-[.] `Let t)
     \end{code}
-    \Fixme{Who's gonna try parsing this? Probably too much detail.}
-  }
+    However, this definition fails Agda's termination checker,
+    which can for example be solved by manually inlining the call to |dbe-[.] `Let|
+    in the last line.
+
+    For the strong version, we again introduce a helper function |Let?|
+    and now everything works nicely:
+    since it only checks for dead bindings afterwards,
+    the recursive call happens directly on the subexpression from the input,
+    which is clearly structurally smaller.
+    \begin{code}
+      Let? : (interpretC(`Let)) (Scope (Tm (d \'+ `Let))) tau Gamma -> Tm (d \'+ `Let) tau ^^ Gamma
+      Let? (At(t)(a , pairR (t1 ^ theta1) (p ^ theta2) _))
+        with ><R-trivial-1 p
+      ... | (o' oz \\ t2) , refl = t2 ^ theta2
+      ... | (os oz \\ t2) , refl = `con (inr t) ^ oi
+
+      dbe `var            = `var ^ oi
+      dbe (`con (inl t))  = map^^ (`con . inl) (dbe-[.] _ t)
+      dbe (`con (inr t))  = bind^^ Let? (dbe-[.] `Let t)
+    \end{code}
+
 
 \section{Discussion}
     \Outline{Nice and concise. Generic.}
     \Outline{Complexity through abstractions? |><R-trivial| \ldots}
+    \OpenEnd{
+      What about let-sinking into a lambda?
+      But we would want to move into other let-bindings,
+      so how can a user specify where to push and where not?
+    }
     \Outline{Correctness? Using which semantics?}
     \OpenEnd{
       Generic Semantics:
