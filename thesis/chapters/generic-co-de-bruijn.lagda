@@ -349,18 +349,65 @@
 
 
 \section{Discussion}
-    \Outline{Nice and concise. Generic.}
-    \Outline{Complexity through abstractions? |><R-trivial| \ldots}
-    \OpenEnd{
-      What about let-sinking into a lambda?
-      But we would want to move into other let-bindings,
-      so how can a user specify where to push and where not?
+    Given the generality of the dead binding elimination
+    presented in this chapter,
+    its implementation turned out concise and relatively readable.
+    However, the syntax-generic representation adds considerable complexity,
+    be it when describing a language's syntax through the |Desc| type,
+    defining mutually recursive functions to operate on terms,
+    or dealing with the trivial relevant pairs that get introduced
+    by the interpretation into co-de-Bruijn syntax.
+    Furthermore, there remain some questions that would need to be answered
+    to migrate the remaining work from chapter \ref{ch:co-de-bruijn}
+    to the syntax-generic setting.
+
+  \paragraph{Let-sinking}
+    Making the concrete version of let-sinking syntax-generic
+    is not quite as straightforward as for dead binding elimination,
+    since some rules on when to stop let-sinking
+    depend on specific language constructs.
+    The rule of not duplicating bindings can be implemented generically,
+    but the constraint on not moving a let-binding
+    into $\lambda$-abstractions is more ad-hoc.
+    The presence of bound variables is not enough to
+    make a conclusion:
+    we \emph{do} want to sink into other let-bindings
+    and we can imagine a number of other language constructs
+    for which it is not immediately obvious whether
+    it is beneficial to sink let-bindings into them or not.
+    This suggests the need for a mechanism
+    by which the desired behaviour can be specified
+    as an additional input to the let-sinking transformation.
+
+  \paragraph{Correctness}
+    We did not attempt to prove preservation of semantics
+    for syntax-generic transformations,
+    but note that it raises the question of
+    which semantics to use for that.
+    We can certainly prove that the syntax-generic dead binding elimination
+    behaves correctly for our example language with its semantics,
+    but we do not have a semantics for any arbitrary description at hand.
+
+    Ideally, it should be possible to do the proof for \emph{any} semantics,
+    with some properties, like being defined as a fold of the syntax tree.
+    \Fixme{explain or reference the term ``fold''?}
+    However, the exact constraints are not obvious.
+    A good candidate is the notion of |Semantics|
+    as defined by Allais et al. \cite{Allais2018UniverseOfSyntaxes},
+    which indeed is based on a fold (catamorphism with an algebra)
+    with the constraint that the values it operates on are \emph{thinnable}.
+
+    Unfortunately, ``applying'' a |Semantics| to co-de-Bruijn terms
+    becomes more complicated than it is for de Bruin terms,
+    as the relationship between the context of an expression
+    and the context of its subexpressions is more involved.
+    \Fixme{
+      They rely on |interpretC_| giving rise to traversable functors,
+      which is not true for co-de-Bruijn.
+      But that might be too much information here?
     }
-    \Outline{Correctness? Using which semantics?}
-    \OpenEnd{
-      Generic Semantics:
-      It is not sufficient to slightly tweak the de Bruijn implementation of this,
-      as it relies on |interpretC_| giving rise to traversable functors, which is not true here.
-      It would be very nice to get this to work, but my initial attempts didn't get far.
-      Not sure it's impossible, either.
-    }
+    While we did not find a solution for this issue,
+    there might exist one,
+    which then might make it possible to prove
+    that a transformation preserves
+    any |Semantics| for any syntax description.
