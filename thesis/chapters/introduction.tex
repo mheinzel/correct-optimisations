@@ -30,8 +30,7 @@
     Optimisations, for example, play a central role in practical compilers,
     but establishing their correctness is often not trivial,
     with ample opportunity for binding-related mistakes
-    \cite{SpectorZabusky2019EmbracingFormalizationGap}
-    \cite{Maclaurin2022Foil}.
+    \cite{SpectorZabusky2019EmbracingFormalizationGap,Maclaurin2022Foil}.
     Letting the type checker keep track of invariants
     promises to remove common sources of bugs.
     A mechanised proof of semantics preservation can further increase
@@ -101,7 +100,8 @@
       \item an implementation of let-sinking on intrinsically typed syntax trees of three different flavours
         (sections \ref{sec:de-bruijn-let-sinking-direct}, \ref{sec:de-bruijn-let-sinking-live} and \ref{sec:co-de-bruijn-let-sinking})
       \item an incomplete proof of correctness for co-de-Bruijn let-sinking, with an explanation of the main challenges
-      \item a generic interpretation of the syntax descriptions presented by Allais et al. \cite{Allais2018UniverseOfSyntaxes} into co-de-Bruijn terms
+      \item a generic interpretation of the syntax descriptions presented by Allais et al.
+        \cite{Allais2018UniverseOfSyntaxes} into co-de-Bruijn terms
         (section \ref{sec:generic-co-de-bruijn-terms})
       \item syntax-generic conversion between de Bruijn and co-de-Bruijn terms
         (section \ref{sec:generic-co-de-bruijn-conversion})

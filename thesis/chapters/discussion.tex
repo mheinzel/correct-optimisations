@@ -1,8 +1,17 @@
 \chapter{Discussion}
 \label{ch:discussion}
     \Outline{Quick summary: Did transformations, learned that liveness information is nice to have in syntax tree, this can be achieved by using co-de-Bruijn, at cost of some complexity}
-    \Outline{Alternative: thinnings as functions to avoid mismatch with reordering? Challenges with that.}
-
+    \Outline{Mismatch: Reordering bindings and thinnings. This extends to co-de-Bruijn, as it is built on thinnings. Alternatives: allowing re-orderings. thinnings as functions (also associativity for free). But challenges with that.}
+    \Draft{
+      Both thinning and reordering could be performed
+      by a more general renaming operation,
+      for example using a function
+      |(forall sigma -> Ref sigma Delta -> Ref sigma Gamma)|
+      mapping references in the source context
+      to references in the target context.
+      This representation however is more opaque
+      and difficult to manipulate than thinnings.
+    }
 
 \section{Related Work}
 \label{sec:related-work}
@@ -36,9 +45,7 @@
       We used a very simple semantics, but it does not account for effects,
       including non-termination.
       Citations for how to reason about more complicated semantics? (operational, relations)
-      \cite{Capretta2005GeneralRecursion}
-      \cite{Danielsson2012PartialityMonad}
-      \cite{McBride2015TuringCompletenessTotallyFree}
+      \cite{Capretta2005GeneralRecursion,Danielsson2012PartialityMonad,McBride2015TuringCompletenessTotallyFree}
       Maybe something from Amal Ahmed?
     }
     \Outline{

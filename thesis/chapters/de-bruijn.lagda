@@ -24,14 +24,14 @@
     or -scoped.
     In Agda, we can similarly define expressions as follows:
     \begin{code}
-      data UnsafeExpr : Set where
-        Var   : Nat -> UnsafeExpr
-        App   : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
-        Lam   : UnsafeExpr -> UnsafeExpr
-        Let   : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
-        Num   : Nat -> UnsafeExpr
-        Bln   : Bool -> UnsafeExpr
-        Plus  : UnsafeExpr -> UnsafeExpr -> UnsafeExpr
+      data RawExpr : Set where
+        Var   : Nat -> RawExpr
+        App   : RawExpr -> RawExpr -> RawExpr
+        Lam   : RawExpr -> RawExpr
+        Let   : RawExpr -> RawExpr -> RawExpr
+        Num   : Nat -> RawExpr
+        Bln   : Bool -> RawExpr
+        Plus  : RawExpr -> RawExpr -> RawExpr
     \end{code}
 
     But how should expressions like |Plus (Bln False) (Var 42)| be evaluated?
@@ -56,13 +56,13 @@
       (interpretU(BOOL))          = Bool
       (interpretU(NAT))           = Nat
 
-      data UnsafeExpr : U -> Set where
-        Var   : Nat -> UnsafeExpr sigma
-        App   : UnsafeExpr (sigma => tau) -> UnsafeExpr sigma -> UnsafeExpr tau
-        Lam   : UnsafeExpr tau -> UnsafeExpr (sigma => tau)
-        Let   : UnsafeExpr sigma -> UnsafeExpr tau -> UnsafeExpr tau
-        Val   : (interpretU(sigma)) -> UnsafeExpr sigma
-        Plus  : UnsafeExpr NAT -> UnsafeExpr NAT -> UnsafeExpr NAT
+      data RawExpr : U -> Set where
+        Var   : Nat -> RawExpr sigma
+        App   : RawExpr (sigma => tau) -> RawExpr sigma -> RawExpr tau
+        Lam   : RawExpr tau -> RawExpr (sigma => tau)
+        Let   : RawExpr sigma -> RawExpr tau -> RawExpr tau
+        Val   : (interpretU(sigma)) -> RawExpr sigma
+        Plus  : RawExpr NAT -> RawExpr NAT -> RawExpr NAT
     \end{code}
 
     Note that the values not only consist of natural numbers and Booleans,
@@ -138,8 +138,9 @@
 \label{sec:de-bruijn-thinnings}
     Since the context of an expression plays such an important role for its scope-safety,
     we want some machinery for talking about how different contexts relate to each other.
-    One such relation, which will prove useful soon, is that of subcontexts,
-    or more precisely contexts that embed into each other.
+    One such relation, which will prove useful soon,
+    is that of being a subcontext,
+    or more precisely a context with an embedding into another.
     We formalise this notion in the form of \emph{thinnings},
     also called \emph{order-preserving embeddings} (OPE)
     \cite{Chapman2009TypeCheckingNormalisation}.
@@ -161,7 +162,7 @@
     Intuitively, a thinning tells us for each element of the target context
     whether it also occurs in the source target or not (\emph{keep} or \emph{drop}).
     As an example, let us embed |[ a , c ]| into |[ a , b , c ]|:
-    \Fixme{Some nice little diagrams?}
+    \Fixme{Explain usage of list literals!}
     \begin{code}
       os (o' (os oz)) : [ a , c ] C= [ a , b , c ]
     \end{code}
@@ -202,14 +203,14 @@
       os theta  ++C= phi = os  (theta ++C= phi)
       oz        ++C= phi = phi
     \end{code}
-    This commutes, i.e.
-    |(theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2)|
+    This interacts nicely with sequential composition, specifically we prove that
+    |(theta1 .. theta2) ++C= (phi1 .. phi2) == (theta1 ++C= phi1) .. (theta2 ++C= phi2)|.
 
   \paragraph{Splitting thinnings}
     If we have a thinning into a target context that is concatenated from two segments,
     we can also split the source context and thinning accordingly.
     To help the typechecker figure out what we want, we quantify over |Gamma1| explicitly,
-    while leaving the other variables implicit.
+    |Gamma2| can then usually be inferred.
     \begin{code}
       record Split (Gamma1 : List I) (theta : Delta C= (Gamma1 ++ Gamma2)) : Set where
         constructor split
@@ -223,6 +224,24 @@
     \begin{code}
       _-|_ : (Gamma1 : List I) (theta : Delta C= (Gamma1 ++ Gamma2)) -> Split Gamma1 theta
     \end{code}
+
+    As an example, let us return to the previous example thinning
+    and observe that we could have built it by concatenating two smaller thinnings:
+    \begin{code}
+      theta1 : [ a ] C= [ a ]
+      theta1 = os oz
+
+      theta2 : [ c ] C= [ b , c ]
+      theta2 = o' (os oz)
+
+      theta : [ a , c ] C= [ a , b , c ]
+      theta = theta1 ++C= theta2    -- evaluates to |os (o' (os oz))|
+    \end{code}
+    To go into the other direction, we split |theta| by calling |[ a ] -|| theta|,
+    resulting in a |split theta1 theta2 eq : Split [ a ] theta|.
+    The target context's first segment [ a ] needs to be supplied explicitly
+    to specify at which place the splitting should happen.
+    The second segment is then determined by |theta|'s target context.
 
   \paragraph{Things with thinnings}
     We will later deal with things (e.g. expressions) indexed by a context
@@ -472,10 +491,10 @@
           (forall x -> f x == g x) -> f == g
     \end{code}
 
-    As the transformed expression generally has a smaller context than before,
-    we cannot immediately evaluate it under the same environment.
-    Instead of using the thinning to rename the expression,
-    we project the environment to match the smaller context.
+    As the transformed expression generally has a different context
+    than the input expression,
+    we cannot evaluate them both under the same environment,
+    so we project the environment to match the smaller context.
     \begin{code}
       project-Env : Delta C= Gamma -> Env Gamma -> Env Delta
     \end{code}
@@ -485,8 +504,9 @@
         let e' ^ theta = dbe e
         in eval e' (project-Env theta env) == eval e env
     \end{code}
-    As we show, both statements are equivalent,
-    but in this case it turned out to be more convenient to reason about context projection.
+    Alternatively, it is possible to rename the expression
+    (and |law-eval-rename-Expr| witnesses that both approaches are exchangable),
+    but in this case it turns out to be more convenient to reason about context projection.
     \begin{code}
       law-eval-rename-Expr :
         (e : Expr sigma Delta) (theta : Delta C= Gamma) (env : Env Gamma) ->
@@ -730,6 +750,7 @@
     to evaluation under any |Env Gamma'|,
     as long as it contains the live context.
     This gives us more flexibility when using the inductive hypothesis.
+    \Fixme{Add a paragraph of reflection: sometimes it is easier to prove something more general!}
 
 \section{Let-sinking}
 \label{sec:de-bruijn-let-sinking}
@@ -922,6 +943,7 @@
         Let (rename-Expr^^ decl) (rename-top (forget e))
       (dots)
     \end{code}
+    \Fixme{Present better or leave out? The four cases should be familiar by now, but hard to see what's really going on.}
 
     Focusing on the first subexpression,
     we use |_-||_| to split the annotated thinning
@@ -971,14 +993,10 @@
     The complexity of the transformation was significantly higher
     than for dead binding elimination.
 
-    Both thinning and reordering could be performed
-    by a more general renaming operation,
-    for example using a function
-    |(forall sigma -> Ref sigma Delta -> Ref sigma Gamma)|
-    mapping references in the source context
-    to references in the target context.
-    This representation however is more opaque
-    and difficult to manipulate than thinnings.
+    We will continue using the order-preserving flavour of thinnings,
+    but discuss potential alternatives in chapter
+    \ref{ch:discussion}.
+
 
 \subsection{Alternative Designs}
   \paragraph{Iterating transformations}

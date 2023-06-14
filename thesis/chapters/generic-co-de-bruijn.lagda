@@ -220,9 +220,9 @@
     The conversion between de Bruijn and co-de-Bruijn terms
     can be done generically for any description.
     \begin{code}
-      relax : (d : Desc I) -> Delta C= Gamma ->
+      toDeBruijn : (d : Desc I) -> Delta C= Gamma ->
         CoDeBruijn.Tm d tau Delta -> DeBruijn.Tm d tau Gamma
-      tighten : (d : Desc I) ->
+      fromDeBruijn : (d : Desc I) ->
         DeBruijn.Tm d tau Gamma -> CoDeBruijn.Tm d tau ^^ Gamma
     \end{code}
     While the operations used in the implementation are generally the same

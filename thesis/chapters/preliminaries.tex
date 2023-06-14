@@ -33,8 +33,7 @@
 \label{sec:program-transformations}
     We mainly consider transformations aimed at optimising functional programs.
     A large number of program analyses and optimisations are presented in the literature
-    \cite{Nielson1999PrinciplesProgramAnalysis}
-    \cite{Santos1995CompilationByTransformation}
+    \cite{Nielson1999PrinciplesProgramAnalysis,Santos1995CompilationByTransformation}
     and used in production compilers such as the Glorious Haskell Compiler (GHC).
     We generally focus on those transformations that deal with variable binders,
     such as
@@ -95,7 +94,7 @@
     \begin{align*}
       (g\ 1)\ (\Let{x} f\ 42 \In f\ x + x)
     \end{align*}
-    $x$ is only used in the right side of the function application,
+    The variable $x$ is only used in the right side of the function application,
     but we cannot sink it any further,
     since it occurs on both sides of the addition.
 

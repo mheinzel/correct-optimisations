@@ -117,7 +117,7 @@
 %format _\\R_ = "\_{\fatbslash_R}\_"
 %format map|- = "\Varid{map}{\vdash}"
 %format pairR = "\Varid{pair}_R"
-%format cover++C=4 = "\Varid{cover}" ++ C= "\Varid{4}"
+%format cover++C=4 = "\Varid{cover}{" ++ "}{" C= "}\Varid{4}"
 %format \'o = "\Varid{`}\sigma"
 %format \'# = "\Varid{`}\blacksquare"
 %format \'X = "\Varid{`}X"

@@ -219,51 +219,39 @@
     is very similar to computing and forgetting annotations
     in the second part of section \ref{sec:de-bruijn-dbe}.
 
-  \paragraph{Relax}
+  \paragraph{To de Bruijn}
     Since the converted expression often needs to be placed in a larger context
     than just its live variables,
     we allow to specify the desired context using a thinning.
     \begin{code}
-      relax :  Delta C= Gamma -> CoDeBruijn.Expr sigma Delta -> DeBruijn.Expr sigma Gamma
+      toDeBruijn :  Delta C= Gamma -> CoDeBruijn.Expr sigma Delta -> DeBruijn.Expr sigma Gamma
     \end{code}
-      % relax theta Var =
-      %   Var (ref-o theta)
-      % relax theta (App (pairR (e1 ^ theta1) (e2 ^ theta2) cover)) =
-      %   App (relax (theta1 .. theta) e1) (relax (theta2 .. theta) e2)
-      % relax theta (Lam (psi \\ e)) =
-      %   Lam (relax (psi ++C= theta) e)
-      % relax theta (Let (pairR (e1 ^ theta1) ((psi \\ e2) ^ theta2) c)) =
-      %   Let (relax (theta1 .. theta) e1) (relax (psi ++C= (theta2 .. theta)) e2)
-      % relax theta (Val v) =
-      %   Val v
-      % relax theta (Plus (pairR (e1 ^ theta1) (e2 ^ theta2) cover)) =
-      %   Plus (relax (theta1 .. theta) e1) (relax (theta2 .. theta) e2)
     The recursive calls work the exact same way as during evaluation,
     composing the thinning on the way down
     to turn it into into a de Bruijn index when reaching a variable.
     The only difference is that instead of computing a value,
     the resulting expressions are just packaged up into a syntax tree again.
 
-  \paragraph{Tighten}
+  \paragraph{From de Bruijn}
     The other direction is slightly more work,
     as it effectively needs to perform live variable analysis.
     Luckily, we benefit greatly from the smart constructors.
     As we do not know the context of de resulting co-de-Bruijn expression upfront,
     we once more return the result with a thinning.
     \begin{code}
-      tighten : DeBruijn.Expr sigma Gamma -> CoDeBruijn.Expr sigma ^^ Gamma
-      tighten (Var x) =
+      fromDeBruijn : DeBruijn.Expr sigma Gamma -> CoDeBruijn.Expr sigma ^^ Gamma
+      fromDeBruijn (Var x) =
         Var ^ o-Ref x
-      tighten (App e1 e2) =
-        map^^ App (tighten e1 ,R tighten e2)
-      tighten (Lam e) =
-        map^^ Lam (_ \\R tighten e)
-      tighten (Let e1 e2) =
-        map^^ Let (tighten e1 ,R (_ \\R tighten e2))
-      tighten (Val v) =
+      fromDeBruijn (App e1 e2) =
+        map^^ App (fromDeBruijn e1 ,R fromDeBruijn e2)
+      fromDeBruijn (Lam e) =
+        map^^ Lam (_ \\R fromDeBruijn e)
+      fromDeBruijn (Let e1 e2) =
+        map^^ Let (fromDeBruijn e1 ,R (_ \\R fromDeBruijn e2))
+      fromDeBruijn (Val v) =
         Val v ^ oe
-      tighten (Plus e1 e2) =
-        map^^ Plus (tighten e1 ,R tighten e2)
+      fromDeBruijn (Plus e1 e2) =
+        map^^ Plus (fromDeBruijn e1 ,R fromDeBruijn e2)
     \end{code}
     After using the smart constructors
     to obtain a relevant pair or binder (with a thinning),
@@ -274,15 +262,15 @@
     mapping constructors one-to-one to their counterparts,
     we can prove that the semantics of the two representations agree.
     \begin{code}
-      relax-correct :
+      toDeBruijn-correct :
         (e : CoDeBruijn.Expr tau Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
-        let e' = relax theta e
+        let e' = toDeBruijn theta e
         in DeBruijn.eval e' env == CoDeBruijn.eval e theta env
     \end{code}
     \begin{code}
-      tighten-correct :
+      fromDeBruijn-correct :
         (e : DeBruijn.Expr tau Gamma) (env : Env Gamma) ->
-        let e' ^ theta = tighten e
+        let e' ^ theta = fromDeBruijn e
         in CoDeBruijn.eval e' theta env == DeBruijn.eval e env
     \end{code}
     The first proof works by a completely straightforward structural induction,
@@ -514,6 +502,9 @@
         Cover (theta1 ++C= theta2 ++C= theta3 ++C= theta4) (phi1 ++C= phi2 ++C= phi3 ++C= phi4) ->
         Cover (theta1 ++C= theta3 ++C= theta2 ++C= theta4) (phi1 ++C= phi3 ++C= phi2 ++C= phi4)
     \end{code}
+    The need for such an operation suggests that co-de-Bruijn representation,
+    and in particular the notion of thinnings it is based on,
+    might not be very well suited for the reordering of bindings.
 
   \paragraph{Binary constructors}
     Variable usage information is immediately available:
@@ -549,26 +540,29 @@
     \begin{enumerate}
       \item Liveness information is present at each syntax node.
       \item Changing the context in a way expressible with thinnings does not require a traversal of the expression.
-      \item The type of an expression only depends on the expression itself, not on the presence of unused bindings around it.
-        One situation where can be useful is when identifying identical expressions for common subexpression elimination.
+      \item The type of an expression only depends on the expression itself, not on the (potentially unused) bindings around it.
+        One situation where this can be useful is when identifying identical expressions in different parts of the expression,
+        as is needed for common subexpression elimination.
     \end{enumerate}
   \paragraph{Complications}
     On the other hand,
     the elaborate bookkeeping that is part of co-de-Bruijn syntax trees
     makes the construction of expressions more complicated.
-    While this is partly mitigated by smart constructors,
-    the proofs about transformed expressions
-    are significantly more complex than their de Bruijn counterparts.
-    This became especially apparent during let-sinking.
+    While this complexity can be hidden behind smart constructors,
+    it leaks easily.
+    For example, the proofs about transformed expressions
+    are significantly more complex than their de Bruijn counterparts,
+    which especially became apparent for let-sinking.
     It might be possible to create a general set of proof combinators
-    that help dealing with the smart constructors,
-    but so far we have not been able to find them.
+    that mirror the structure of the smart constructors,
+    but this kind of abstraction over proofs is usually difficult (or impossible) to achieve.
 
 \subsection{Alternative Designs}
 \label{sec:co-de-bruijn-alternative-designs}
   \paragraph{Covers}
     As hinted at when choosing a type signature
-    for the let-sinking transformation,
+    for the let-sinking transformation
+    in section \ref{sec:co-de-bruijn-let-sinking},
     it should not be necessary to return the result with a thinning.
     If all variables occur in either declaration or body, they will still occur in the result,
     no matter where exactly the declaration is moved.
@@ -582,6 +576,10 @@
     specifying the result more precisely.
     However, making it clear to the typechecker
     involves relatively complex manipulation of the covers.
-    The problem corresponds to associativity of |_\/_|
-    (the operator for merging the live context of subexpressions),
-    but is not as straightforward to express for covers.
+
+    The issue boils down to quite fundamental associative and commutative
+    operations on relevant pairs:
+    we want to be able to turn any |(S ><R (T ><R U)) Gamma|
+    into |((S ><R T) ><R U) Gamma| or also |(T ><R (S ><R U)) Gamma| etc.,
+    and intuitively it's clear that the live variables |Gamma| are unaffected
+    by these operations.
