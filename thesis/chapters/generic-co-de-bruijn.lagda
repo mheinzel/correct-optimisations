@@ -88,8 +88,8 @@
       Lang : Desc U
       Lang = \'o `Lang lambda where
         (`App sigma tau)  -> \'X [] (sigma => tau) (\'X [] sigma (\'# tau))
-        (`Lam sigma tau)  -> \'X [ sigma ] tau (\'# (sigma => tau))
-        (`Let sigma tau)  -> \'X [] sigma (\'X [ sigma ] tau (\'# tau))
+        (`Lam sigma tau)  -> \'X (sigma :: []) tau (\'# (sigma => tau))
+        (`Let sigma tau)  -> \'X [] sigma (\'X (sigma :: []) tau (\'# tau))
         (`Val tau)        -> \'o (interpretU(tau)) lambda _ -> \'# tau
         `Plus             -> \'X [] NAT (\'X [] NAT (\'# NAT))
     \end{code}
@@ -140,7 +140,7 @@
     \end{code}
     \begin{code}
       data Tm (d : Desc I) : I -Scoped where
-        `var  : Tm d i [ i ]
+        `var  : Tm d i (i :: [])
         `con  : (interpretC(d)) (Scope (Tm d)) i Gamma -> Tm d i Gamma
     \end{code}
     We also see that variables always have a singleton live context.
@@ -168,15 +168,15 @@
 
     \begin{code}
       -- de Bruijn
-      foo :: Expr BOOL [ NAT => BOOL ]
+      foo :: Expr BOOL ((NAT => BOOL) :: [])
       foo = App (Var Top) (Val 1)
 
       -- co-de-Bruijn
-      foo :: Expr BOOL [ NAT => BOOL ]
+      foo :: Expr BOOL ((NAT => BOOL) :: [])
       foo = App (pairR (os oz ^ Var) (o' oz ^ Val 1) (cs' czz))
 
       -- syntax-generic co-de-Bruijn
-      foo : Expr BOOL [ NAT => BOOL ]
+      foo : Expr BOOL ((NAT => BOOL) :: [])
       foo =
         `con ( `App NAT BOOL ,
           pairR
@@ -268,7 +268,7 @@
     \begin{code}
       `Let : Desc I
       `Let {I} = \'o (I >< I) $ uncurry $ lambda sigma tau ->
-        \'X [] sigma (\'X [ sigma ] tau (\'# tau))
+        \'X [] sigma (\'X (sigma :: []) tau (\'# tau))
     \end{code}
     \begin{code}
       dbe : Tm (d \'+ `Let) sigma Gamma -> Tm (d \'+ `Let) sigma ^^ Gamma

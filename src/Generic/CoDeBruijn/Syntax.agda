@@ -1,9 +1,9 @@
 module Generic.CoDeBruijn.Syntax where
 
 open import Data.Bool using (true; false)
-open import Data.List using (List ; _∷_ ; [] ; [_])
+open import Data.List using (List ; _∷_ ; [])
 open import Data.Product as Prod using (_×_; Σ-syntax; _,_)
-open import Relation.Binary.PropositionalEquality hiding ([_])
+open import Relation.Binary.PropositionalEquality
 open import Function using (_∋_)
 
 open import Data.Var using (_─Scoped)
@@ -33,7 +33,7 @@ Scope T []        i = T i
 Scope T Δ@(_ ∷ _) i = Δ ⊢ T i
 
 data Tm (d : Desc I) : I ─Scoped where
-  `var  : Tm d i [ i ]
+  `var  : Tm d i (i ∷ [])
   `con  : ⟦ d ⟧ (Scope (Tm d)) i Γ → Tm d i Γ
 
 -- Convenience function for the construction of ⟦ `X Δ σ (`∎ τ) ⟧ ,

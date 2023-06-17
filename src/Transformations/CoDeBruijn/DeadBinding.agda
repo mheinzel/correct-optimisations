@@ -3,7 +3,7 @@
 module Transformations.CoDeBruijn.DeadBinding where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [_])
+open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
@@ -36,7 +36,7 @@ dbe (Lam (ψ \\ e)) =
 dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((o' oz \\ e₂) ↑ ϕ₂) c)) =
   thin⇑ ϕ₂ (dbe e₂)
 dbe (Let (pairᴿ (e₁ ↑ ϕ₁) ((os oz \\ e₂) ↑ ϕ₂) c)) =
-  map⇑ Let (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ ([ _ ] \\ᴿ dbe e₂))
+  map⇑ Let (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (_ \\ᴿ dbe e₂))
 dbe (Val v) =
   Val v ↑ oz
 dbe (Plus (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
@@ -60,7 +60,7 @@ helper-assoc {θ₁ = θ₁} {θ₁' = θ₁'} {θ₂ = θ₂} {θ₂' = θ₂'}
   ∎
 
 dbe-correct-Lam :
-  {Γₑ : Ctx} (l : ([ σ ] ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ : Ctx} (l : ((σ ∷ []) ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let ψ \\ e₁ = l
       e₁' ↑ θ₁' = dbe e₁
       e = Lam l
@@ -157,7 +157,7 @@ dbe-correct (Let {σ} p@(pairᴿ (e₁ ↑ θ₁) ((os oz \\ e₂) ↑ θ₂) c)
   -- but it turned out to be more cumbersome than expected.
   with dbe e₁    | dbe e₂    | dbe-correct e₁ env (θ₁ ₒ θ) | dbe-correct e₂
 ...  | e₁' ↑ θ₁' | e₂' ↑ θ₂' | h₁                          | h₂
-  with [ _ ] ⊣ θ₂'
+  with (_ ∷ []) ⊣ θ₂'
 ...  | split ϕ₁ ϕ₂ (refl , refl)
   with cop (θ₁' ₒ θ₁) (ϕ₂ ₒ θ₂)
 ...  | coproduct Γ' ψ' θ₁'' θ₂'' p₁ p₂ c =

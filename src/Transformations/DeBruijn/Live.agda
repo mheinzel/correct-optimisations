@@ -4,7 +4,7 @@
 module Transformations.DeBruijn.Live where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; []; [_])
+open import Data.List using (List ; _∷_ ; [])
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
@@ -63,7 +63,7 @@ forget (Plus e₁ e₂) = Plus (forget e₁) (forget e₂)
 
 -- decide which variables are used or not
 analyse : Expr σ Γ → Σ[ Δ ∈ Ctx ] Σ[ θ ∈ (Δ ⊑ Γ) ] LiveExpr σ θ
-analyse (Var {σ} x) = [ σ ] , o-Ref x , Var x
+analyse (Var {σ} x) = σ ∷ [] , o-Ref x , Var x
 analyse (App e₁ e₂) =
   let Δ₁ , θ₁ , le₁ = analyse e₁
       Δ₂ , θ₂ , le₂ = analyse e₂
@@ -116,7 +116,7 @@ evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
 
 {-
 lookup-ref-o-project-Env :
-  {θ : [ σ ] ⊑ Γ} (θ' : [ σ ] ⊑ Γ') (θ'' : Γ' ⊑ Γ) (x : Ref σ Γ) (env : Env Γ) → θ ≡ θ' ₒ θ'' →
+  {θ : (σ ∷ []) ⊑ Γ} (θ' : (σ ∷ []) ⊑ Γ') (θ'' : Γ' ⊑ Γ) (x : Ref σ Γ) (env : Env Γ) → θ ≡ θ' ₒ θ'' →
   lookup (ref-o θ') (project-Env θ'' env) ≡ lookup (ref-o (o-Ref x)) env
 lookup-ref-o-project-Env θ θ' x env H = {!!}
 

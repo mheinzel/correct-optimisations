@@ -8,7 +8,7 @@
 module Transformations.CoDeBruijn.LetInward where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [] ; [_] ; _++_)
+open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.List.Properties using (++-assoc ; ∷-injective ; ∷-injectiveˡ ; ∷-injectiveʳ ; ++-conicalˡ ; ++-conicalʳ)
 open import Data.Unit
 open import Data.Product
@@ -51,8 +51,8 @@ lemma-[]≡++ Γ₁ Γ₂ Γ₃ Γ₄ p
 -- This feels more convoluted than it should be.
 lemma-[τ]≡++ :
   (Γ₁ Γ₂ Γ₃ Γ₄ : Ctx) →
-  ([ τ ] ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) →
-  ([ τ ] ≡ Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
+  (τ ∷ [] ≡ Γ₁ ++ Γ₂ ++ Γ₃ ++ Γ₄) →
+  (τ ∷ [] ≡ Γ₁ ++ Γ₃ ++ Γ₂ ++ Γ₄)
 lemma-[τ]≡++ (_ ∷ Γ₁) Γ₂ Γ₃ Γ₄ p
   with refl , refl , refl , refl ← lemma-[]≡++ Γ₁ Γ₂ Γ₃ Γ₄ (∷-injectiveʳ p) = p
 lemma-[τ]≡++ [] (_ ∷ Γ₂) Γ₃ Γ₄ p
@@ -201,10 +201,10 @@ sink-let Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl �
   map⇑ App (sink-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
-  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] _ e refl) ↑ ψ))
+  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
 sink-let Γ₁ Γ₂ decl e@(Lam _) refl ψ = -- don't push into lambdas!
-  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] _ e refl) ↑ ψ))
+  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
 sink-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ'} ψ' e₂ ↑ ϕ) c)) refl ψ
   with Γ₁ ⊣ θ | Γ₁ ⊣ ϕ
@@ -224,7 +224,7 @@ sink-let Γ₁ Γ₂ decl e@(Let (pairᴿ (e₁ ↑ θ) (_\\_ {Γ'} ψ' e₂ ↑
   map⇑ Let (sink-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ ((ψ' \\ e₂) ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (os θ₂) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (os ϕ₂) (refl , refl) =
-  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] _ e refl) ↑ ψ))
+  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
 sink-let Γ₁ Γ₂ decl (Val v) p θ =
   (Val v) ↑ oe
@@ -242,11 +242,11 @@ sink-let Γ₁ Γ₂ decl e@(Plus (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) refl 
   map⇑ Plus (sink-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ) ,ᴿ (e₂ ↑ ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)))
   -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
-  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] _ e refl) ↑ ψ))
+  map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ (_ ∷ []) _ e refl) ↑ ψ))
 
 -- This is the same signature as for `Let live` itself, just with a thinning so we can drop the Let.
 -- (in case it was dead)
-sink-let-top : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+sink-let-top : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 sink-let-top (pairᴿ (decl ↑ ϕ) ((os oz \\ e) ↑ θ) c) =
   sink-let [] _ (decl ↑ ϕ) e refl θ
 sink-let-top (pairᴿ decl ((o' oz \\ e) ↑ θ) c) =
@@ -286,10 +286,10 @@ mutual
 
 law-eval-reorder-Ctx-[] :
   ∀ {σ τ} Γ₁ Γ₂ (e : Expr τ Γ) (p : Γ ≡ Γ₁ ++ σ ∷ Γ₂) (v : ⟦ σ ⟧) (env₁ : Env Γ₁) (env₂ : Env Γ₂) →
-    eval (reorder-Ctx [] Γ₁ [ σ ] Γ₂ e p) oi (Cons v (env₁ ++ᴱ env₂))
+    eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) oi (Cons v (env₁ ++ᴱ env₂))
   ≡ eval (coerce (Expr _) p e) oi (env₁ ++ᴱ Cons v env₂)
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ Var p v env₁ env₂ = {!!}
--- with lemma-[]≡++ [] Γ₁ [ _ ] Γ₂ {!!}
+-- with lemma-[]≡++ [] Γ₁ (_ ∷ []) Γ₂ {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (App x) p v env₁ env₂ = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (Lam x) p v env₁ env₂ = {!!}
 law-eval-reorder-Ctx-[] Γ₁ Γ₂ (Let x) p v env₁ env₂ = {!!}
@@ -306,7 +306,7 @@ sink-let-correct :
   (decl : Expr σ ⇑ Γ) (e : Expr τ Γ') (θ : (Γ₁ ++ Γ₂) ⊑ Γ) (p : Γ' ≡ Γ₁ ++ σ ∷ Γ₂) →
   (env : Env Γ) →
     eval⇑ (sink-let Γ₁ Γ₂ decl e p θ) env
-  ≡ eval⇑ (map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ σ ] Γ₂ e p) ↑ θ))) env
+  ≡ eval⇑ (map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ e p) ↑ θ))) env
 
 sink-let-correct Γ₁ Γ₂ decl    Var θ p env with Γ₁
 sink-let-correct Γ₁ Γ₂ decl    Var θ p env    | (_ ∷ Γ₁') with () ← ++-conicalʳ Γ₁' _ (sym (∷-injectiveʳ p))
@@ -331,13 +331,13 @@ sink-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ 
 ...  | split θ₁ (o' θ₂) (refl , refl) | split {Γ₁'} {_ ∷ Γ₂'} ϕ₁ (os ϕ₂) (refl , refl) =
     {!!} -- eval⇑ (map⇑ App ((e₁ ↑ ((θ₁ ++⊑ θ₂) ₒ ψ)) ,ᴿ sink-let Γ₁' Γ₂' decl e₂ refl ((ϕ₁ ++⊑ ϕ₂) ₒ ψ) ?)) env
   ≡⟨ {!!} ⟩
-    -- eval (reorder-Ctx [] Γ₁ [ σ ] Γ₂ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) {!!}) os (ψ ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
+    -- eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) c)) {!!}) os (ψ ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
     {!!}
   ∎
   -- declaration used in left subexpression
 ...  | split {Γ₁'} {_ ∷ Γ₂'} θ₁ (os θ₂) (refl , refl) | split ϕ₁ (o' ϕ₂) (refl , refl)
-  with split4 θ'₁ θ'₂ θ'₃ θ'₄ (pθ , qθ) ← ⊣4 [] Γ₁ [ σ ] _ θ
-  with split4 ϕ'₁ ϕ'₂ ϕ'₃ ϕ'₄ (pϕ , qϕ) ← ⊣4 [] Γ₁ [ σ ] _ ϕ
+  with split4 θ'₁ θ'₂ θ'₃ θ'₄ (pθ , qθ) ← ⊣4 [] Γ₁ (σ ∷ []) _ θ
+  with split4 ϕ'₁ ϕ'₂ ϕ'₃ ϕ'₄ (pϕ , qϕ) ← ⊣4 [] Γ₁ (σ ∷ []) _ ϕ
   =
   let e₁' ↑ θ' = sink-let Γ₁' Γ₂' decl e₁ refl ((θ₁ ++⊑ θ₂) ₒ ψ)
       coproduct Γ' ψ' θ'' ϕ'' eqθ eqϕ c = cop θ' ((ϕ₁ ++⊑ ϕ₂) ₒ ψ)
@@ -345,8 +345,8 @@ sink-let-correct {σ = σ} Γ₁ Γ₂ decl e@(App (pairᴿ (e₁ ↑ θ) (e₂ 
     eval e₁' (θ'' ₒ ψ') env (eval e₂ (ϕ'' ₒ ψ') env)
   ≡⟨ {!x!} ⟩
     {!pθ!}
-    -- eval (reorder-Ctx [] Γ₁ [ σ ] Γ₂ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) {!!})) {!!}) (os ψ ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
-    -- eval (Let (pairᴿ decl ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] Γ₂ e {!refl!}) ↑ ψ) {!!})) oi env
+    -- eval (reorder-Ctx [] Γ₁ (σ ∷ []) Γ₂ (App (pairᴿ (e₁ ↑ θ) (e₂ ↑ ϕ) {!!})) {!!}) (os ψ ₒ oi) (Cons {! eval⇑ (thin⇑ oi decl) env !} env)
+    -- eval (Let (pairᴿ decl ((os oz \\ reorder-Ctx [] Γ₁ (_ ∷ []) Γ₂ e {!refl!}) ↑ ψ) {!!})) oi env
   ∎
   -- declaration used in both subexpressions (don't push further!)
 ...  | split θ₁ (os θ₂) (refl , refl) | split ϕ₁ (os ϕ₂) (refl , refl) =
@@ -357,7 +357,7 @@ sink-let-correct Γ₁ Γ₂ decl e@(Lam _) θ refl env =
     in
       eval e' θ' env v
     ≡⟨ refl ⟩
-      eval⇑ (map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ [ _ ] Γ₂ e refl) ↑ θ))) env v
+      eval⇑ (map⇑ Let (decl ,ᴿ ((os oz \\ reorder-Ctx [] Γ₁ (_ ∷ []) Γ₂ e refl) ↑ θ))) env v
     ∎
 
 sink-let-correct Γ₁ Γ₂ decl (Let x) θ p env = {!!}
@@ -365,17 +365,17 @@ sink-let-correct Γ₁ Γ₂ decl (Val v) θ p env = {!!}
 sink-let-correct Γ₁ Γ₂ decl (Plus x) θ p env = {!!}
 
 sink-let-top-correct :
-  (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γ) →
+  (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
   eval⇑ (sink-let-top p) env ≡ eval (Let p) oi env
 sink-let-top-correct (pairᴿ (decl ↑ ϕ) ((os oz \\ e) ↑ θ) c) env
   with cop ϕ θ | sink-let-correct [] _ (decl ↑ ϕ) e θ refl env
 ...  | coproduct Γ' ψ ϕ' θ' refl refl cover | h =
     eval⇑ (sink-let [] _ (decl ↑ ϕ) e refl θ) env
   ≡⟨ h ⟩
-    eval (Let (pairᴿ (decl ↑ ϕ') ((os oz \\ reorder-Ctx [] [] [ _ ] _ e refl) ↑ θ') cover)) ψ env
+    eval (Let (pairᴿ (decl ↑ ϕ') ((os oz \\ reorder-Ctx [] [] (_ ∷ []) _ e refl) ↑ θ') cover)) ψ env
   ≡⟨ refl ⟩
-    eval (reorder-Ctx [] [] [ _ ] _ e refl) (os θ) (Cons (eval decl ϕ env) env)
-  ≡⟨ cong (λ x → eval x (os θ) (Cons _ env)) (law-reorder-Ctx-Γ₂≡[] [] [ _ ] _ e refl) ⟩
+    eval (reorder-Ctx [] [] (_ ∷ []) _ e refl) (os θ) (Cons (eval decl ϕ env) env)
+  ≡⟨ cong (λ x → eval x (os θ) (Cons _ env)) (law-reorder-Ctx-Γ₂≡[] [] (_ ∷ []) _ e refl) ⟩
     eval e (os θ) (Cons (eval decl ϕ env) env)
   ≡⟨ cong (λ x → eval e (os θ) (Cons (eval decl x env) env)) (sym (law-ₒoi ϕ)) ⟩
     eval e (os θ) (Cons (eval decl (ϕ ₒ oi) env) env)

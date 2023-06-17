@@ -1,9 +1,9 @@
 module Generic.Conversion where
 
 open import Data.Product using (_,_)
-open import Data.List using (List; []; _∷_; [_]; _++_)
+open import Data.List using (List; []; _∷_; _++_)
 open import Function using (_$_; _∘_)
-open import Relation.Binary.PropositionalEquality hiding ([_])
+open import Relation.Binary.PropositionalEquality
 
 open import Data.Relevant as Relevant using (pairᴿ; _,ᴿ_; _\\_; _\\ᴿ_)
 open import Data.Thinning
@@ -19,11 +19,11 @@ private
     Γ Γ' Δ : List I
     T : I ─Scoped
 
-Var-from-⊑ : [ τ ] ⊑ Γ → Var τ Γ
+Var-from-⊑ : (τ ∷ []) ⊑ Γ → Var τ Γ
 Var-from-⊑ (o' θ) = s (Var-from-⊑ θ)
 Var-from-⊑ (os θ) = z
 
-⊑-from-Var : Var τ Γ → [ τ ] ⊑ Γ
+⊑-from-Var : Var τ Γ → (τ ∷ []) ⊑ Γ
 ⊑-from-Var z = os oe
 ⊑-from-Var (s k) = o' (⊑-from-Var k)
 

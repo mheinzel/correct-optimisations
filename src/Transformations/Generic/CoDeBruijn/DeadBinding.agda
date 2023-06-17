@@ -2,7 +2,7 @@
 -- done generically using co-de-Bruijn representation.
 module Transformations.Generic.CoDeBruijn.DeadBinding where
 
-open import Data.List using (List ; _∷_ ; [] ; [_])
+open import Data.List using (List ; _∷_ ; [])
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl)
 open import Function using (_∘_)
@@ -32,7 +32,7 @@ dbe (`con (inr t@(a , pairᴿ (t₁ ↑ θ₁) (pairᴿ ((ψ \\ t₂) ↑ _) ((r
 ...  | refl | o' oz =
     thin⇑ θ₂ (dbe t₂)
 ...  | refl | os oz =
-    let t' ↑ θ' = thin⇑ θ₁ (dbe t₁) ,ᴿ map⇑ ×ᴿ-trivial (thin⇑ θ₂ ([ _ ] \\ᴿ (dbe t₂))) 
+    let t' ↑ θ' = thin⇑ θ₁ (dbe t₁) ,ᴿ map⇑ ×ᴿ-trivial (thin⇑ θ₂ ((_ ∷ []) \\ᴿ (dbe t₂))) 
     in `con (inr (a , t')) ↑ θ'
     -- This implementation is simpler, but gets rejected by the termination checker:
     -- map⇑ (`con ∘ inr) (dbe-⟦∙⟧ `Let t)

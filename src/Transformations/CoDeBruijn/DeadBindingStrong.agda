@@ -3,7 +3,7 @@
 module Transformations.CoDeBruijn.DeadBindingStrong where
 
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [_] ; _++_)
+open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
@@ -24,12 +24,12 @@ private
     σ τ : U
     Γ : List U
 
-Let? : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
+Let? : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → Expr τ ⇑ Γ
 Let?   (pairᴿ _ ((o' oz \\ e₂) ↑ θ₂) _) = e₂ ↑ θ₂  -- remove binding
 Let? p@(pairᴿ _ ((os oz \\ _)  ↑ _)  _) = Let p ↑ oi
 
 lemma-Let? :
-  (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γ) →
+  (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γ) →
   let e' ↑ θ' = Let? p
   in eval (Let p) oi env ≡ eval e' θ' env
 lemma-Let? (pairᴿ (e₁ ↑ θ₁) (((o' oz) \\ e₂) ↑ θ₂) c) env =
@@ -41,7 +41,7 @@ lemma-Let? (pairᴿ (e₁ ↑ θ₁) (((os oz) \\ e₂) ↑ θ₂) c) env = refl
 -- TODO: Put the "prime" (') on the one above?
 -- TODO: Swap the two sides of the equality? More consistent.
 lemma-Let?' :
-  {Γₑ : Ctx} (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let e' ↑ θ' = Let? p
   in eval (Let p) θ env ≡ eval e' (θ' ₒ θ) env
 lemma-Let?' p env θ =
@@ -84,14 +84,14 @@ mutual
   dbe (Plus (pairᴿ (e₁ ↑ ϕ₁) (e₂ ↑ ϕ₂) c)) =
     map⇑ Plus (thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (dbe e₂))
 
-  dbe-Let : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ → (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) ⇑ Γ
+  dbe-Let : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ → (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) ⇑ Γ
   dbe-Let (pairᴿ (e₁ ↑ ϕ₁) ((ψ \\ e₂) ↑ ϕ₂) c) =
     thin⇑ ϕ₁ (dbe e₁) ,ᴿ thin⇑ ϕ₂ (map⇑ (map⊢ ψ) (_ \\ᴿ dbe e₂))
 
 -- IDEA: We could show that this is a fixpoint? dbe (dbe e) ≡ dbe e
 
 dbe-correct-Lam :
-  {Γₑ : Ctx} (l : ([ σ ] ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ : Ctx} (l : ((σ ∷ []) ⊢ Expr τ) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let ψ \\ e₁ = l
       e₁' ↑ θ₁' = dbe e₁
       e = Lam l
@@ -151,7 +151,7 @@ dbe-correct-×ᴿ eval-step (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) env θ
 -- Would have been nicer to reuse the two proofs above (Let is basically App (Lam _)),
 -- but it turned out to be more cumbersome than expected.
 dbe-correct-Let : 
-  {Γₑ : Ctx} (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let pairᴿ (e₁ ↑ θ₁) (l ↑ θ₂) c = p
       _\\_ {bound = Γ'} ψ e₂ = l
       e₁' ↑ θ₁' = dbe e₁

@@ -161,10 +161,9 @@
 
     Intuitively, a thinning tells us for each element of the target context
     whether it also occurs in the source target or not (\emph{keep} or \emph{drop}).
-    As an example, let us embed |[ a , c ]| into |[ a , b , c ]|:
-    \Fixme{Explain usage of list literals!}
+    As an example, let us embed |a :: c :: []| into |a :: b :: c :: []|:
     \begin{code}
-      os (o' (os oz)) : [ a , c ] C= [ a , b , c ]
+      os (o' (os oz)) : (a :: c :: []) C= (a :: b :: c :: [])
     \end{code}
 
   \paragraph{Identity and composition}
@@ -228,18 +227,18 @@
     As an example, let us return to the previous example thinning
     and observe that we could have built it by concatenating two smaller thinnings:
     \begin{code}
-      theta1 : [ a ] C= [ a ]
+      theta1 : (a :: []) C= (a :: [])
       theta1 = os oz
 
-      theta2 : [ c ] C= [ b , c ]
+      theta2 : (c :: []) C= (b :: c :: [])
       theta2 = o' (os oz)
 
-      theta : [ a , c ] C= [ a , b , c ]
+      theta : (a :: c :: []) C= (a :: b :: c :: [])
       theta = theta1 ++C= theta2    -- evaluates to |os (o' (os oz))|
     \end{code}
-    To go into the other direction, we split |theta| by calling |[ a ] -|| theta|,
-    resulting in a |split theta1 theta2 eq : Split [ a ] theta|.
-    The target context's first segment [ a ] needs to be supplied explicitly
+    To go into the other direction, we split |theta| by calling |(a :: []) -|| theta|,
+    resulting in a |split theta1 theta2 eq : Split (a :: []) theta|.
+    The target context's first segment (a :: []) needs to be supplied explicitly
     to specify at which place the splitting should happen.
     The second segment is then determined by |theta|'s target context.
 
@@ -273,7 +272,7 @@
     The list |Delta| is not enough:
     If the original context contains multiple variables of the same type,
     ambiguities can arise.
-    For example, live variables |[ NAT ]| in context |[ NAT , NAT ]|
+    For example, live variables |NAT :: []| in context |NAT :: NAT :: []|
     could refer to the first or second variable in scope,
     but the thinnings |os (o' oz)| and |o' (os oz)| distinguish the two cases.
     We now define the operations needed to calculate the live context
@@ -291,12 +290,12 @@
     To obtain a suitable thinning, we can make use of the fact that
     thinnings from a singleton context are isomorphic to references.
     \begin{code}
-      o-Ref : Ref sigma Gamma -> [ sigma ] C= Gamma
+      o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
       o-Ref Top      = os oe
       o-Ref (Pop x)  = o' (o-Ref x)
     \end{code}
     \begin{code}
-      Ref-o : [ sigma ] C= Gamma -> Ref sigma Gamma
+      Ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
       Ref-o (o' theta)  = Pop (Ref-o theta)
       Ref-o (os theta)  = Top
     \end{code}
@@ -388,7 +387,7 @@
       &\ \ \ \ \ \ x             & &\ \ \ \ \ \ \DeBruijn{2}
     \end{align*}
     If we focus on the subexpression in the last two lines,
-    we see that in our syntax representation it is an |Expr NAT [ NAT , NAT ]|,
+    we see that in our syntax representation it is an |Expr NAT (NAT :: NAT :: [])|,
     where the first element of the context correspondes to $y$,
     the second to $x$.
     \begin{code}
@@ -621,7 +620,7 @@
     \begin{code}
       analyse : Expr sigma Gamma -> (Exists (Delta) Ctx) (Exists (theta) (Delta C= Gamma)) LiveExpr sigma theta
       analyse (Var {sigma} x) =
-        [ sigma ] , o-Ref x , Var x
+        (sigma :: []) , o-Ref x , Var x
       analyse (App e1 e2) =
         let  Delta1 , theta1 , le1 = analyse e1
              Delta2 , theta2 , le2 = analyse e2

@@ -3,7 +3,7 @@ module Language.CoDeBruijn where
 
 open import Data.Unit
 open import Data.Nat using (_+_)
-open import Data.List using (List ; _∷_ ; [] ; [_] ; _++_)
+open import Data.List using (List ; _∷_ ; [] ; _++_)
 open import Data.Product
 open import Function using (_∘_ ; _$_)
 open import Relation.Binary.PropositionalEquality using (_≡_ ; refl ; cong ; cong₂ ; sym ; trans)
@@ -25,15 +25,15 @@ private
 
 data Expr : (σ : U) (Γ : Ctx) → Set where
   Var :
-    Expr σ [ σ ]
+    Expr σ (σ ∷ [])
   App :
     (Expr (σ ⇒ τ) ×ᴿ Expr σ) Γ →
     Expr τ Γ
   Lam :
-    ([ σ ] ⊢ Expr τ) Γ →
+    ((σ ∷ []) ⊢ Expr τ) Γ →
     Expr (σ ⇒ τ) Γ
   Let :
-    (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ →
+    (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ →
     Expr τ Γ
   Val :
     (v : ⟦ σ ⟧) →
@@ -65,7 +65,7 @@ eval-binop eval-step (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c) ϕ env =
   eval-step (eval e₁ (θ₁ ₒ ϕ) env) (eval e₂ (θ₂ ₒ ϕ) env)
 
 lemma-eval-Var :
-  (env : Env Γ₃) (θ : [ σ ] ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) →
+  (env : Env Γ₃) (θ : (σ ∷ []) ⊑ Γ₂) (ϕ : Γ₂ ⊑ Γ₃) →
   lookup (ref-o (θ ₒ ϕ)) env ≡ lookup (ref-o θ) (project-Env ϕ env)
 lemma-eval-Var (Cons x env) θ      (o' ϕ) = lemma-eval-Var env θ ϕ
 lemma-eval-Var (Cons x env) (o' θ) (os ϕ) = lemma-eval-Var env θ ϕ
@@ -100,7 +100,7 @@ lemma-eval (Plus (pairᴿ (e₁ ↑ θ₁) (e₂ ↑ θ₂) c)) env θ ϕ =
     (trans (cong (λ x → eval e₂ x env) (law-ₒₒ θ₂ θ ϕ)) (lemma-eval e₂ env (θ₂ ₒ θ) ϕ))
 
 lemma-eval-Let :
-  {Γₑ Γ : Ctx} (p : (Expr σ ×ᴿ ([ σ ] ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
+  {Γₑ Γ : Ctx} (p : (Expr σ ×ᴿ ((σ ∷ []) ⊢ Expr τ)) Γ) (env : Env Γₑ) (θ : Γ ⊑ Γₑ) →
   let pairᴿ (e₁ ↑ θ₁) ((ψ \\ e₂) ↑ θ₂) c = p
   in  eval (Let p) θ env ≡ eval (App (pairᴿ ((Lam (ψ \\ e₂)) ↑ θ₂) (e₁ ↑ θ₁) (cover-flip c))) θ env
 lemma-eval-Let p env θ = refl
@@ -156,14 +156,14 @@ tighten-correct (DeBruijn.App e₁ e₂) env
 tighten-correct (DeBruijn.Lam e) env
   with tighten e  | tighten-correct e
 ...  | e' ↑ θ' | h
-  with [ _ ] ⊣ θ'
+  with (_ ∷ []) ⊣ θ'
 ... | split ϕ₁ ϕ₂ (refl , refl) =
   extensionality _ _ λ v →
     h (Cons v env)
 tighten-correct (DeBruijn.Let e₁ e₂) env
   with tighten e₁  | tighten e₂  | tighten-correct e₁ env | tighten-correct e₂ (Cons (DeBruijn.eval e₁ env) env)
 ...  | e₁' ↑ θ₁    | e₂' ↑ θ₂    | h₁                     | h₂
-  with [ _ ] ⊣ θ₂
+  with (_ ∷ []) ⊣ θ₂
 ... | split ψ θ₂' (refl , refl)
   with cop θ₁ θ₂'
 ...  | coproduct _ θ ϕ₁ ϕ₂ refl refl c =

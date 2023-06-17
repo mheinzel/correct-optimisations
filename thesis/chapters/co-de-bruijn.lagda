@@ -87,11 +87,11 @@
     \end{code}
 
     As an example, let us construct the relevant pair of the two expressions
-    |e1 : Expr NAT [ sigma ]| and |e2 : Expr NAT [ tau ]|,
+    |e1 : Expr NAT (sigma :: [])| and |e2 : Expr NAT (tau :: [])|,
     each with a (different) single live variable in their context.
     The combined live context then contains both variables,
     so one thinning will target the first element, and one the other:
-    |pairR (e1 ^ os (o' oz)) (e2 ^ o' (os oz)) c : (Expr NAT ><R Expr NAT) [ sigma , tau ] |.
+    |pairR (e1 ^ os (o' oz)) (e2 ^ o' (os oz)) c : (Expr NAT ><R Expr NAT) (sigma :: tau :: [])|.
     The cover |c = cs' (c's czz)| follows the same structure.
 
     Manually finding the combined live context and constructing the cover
@@ -157,10 +157,10 @@
 
     \begin{code}
       data Expr : (sigma : U) (Gamma : Ctx) -> Set where
-        Var   : Expr sigma [ sigma ]
+        Var   : Expr sigma (sigma :: [])
         App   : (Expr (sigma => tau) ><R Expr sigma) Gamma -> Expr tau Gamma
-        Lam   : ([ sigma ] |- Expr tau) Gamma -> Expr (sigma => tau) Gamma
-        Let   : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau Gamma
+        Lam   : ((sigma :: []) |- Expr tau) Gamma -> Expr (sigma => tau) Gamma
+        Let   : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau Gamma
         Val   : (interpretU(sigma)) -> Expr sigma []
         Plus  : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
     \end{code}
@@ -286,7 +286,7 @@
     Co-de-Bruijn expressions enforce that every variable in the context
     must occur somewhere.
     However, there can still be dead let-bindings:
-    the declaration of type |sigma| bound by |psi \\ e2 : ([ sigma ] ||- Expr tau) Gamma|
+    the declaration of type |sigma| bound by |psi \\ e2 : ((sigma :: []) ||- Expr tau) Gamma|
     can be immediately discarded in |psi|,
     never to occur in |e2|.
     We need to identify such dead let-bindings and eliminate them.
@@ -304,7 +304,7 @@
     are already present as part of the co-de-Bruijn representation,
     so no further analysis is necessary.
     For the weak version of dead binding elimination,
-    we simply need to find all let-bindings with a thinning |o' oz : [] C= [ sigma ]|
+    we simply need to find all let-bindings with a thinning |o' oz : [] C= (sigma :: [])|
     in the input expression.
 
     The change in context caused by the transformation
@@ -325,7 +325,7 @@
       dbe (Let (pairR (e1 ^ phi1) ((o' oz \\ e2) ^ phi2) c)) =
         thin^^ phi2 (dbe e2)
       dbe (Let (pairR (e1 ^ phi1) ((os oz \\ e2) ^ phi2) c)) =
-        map^^ Let (thin^^ phi1 (dbe e1) ,R thin^^ phi2 ([ _ ] \\R dbe e2))
+        map^^ Let (thin^^ phi1 (dbe e1) ,R thin^^ phi2 (_ \\R dbe e2))
       dbe (Val v) =
         Val v ^ oz
       dbe (Plus (pairR (e1 ^ phi1) (e2 ^ phi2) c)) =
@@ -343,7 +343,7 @@
     but otherwise removes the declaration.
     The other cases are the same as in the previous section.
     \begin{code}
-      Let? : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
+      Let? : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau ^^ Gamma
       Let? (At(p)(pairR _ ((o' oz \\ e2)  ^ theta2)  _)) = e2 ^ theta2
       Let? (At(p)(pairR _ ((os oz \\ _)   ^ _)       _)) = Let p ^ oi
     \end{code}
@@ -407,7 +407,7 @@
     |Let? p| and |Let p| are semantically equivalent.
     % \begin{code}
     %   lemma-Let? :
-    %     (p : (Expr sigma ><R ([ sigma ] |- Expr tau)) Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
+    %     (p : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Delta) (env : Env Gamma) (theta : Delta C= Gamma) ->
     %     let e' ^ theta' = Let? p
     %     in eval e' (theta' .. theta) env == eval (Let p) theta env
     % \end{code}
@@ -470,7 +470,7 @@
     Using a simple wrapper, we can still get back the less restrictive type signature
     that can be applied to any let-binding:
     \begin{code}
-      sink-let-top : (Expr sigma ><R ([ sigma ] |- Expr tau)) Gamma -> Expr tau ^^ Gamma
+      sink-let-top : (Expr sigma ><R ((sigma :: []) |- Expr tau)) Gamma -> Expr tau ^^ Gamma
       sink-let-top (pairR (decl ^ phi) ((os oz \\ e) ^ theta) c) =
         sink-let [] _ (decl ^ phi) e refl theta
       sink-let-top (pairR decl ((o' oz \\ e) ^ theta) c) =
@@ -493,7 +493,7 @@
         Expr tau Gamma -> (Gamma == Gamma1 ++ Gamma2 ++ Gamma3 ++ Gamma4) ->
         Expr tau (Gamma1 ++ Gamma3 ++ Gamma2 ++ Gamma4)
     \end{code}
-    The context is split into four segments (where |Gamma3| is |[ sigma ]|) that get reordered,
+    The context is split into four segments (where |Gamma3| is |(sigma :: [])|) that get reordered,
     which means that we also need to split every thinning and cover into four parts
     and carefully reassemble them.
     \begin{code}
