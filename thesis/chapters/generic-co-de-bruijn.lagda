@@ -388,8 +388,8 @@
     behaves correctly for our example language with its semantics,
     but we do not have a semantics for any arbitrary description at hand.
 
-    Ideally, it should be possible to do the proof for \emph{any} semantics,
-    with some properties, like being defined as a fold of the syntax tree.
+    Ideally, it should be possible to do the proof for \emph{any} semantics
+    with some property, like being defined as a fold of the syntax tree.
     \Fixme{explain or reference the term ``fold''?}
     However, the exact constraints are not obvious.
     A good candidate is the notion of |Semantics|
@@ -406,8 +406,7 @@
       which is not true for co-de-Bruijn.
       But that might be too much information here?
     }
-    While we did not find a solution for this issue,
-    there might exist one,
+    It seems worthwhile to attempt finding a solution to this issue,
     which then might make it possible to prove
     that a transformation preserves
     any |Semantics| for any syntax description.

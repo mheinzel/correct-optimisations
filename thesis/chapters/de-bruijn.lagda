@@ -884,8 +884,6 @@
     \end{code}
     This traverses the declaration for each binder it is moved across,
     but in the next section we will use a simple trick to avoid that.
-    \vspace{0.7cm}
-    \OpenEnd{No correctness proof yet, how hard is it for the direct approach?}
 
 \subsection{Using Annotations}
 \label{sec:de-bruijn-let-sinking-live}
