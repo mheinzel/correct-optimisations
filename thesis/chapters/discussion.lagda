@@ -1,3 +1,6 @@
+%include agda.fmt
+%include custom.fmt
+
 \chapter{Discussion}
 \label{ch:discussion}
     \Outline{Quick summary: Did transformations, learned that liveness information is nice to have in syntax tree, this can be achieved by using co-de-Bruijn, at cost of some complexity}
