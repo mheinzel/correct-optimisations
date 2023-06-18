@@ -7,7 +7,8 @@ SRC_TEX := \
 	chapters/preliminaries.tex\
 	chapters/de-bruijn.tex\
 	chapters/co-de-bruijn.tex\
-	chapters/generic-co-de-bruijn.tex
+	chapters/generic-co-de-bruijn.tex\
+	chapters/discussion.tex
 
 default: thesis.pdf
 

@@ -8,7 +8,7 @@
 
 
 
-\include{preamble}
+\input{preamble}
 
 \begin{document}
 

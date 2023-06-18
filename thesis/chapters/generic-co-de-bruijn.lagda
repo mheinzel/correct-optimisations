@@ -14,7 +14,7 @@
     and then exclusively modifies let-bindings.
     All other parts of the syntax tree simply get traversed in a highly uniform way.
 
-    This problem is addressed by Allais et al.
+    This problem is addressed by Allais et~al.
     \cite{Allais2018UniverseOfSyntaxes}
     with the concept of syntax-generic programming,
     although based on a de Bruijn representation.
@@ -43,7 +43,7 @@
 \section{Descriptions of Syntax}
 \label{sec:generic-co-de-bruijn-descriptions}
     At the core of this chapter is the the type of syntax descriptions,
-    taken verbatim from Allais et al.
+    taken verbatim from Allais et~al.
     \begin{code}
       data Desc (I : Set) : Set1 where
         \'o : (A : Set) -> (A -> Desc I) -> Desc I
@@ -247,7 +247,7 @@
     this comes with some complexity.
     Since this is mainly an issue of ergonomics
     and not directly relevant to our goal of performing transformations,
-    we adopt a simpler solution from Allais et al.'s paper.
+    we adopt a simpler solution from Allais et~al.'s paper.
 
   \paragraph{Type signature}
     We make use of the fact that descriptions are closed under sums.
@@ -393,7 +393,7 @@
     \Fixme{explain or reference the term ``fold''?}
     However, the exact constraints are not obvious.
     A good candidate is the notion of |Semantics|
-    as defined by Allais et al. \cite{Allais2018UniverseOfSyntaxes},
+    as defined by Allais et~al. \cite{Allais2018UniverseOfSyntaxes},
     which indeed is based on a fold (catamorphism with an algebra)
     with the constraint that the values it operates on are \emph{thinnable}.
 
