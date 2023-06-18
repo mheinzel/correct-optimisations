@@ -48,9 +48,4 @@ Finally, we perform transformations in this style syntax-generically.
 \bibliography{../correct-optimisations}{}
 
 
-\appendix
-
-\includepdf[pages=1,offset=0cm -2.5cm,scale=0.55,pagecommand=\chapter{Ethics Quick Scan}\label{app:ethics-quick-scan}]{ethics-privacy-quick-scan-results-anonymised.pdf}
-\includepdf[pages=2-,scale=0.55,pagecommand=\thispagestyle{plain}]{ethics-privacy-quick-scan-results-anonymised.pdf}
-
 \end{document}
