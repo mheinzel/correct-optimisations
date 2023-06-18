@@ -349,6 +349,7 @@
 
 
 \section{Discussion}
+\label{sec:generic-co-de-bruijn-discussion}
     Given the generality of the dead binding elimination
     presented in this chapter,
     its implementation turned out concise and relatively readable.
