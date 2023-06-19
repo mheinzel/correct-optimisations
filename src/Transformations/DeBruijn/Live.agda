@@ -114,37 +114,18 @@ evalLive (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' =
   evalLive e₁ env (un-∪₁ θ₁ θ₂ ₒ θ')
     + evalLive e₂ env (un-∪₂ θ₁ θ₂ ₒ θ')
 
-{-
-lookup-ref-o-project-Env :
-  {θ : (σ ∷ []) ⊑ Γ} (θ' : (σ ∷ []) ⊑ Γ') (θ'' : Γ' ⊑ Γ) (x : Ref σ Γ) (env : Env Γ) → θ ≡ θ' ₒ θ'' →
-  lookup (ref-o θ') (project-Env θ'' env) ≡ lookup (ref-o (o-Ref x)) env
-lookup-ref-o-project-Env θ θ' x env H = {!!}
-
-evalLive-project-Env :
-  {θ : Δ ⊑ Γ} (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) (e : LiveExpr σ θ) (env : Env Γ) → θ ≡ θ' ₒ θ'' →
-  evalLive e (project-Env θ'' env) θ' ≡ evalLive e env (θ' ₒ θ'')
-evalLive-project-Env θ' θ'' (Var x) env H = {!!}
-evalLive-project-Env θ' θ'' (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H =
-  let h₁ = evalLive-project-Env (un-∪₁ θ₁ θ₂ ₒ θ') θ'' e₁ env
-             (trans (trans (sym (law-∪₁-inv θ₁ θ₂)) (cong (_ ₒ_) H)) (law-ₒₒ (un-∪₁ θ₁ θ₂) θ' θ''))
-  in {!h₁!}
-evalLive-project-Env θ' θ'' (Lam {θ = θ} e₁) env H =
-  extensionality _ _ λ v →
-    trans
-      (evalLive-project-Env (un-pop θ ₒ os θ') (os θ'') e₁ (Cons v env) {!!})
-      (cong (evalLive e₁ (Cons v env)) (sym (law-ₒₒ (un-pop θ) (os θ') (os θ''))))
-evalLive-project-Env θ' θ'' (Let {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H = {!!}
-evalLive-project-Env θ' θ'' (Val v) env H = {!!}
-evalLive-project-Env θ' θ'' (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env H = {!!}
--}
-
 -- evalLive ≡ eval ∘ forget
 evalLive-correct :
   {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
   evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
 evalLive-correct (Var x) env θ' θ'' = {!!}
-evalLive-correct (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
-evalLive-correct (Lam e₁) env θ' θ'' = {!!}
+evalLive-correct (App e₁ e₂) env θ' θ'' =
+  cong₂ _$_
+    (evalLive-correct e₁ env _ θ'')
+    (evalLive-correct e₂ env _ θ'')
+evalLive-correct (Lam e₁) env θ' θ'' =
+  extensionality _ _ λ v →
+    evalLive-correct e₁ (Cons v env) _ (os θ'')
 evalLive-correct (Let {θ₁ = θ₁} {θ₂ = o' θ₂} e₁ e₂) env θ' θ'' =
    evalLive-correct e₂ (Cons (eval (forget e₁) env) env) _ (o' θ'')
 evalLive-correct (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) env θ' θ'' =
@@ -156,4 +137,7 @@ evalLive-correct (Let {θ₁ = θ₁} {θ₂ = os θ₂} e₁ e₂) env θ' θ''
   ∎
 evalLive-correct (Val v) env θ' θ'' =
   refl
-evalLive-correct (Plus {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' = {!!}
+evalLive-correct (Plus e₁ e₂) env θ' θ'' =
+  cong₂ _+_
+    (evalLive-correct e₁ env _ θ'')
+    (evalLive-correct e₂ env _ θ'')

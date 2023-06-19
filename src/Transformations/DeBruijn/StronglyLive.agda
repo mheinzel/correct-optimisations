@@ -1,4 +1,4 @@
-{-# OPTIONS --allow-unsolved-metas #-}  -- TODO: finish proof
+{-# OPTIONS --allow-unsolved-metas #-}
 
 -- Live variable analysis, without SubCtx
 module Transformations.DeBruijn.StronglyLive where
@@ -136,10 +136,13 @@ evalLive-correct :
   {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
   evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
 evalLive-correct {θ = θ} (Var x) env θ' θ'' =
-  -- law-lookup-ref-o x env θ' θ'' ?
-  trans
-    (sym (law-lookup-rename-Ref (ref-o θ') θ'' env))
-    {!foo!}
+  --   lookup (ref-o θ') (project-Env θ'' env)
+  -- ≡⟨ sym (law-lookup-rename-Ref (ref-o θ') θ'' env) ⟩
+  --   lookup (rename-Ref θ'' (ref-o θ')) env
+  -- ≡⟨ {!!} ⟩
+  --   lookup x env
+  -- ∎
+  law-lookup-ref-o x env θ' θ'' {!!}
 evalLive-correct (App e₁ e₂) env θ' θ'' =
   cong₂ _$_
     (evalLive-correct e₁ env _ θ'')
@@ -163,19 +166,15 @@ evalLive-correct (Plus e₁ e₂) env θ' θ'' =
     (evalLive-correct e₁ env _ θ'')
     (evalLive-correct e₂ env _ θ'')
 
-  
 evalLive-correct' :
   {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) (θ' : Δ ⊑ Γ') (θ'' : Γ' ⊑ Γ) →
   θ ≡ θ' ₒ θ'' →
   evalLive e (project-Env θ'' env) θ' ≡ eval (forget e) env
 evalLive-correct' {θ = θ} (Var x) env θ' θ'' H =
-  -- foo x env θ' θ''
-  trans
-    (sym (law-lookup-rename-Ref (ref-o θ') θ'' env))
-    {!!}
+  law-lookup-ref-o x env θ' θ'' H
 evalLive-correct' (App {θ₁ = θ₁} {θ₂ = θ₂} e₁ e₂) env θ' θ'' H =
   cong₂ _$_
-    (evalLive-correct' e₁ env _ θ'' {!sym (law-∪₁-inv θ₁ θ₂)!})
+    (evalLive-correct' e₁ env _ θ'' {! trans (sym (law-∪₁-inv θ₁ θ₂)) {!!})!} )
     (evalLive-correct' e₂ env _ θ'' {!!})
 evalLive-correct' (Lam e₁) env θ' θ'' H =
   extensionality _ _ λ v →
@@ -195,51 +194,3 @@ evalLive-correct' (Plus e₁ e₂) env θ' θ'' H =
   cong₂ _+_
     (evalLive-correct' e₁ env _ θ'' {!!})
     (evalLive-correct' e₂ env _ θ'' {!!})
-
-lemma-evalLive :
-  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ') (θ' : Δ ⊑ Γ') →
-  evalLive e (project-Env θ' env) oi ≡ evalLive e env θ'
-lemma-evalLive (Var x) env θ' = {!!}
-lemma-evalLive (App e₁ e₂) env θ' =
-  {!lemma-evalLive e₁ env !}
-lemma-evalLive (Lam e₁) env θ' = {!!}
-lemma-evalLive (Let e₁ e₂) env θ' = {!!}
-lemma-evalLive (Val v) env θ' = {!!}
-lemma-evalLive (Plus e₁ e₂) env θ' = {!!}
-
-{-
-lemma-evalLive' :
-  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ') (ϕ : Δ' ⊑ Δ) →
-  evalLive e (project-Env ϕ env) θ ≡ evalLive e env (ϕ ₒ θ)
-lemma-evalLive' = ?
--}
-
-evalLive-correct'' :
-  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) →
-  evalLive e env θ ≡ eval (forget e) env
-evalLive-correct'' (Var x) env =
-  cong (λ x' → lookup x' env) (law-ref-o-Ref x)
-evalLive-correct'' (App e₁ e₂) env = {!!}
-evalLive-correct'' (Lam e₁) env = {!!}
-evalLive-correct'' (Let {θ₂ = o' θ₂} e₁ e₂) env =
-  trans
-    {!lemma-evalLive e₂ (Cons _ env) (o' θ₂)!}
-    (evalLive-correct'' e₂ (Cons _ env))
-evalLive-correct'' (Let {θ₂ = os θ₂} e₁ e₂) env =
-  {!!}
-evalLive-correct'' (Val v) env = {!!}
-evalLive-correct'' (Plus e₁ e₂) env = {!!}
-
-evalLive-correct''' :
-  {θ : Δ ⊑ Γ} (e : LiveExpr σ θ) (env : Env Γ) →
-  evalLive e env θ ≡ eval (forget e) env
-evalLive-correct''' (Var x) env =
-  {! cong (λ x' → lookup x' env) (law-ref-o-Ref x) !}
-evalLive-correct''' (App e₁ e₂) env = {!!}
-evalLive-correct''' (Lam e₁) env = {!!}
-evalLive-correct''' (Let {θ₂ = o' θ₂} e₁ e₂) env =
-  {!!}
-evalLive-correct''' (Let {θ₂ = os θ₂} e₁ e₂) env =
-  {!!}
-evalLive-correct''' (Val v) env = {!!}
-evalLive-correct''' (Plus e₁ e₂) env = {!!}
