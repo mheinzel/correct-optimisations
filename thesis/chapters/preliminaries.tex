@@ -27,7 +27,7 @@
     We omit further constructs such as branching operators,
     recursive bindings or a fixpoint operator,
     but discuss some potential additions and their implications
-    at the end (section \ref{sec:further-work}).
+    at the end (section \ref{sec:further-work-extending-language}).
 
 \section{Program Analysis and Transformation}
 \label{sec:program-transformations}
@@ -35,13 +35,12 @@
     A large number of program analyses and optimisations are presented in the literature
     \cite{Nielson1999PrinciplesProgramAnalysis,Santos1995CompilationByTransformation}
     and used in production compilers such as the Glorious Haskell Compiler (GHC).
-    We generally focus on those transformations that deal with variable binders,
+    We generally focus on transformations dealing with variable binders,
     such as
     \emph{inlining},
     \emph{let-floating},
     \emph{common subexpression elimination} and
-    \emph{dead binding elimination},
-    which is explained below.
+    \emph{dead binding elimination}.
 
   \paragraph{Dead Binding Elimination}
     An expression is not forced to make use of all bindings to which it has access.
@@ -59,10 +58,11 @@
     and consequently be removed.
 
     Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
-    Therefore, multiple iterations of live variable analysis and binding elimination might be required.
+    Therefore, multiple iterations of live variable analysis and binding elimination
+    might be required to remove as many bindings as possible.
     Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
-    by only considering variables to be live
-    if they are used in declarations of variables that are live themselves.
+    by ignoring variable occurrences in the declaration of variables
+    unless that variable is live itself.
 
   \paragraph{Let-sinking}
     Even when a binding cannot be removed,
@@ -73,15 +73,15 @@
     Of those, we will focus on the \emph{let-sinking} transformation
     (called let-floating in the paper).
     Generally, the further inward a let binding is moved, the better:
-    further optimisations might get unlocked, and in the presence of branching,
+    other optimisations might get unlocked, and in the presence of branching,
     the declaration might never be evaluated.
 
     Of course, we must ensure that the binding remains in scope
     for all of the variable's occurrences
     and should consider some exceptions to the rule of sinking as far as possible.
     We generally do not want to duplicate bindings
-    or move them inside $\lambda$-abstractions, which duplicates work
-    if evaluated multiple times.
+    or move them inside $\lambda$-abstractions, which can also duplicate work
+    if the function is applied multiple times.
 
     Let us look at what this means when sinking the binding for $x$
     in the following example with free variables $f$ and $g$:
@@ -128,7 +128,7 @@
     This is how humans usually write programs
     and makes it fairly natural to match a variable with its binding.
     For representing variables in a compiler or mechanised proof, however,
-    different tradeoffs apply.
+    different trade-offs apply.
 
   \paragraph{Explicit names}
     Using strings for variables is quite common in practical compilers,
@@ -152,7 +152,7 @@
     such as GHC's \emph{rapier} \cite{Jones2002GHCInliner},
     but these are generally still error-prone.
     The developers of Dex for example used the rapier,
-    but found multiple binding-related compiler bugs,
+    but encountered multiple binding-related compiler bugs,
     leading them to create \emph{the foil}
     to ``make it harder to poke your eye out''
     \cite{Maclaurin2022Foil}.
@@ -178,7 +178,7 @@
     Inserting or removing a binding
     requires us to traverse the binding's body and add or subtract 1 from all its free variables.
     We can see this in our example when removing the innermost (unused) let-binding.
-    If we leave the variable $\DeBruijn{2}$ untouched,
+    If we naively leave the variable $\DeBruijn{2}$ untouched,
     it will not refer to the declaration $42$ anymore,
     but become a free variable:
     \begin{align*}

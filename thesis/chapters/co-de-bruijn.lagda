@@ -5,13 +5,14 @@
 \label{ch:co-de-bruijn}
     After showing that de Bruijn representation can be made type- and scope-correct
     by indexing expressions with their context (the variables in scope),
-    we found out how useful it is to also know the \emph{live} context.
+    we found out how useful it is to also know the live variables.
     The type of annotated expressions we created
-    was therefore indexed (perhaps redundantly) by both of these contexts.
+    was therefore indexed (perhaps redundantly) by both of these,
+    as well as the thinning between them.
     Here however, we will work with McBride's co-de-Bruijn syntax
     \cite{McBride2018EveryBodysGotToBeSomewhere},
     another nameless intrinsically typed representation,
-    which is indexed by its weakly live context alone.
+    which is indexed by its weakly live variables alone.
 
     In this representation,
     bindings can be added or removed without having to traverse their body
@@ -22,7 +23,7 @@
     We will begin by giving an intuition for the co-de-Bruijn representation
     and show how it translates into a few core building blocks,
     each with a convenient smart constructor.
-    Based on these, we define another version of our expression language
+    Based on these, we define a co-de-Bruijn-based syntax tree for our expression language
     and demonstrate that it can be converted to and from
     our original de Bruijn expressions.
     Once the foundations are in place,
@@ -44,16 +45,16 @@
     so there is no need for an index.
 
     After dealing with live variable analysis in the previous chapter,
-    we can also think about it in a way similar to liveness annotations:
-    starting from the variables, the live context gets collected
-    and annotated, bottom-up.
+    we also think about it in a way similar to liveness annotations:
+    starting from the variables, the live variables get collected
+    and turned into annotations, bottom-up.
 
   \paragraph{Relevant pairs}
     The most insightful situation to consider is that of handling
     multiple subexpressions, for example with addition.
     Assuming we have
     |e1 : Expr NAT Delta1| and
-    |e2 : Expr NAT Delta2|, each indexed by their live context,
+    |e2 : Expr NAT Delta2|, each indexed by their live variables,
     how do we construct the syntax node representing $e_1 + e_2$?
     It should be indexed by the smallest |Gamma| with thinnings
     |theta1 : Delta1 C= Gamma| and
@@ -65,7 +66,7 @@
     to ensure that every element of |Gamma| is part of
     |Delta1|, |Delta2|, or both
     (``everybody's got to be somewhere'').
-    Note that we can never construct a |Cover (o' _) (o' _)|.
+    Fundamentally, we can never construct a |Cover (o' _) (o' _)|.
     \begin{code}
       data Cover : Delta1 C= Gamma -> Delta2 C= Gamma -> Set where
         c's  : Cover theta1 theta2  -> Cover (o' theta1) (os theta2)
@@ -75,7 +76,7 @@
     \end{code}
 
     As each binary operator will in some form contain
-    these two thinnings and a cover,
+    two thinnings and their cover,
     we combine them into a reusable datatype called \emph{relevant pair}.
     \begin{code}
       record _><R_ (S T : List I -> Set) (Gamma : List I) : Set where
@@ -89,14 +90,14 @@
     As an example, let us construct the relevant pair of the two expressions
     |e1 : Expr NAT (sigma :: [])| and |e2 : Expr NAT (tau :: [])|,
     each with a (different) single live variable in their context.
-    The combined live context then contains both variables,
+    The combined live variables then contain both variables,
     so one thinning will target the first element, and one the other:
     |pairR (e1 ^ os (o' oz)) (e2 ^ o' (os oz)) c : (Expr NAT ><R Expr NAT) (sigma :: tau :: [])|.
     The cover |c = cs' (c's czz)| follows the same structure.
 
-    Manually finding the combined live context and constructing the cover
+    Manually finding the combined live variables and constructing the cover
     everytime a relevant pair gets constructed quickly gets cumbersome.
-    We can define a smart constructor,
+    We can delegate the work to a smart constructor,
     but note that nothing about |e1| and |e2| tells us
     which element should come first in the context
     -- the choice was made (arbitrarily) by creating the thinnings.
@@ -180,7 +181,7 @@
     which we again do in form of a total evaluation function.
     % Since the expressions' context gets shrunk down at each node,
     % we either need to project the matching part out of the environment at each recursive call
-    % or maintain a thinning from the required live context to the larger context
+    % or maintain a thinning from the required live variables to the larger context
     % the environment provides.
     % We choose the latter option, as we prefer to manipulate thinnings where possible.
     As with |evalLive|,
@@ -213,7 +214,7 @@
     when encountering a dead let-binding.
 
 
-\section{Conversion From/To de Bruijn Syntax}
+\section{Conversion from/to de Bruijn Syntax}
 \label{sec:co-de-bruijn-conversion}
     The conversion between de Bruijn and co-de-Bruijn representation
     is very similar to computing and forgetting annotations
@@ -236,7 +237,7 @@
     The other direction is slightly more work,
     as it effectively needs to perform live variable analysis.
     Luckily, we benefit greatly from the smart constructors.
-    As we do not know the context of de resulting co-de-Bruijn expression upfront,
+    As we do not know the context of the resulting co-de-Bruijn expression upfront,
     we once more return the result with a thinning.
     \begin{code}
       fromDeBruijn : DeBruijn.Expr sigma Gamma -> CoDeBruijn.Expr sigma ^^ Gamma
@@ -275,15 +276,15 @@
     \end{code}
     The first proof works by a completely straightforward structural induction,
     without requiring any further lemmas.
-    The other direction is more interesting:
+    The other direction is slightly more interesting:
     As the smart constructors are defined using \textbf{with}-abstraction,
     the case for each constructor first requires us to mirror that structure
     before being able to use the induction hypothesis.
-
+    \pagebreak
 
 \section{Dead Binding Elimination}
 \label{sec:co-de-bruijn-dbe}
-    Co-de-Bruijn expressions enforce that every variable in the context
+    Co-de-Bruijn expressions enforce that every variable in their context
     must occur somewhere.
     However, there can still be dead let-bindings:
     the declaration of type |sigma| bound by |psi \\ e2 : ((sigma :: []) ||- Expr tau) Gamma|
@@ -304,8 +305,8 @@
     are already present as part of the co-de-Bruijn representation,
     so no further analysis is necessary.
     For the weak version of dead binding elimination,
-    we simply need to find all let-bindings with a thinning |o' oz : [] C= (sigma :: [])|
-    in the input expression.
+    we simply need to find all let-bindings in the input expression
+    that have a thinning |o' oz : [] C= (sigma :: [])|.
 
     The change in context caused by the transformation
     has several consequences:
@@ -403,7 +404,7 @@
     also failed to satisfy the termination checker.
 
     For let-bindings in the strong version,
-    we additionally use a lemma for the fact that
+    we additionally made use of a lemma stating that
     |Let? p| and |Let p| are semantically equivalent.
     % \begin{code}
     %   lemma-Let? :
@@ -411,7 +412,6 @@
     %     let e' ^ theta' = Let? p
     %     in eval e' (theta' .. theta) env == eval (Let p) theta env
     % \end{code}
-
 
 \section{Let-sinking}
 \label{sec:co-de-bruijn-let-sinking}
@@ -482,8 +482,8 @@
     Since we know that a variable's context contains exactly one element,
     and also that the declaration is part of that of the context,
     the variable \emph{must} refer to the declaration.
-    After making this clear to Agda using an absurd case,
-    we can always replace the variable with the declaration.
+    After making this clear to Agda using a pattern match with an absurd case,
+    we can replace the variable with the declaration.
 
   \paragraph{Creating the binding}
     As in the de Bruijn setting, we need to rename the body of the newly created binding.

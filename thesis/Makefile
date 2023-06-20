@@ -3,6 +3,7 @@
 SRC_TEX := \
 	preamble.tex\
 	title.tex\
+	chapters/abstract.tex\
 	chapters/introduction.tex\
 	chapters/preliminaries.tex\
 	chapters/de-bruijn.tex\

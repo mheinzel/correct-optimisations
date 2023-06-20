@@ -6,13 +6,13 @@
     So far, we worked with specialised types for the syntax trees
     of the language we defined.
     Modifying the language or defining a new one
-    would require us to also modify the implementations
+    would require us to also modify the implementation
     of each transformation.
     However, the core of the transformation would likely remain unchanged:
     dead binding elimination for example only needs to know
     where variables are bound and occur in the expression,
     and then exclusively modifies let-bindings.
-    All other parts of the syntax tree simply get traversed in a highly uniform way.
+    All other parts of the syntax tree get traversed in a highly uniform way.
 
     This problem is addressed by Allais et~al.
     \cite{Allais2018UniverseOfSyntaxes}
@@ -21,9 +21,9 @@
     The main idea is to:
     \begin{enumerate}
       \item define a datatype of syntax descriptions |Desc|
-      \item describe a family of terms |Tm d sigma Gamma| for each |(d : Desc I)|
+      \item describe a family of terms |Tm d| for each |(d : Desc I)|
       \item implement operations \emph{once}, generically over descriptions
-      \item describe your language using |Desc| to get access to all generic operations
+      \item describe your language using |Desc| to get access to the generic operations
     \end{enumerate}
 
     To define the syntax-generic co-de-Bruijn terms,
@@ -50,10 +50,10 @@
         \'X : List I -> I -> Desc I -> Desc I
         \'# : I -> Desc I
     \end{code}
-    |I| is the type associated with each expression and variable brought into scope,
-    typically their sort.
+    The argument |I| represents the type associated with each expression
+    and variable brought into scope, typically their sort.
     Variable occurrences do not need to be modeled in the description,
-    are part of any language implicitly.
+    as they are part of any language implicitly.
 
     The constructor |\'o| is then used to store data of some type |A|.
     Since the remaining description can then depend on the value of the data,
@@ -97,7 +97,7 @@
 \section{Intrinsically Typed Syntax}
 \label{sec:generic-co-de-bruijn-terms}
     The \texttt{generic-syntax} package only interprets syntax descriptions into de Bruijn terms.
-    McBride shows an interpretation into co-de-Bruijn terms
+    McBride shows a syntax-generic interpretation into co-de-Bruijn terms
     \cite{McBride2018EveryBodysGotToBeSomewhere},
     but it is based on a different structure of syntax descriptions.
     Since we want to interpret a single description type into both types of terms,
@@ -122,13 +122,13 @@
     The interpretation of |\'o| is exactly the same as for de Bruijn terms,
     storing a value of type A and (based on its value)
     continuing with the remaining description.
-    The other two cases however need to enforce the invariants on the live context |Gamma|
+    The other two cases however need to enforce the invariants on the live variables |Gamma|
     by which the expressions are indexed:
     |\'X| uses \emph{relevant} pairs and |\'#| requires
     that the context starts out empty until something explicitly extends it.
 
     Based on that, we can build the recursive type of terms.
-    At each recursive occurrence, a is introduced.
+    At each recursive occurrence, a new scope is introduced.
     While this could be done as |Delta ||- T i|
     independent of the bound variables |Delta|,
     a single case distinction avoids a trivial wrapper with a thinning
@@ -143,7 +143,7 @@
         `var  : Tm d i (i :: [])
         `con  : (interpretC(d)) (Scope (Tm d)) i Gamma -> Tm d i Gamma
     \end{code}
-    We also see that variables always have a singleton live context.
+    We also see that variables still always have a single live variable in their context.
 
   \paragraph{Instantiation the terms}
     We can obtain co-de-Bruijn terms of our expression language
@@ -156,7 +156,7 @@
     However, there are some practical differences coming from
     the way relevant products are used in the interpretation.
     At the end, each description is terminated by a |\'#|
-    resulting in an expression with empty live context,
+    resulting in an expression indexed by an empty list of live variables,
     which means that even constructing a unary product
     |(interpretC(\'X Delta i (\'# j)))|
     requires trivial thinnings and covers.
@@ -215,7 +215,7 @@
     for example, should be absolutely trivial, but end up somewhat verbose.
 
 
-\section{Conversion From/To de Bruijn Syntax}
+\section{Conversion from/to de Bruijn Syntax}
 \label{sec:generic-co-de-bruijn-conversion}
     The conversion between de Bruijn and co-de-Bruijn terms
     can be done generically for any description.
@@ -264,7 +264,7 @@
     \end{code}
     For our use case, we describe let-bindings
     and then define dead binding elimination for any description
-    explicitly extended with them.
+    that has explicitly been extended with them.
     \begin{code}
       `Let : Desc I
       `Let {I} = \'o (I >< I) $ uncurry $ lambda sigma tau ->
@@ -298,7 +298,7 @@
     \end{code}
     The last two of these functions traverse a single syntax node,
     apply |dbe| to each subexpression and combine the
-    resulting live contexts using the co-de-Bruijn smart constructors.
+    resulting live variables using the co-de-Bruijn smart constructors.
     \begin{code}
       dbe-[.] (\'o A d) (a , t) =
         map^^ (a ,_) (dbe-[.] (d a) t)
@@ -326,15 +326,17 @@
       ...  | (os oz \\ t2) , refl =
           map^^ (`con . inr) (dbe-[.] `Let t)
     \end{code}
-    However, this definition fails Agda's termination checker,
-    which can for example be solved by manually inlining the call to |dbe-[.] `Let|
-    in the last line.
+    However, this definition fails Agda's termination checker.
+    This can for example be solved by manually inlining the call to |dbe-[.] `Let|
+    in the last line,
+    resulting in a more verbose implementation.
 
     For the strong version, we again introduce a helper function |Let?|
     and now everything works nicely:
     since it only checks for dead bindings afterwards,
     the recursive call happens directly on the subexpression from the input,
     which is clearly structurally smaller.
+    Therefore, the following definition is accepted by the termination checker:
     \begin{code}
       Let? : (interpretC(`Let)) (Scope (Tm (d \'+ `Let))) tau Gamma -> Tm (d \'+ `Let) tau ^^ Gamma
       Let? (At(t)(a , pairR (t1 ^ theta1) (p ^ theta2) _))
@@ -365,7 +367,7 @@
   \paragraph{Let-sinking}
     Making the concrete version of let-sinking syntax-generic
     is not quite as straightforward as for dead binding elimination,
-    since some rules on when to stop let-sinking
+    since some rules for when to stop let-sinking
     depend on specific language constructs.
     The rule of not duplicating bindings can be implemented generically,
     but the constraint on not moving a let-binding
@@ -375,7 +377,7 @@
     we \emph{do} want to sink into other let-bindings
     and we can imagine a number of other language constructs
     for which it is not immediately obvious whether
-    it is beneficial to sink let-bindings into them or not.
+    it is beneficial to sink through them or not.
     This suggests the need for a mechanism
     by which the desired behaviour can be specified
     as an additional input to the let-sinking transformation.
@@ -391,7 +393,6 @@
 
     Ideally, it should be possible to do the proof for \emph{any} semantics
     with some property, like being defined as a fold of the syntax tree.
-    \Fixme{explain or reference the term ``fold''?}
     However, the exact constraints are not obvious.
     A good candidate is the notion of |Semantics|
     as defined by Allais et~al. \cite{Allais2018UniverseOfSyntaxes},
@@ -402,11 +403,6 @@
     becomes more complicated than it is for de Bruin terms,
     as the relationship between the context of an expression
     and the context of its subexpressions is more involved.
-    \Fixme{
-      They rely on |interpretC_| giving rise to traversable functors,
-      which is not true for co-de-Bruijn.
-      But that might be too much information here?
-    }
     It seems worthwhile to attempt finding a solution to this issue,
     which then might make it possible to prove
     that a transformation preserves

@@ -59,7 +59,7 @@
     as well as different binding representations and their pitfalls.
 
     In chapter \ref{ch:de-bruijn} we start by
-    showing a typical intrinsically typed de Bruijn representation of our simple expression language.
+    showing a typical intrinsically typed de Bruijn representation of our expression language.
     We then explain thinnings and motivate their application to computing variable liveness.
     Equipped with these tools,
     we implement dead binding elimination and let-sinking,
@@ -77,11 +77,11 @@
     and struggle with the proof of correctness.
 
     In chapter \ref{ch:generic-co-de-bruijn}, we explain the idea of syntax-generic programming
-    as presented by Allais, Atkey, Chapman, McrBride and McKinna
+    as presented by Allais, Atkey, Chapman, McBride and McKinna
     \cite{Allais2018UniverseOfSyntaxes}
     and extend it with basic support for the co-de-Bruijn representation.
-    This allows us to generically convert between de Bruijn and co-de-Bruijn terms
-    and perform dead binding elimination.
+    This allows us to convert between de Bruijn and co-de-Bruijn terms
+    and perform dead binding elimination \emph{syntax-generically}.
 
     In the end, chapter \ref{ch:discussion} discusses our main observations,
     open questions, and opportunities to continue the work presented here.
@@ -107,5 +107,5 @@
       \item a syntax-generic implementation of dead binding elimination on co-de-Bruijn terms
         (section \ref{sec:generic-co-de-bruijn-dbe})
     \end{itemize}
-    The source code is available online%
+    The Agda code and \LaTeX{} source of this document are available online%
     \footnote{\url{https://github.com/mheinzel/correct-optimisations}}.

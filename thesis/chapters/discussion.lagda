@@ -16,11 +16,11 @@
     and, in simple cases, manipulating their context.
     This is also witnessed by the connection
     between weakly live variable analysis and the co-de-Bruijn representation,
-    which is built around thinnings.
+    which is itself built around thinnings.
 
     Finally, it seems promising to define binding-related transformations
     syntax-generically,
-    as they often handle most language language constructs in a uniform way.
+    as they often handle most language constructs in a uniform way.
     This was showcased by
     performing dead binding elimination generically on co-de-Bruijn expressions
     of any language containing let-bindings.
@@ -32,7 +32,7 @@
 
     One could attempt to address this issue by extending thinnings
     to allow for permutations,
-    but this might just move the complexity,
+    but this might just move the complexity elsewhere,
     as the operations on thinnings then become more difficult to define.
     For example, it is not obvious how to perform the liveness union operation |_\/_|
     without a way of ensuring that the reorderings in both its arguments agree
@@ -67,7 +67,7 @@
     could also benefit from further exploration.
     As noted in section \ref{sec:generic-co-de-bruijn-discussion},
     syntax-generic let-sinking comes with some interesting questions.
-    Another large topic we only discussed briefly is that of correctness
+    Another large topic we only discussed briefly is that of correctness,
     which first requires a suitable notion of semantics.
     The most promising avenue for that is to extend the work by Allais et~al.
     \cite{Allais2018UniverseOfSyntaxes}
@@ -75,11 +75,11 @@
     but also for notions such as |Semantics|.
 
     There are several techniques that are related to aspects of the work shown here.
-    For example, we saw several distinct definitions of syntax trees
-    with a different amount of extra information on them:
+    For example, we saw several distinct definitions of syntax trees,
+    each with a different amount of extra information:
     raw expressions,
     intrinsically typed expressions with some invariants,
-    and annotated expressions that also contain the results of some program analysis.
+    and annotated expressions that also contain the results of program analysis.
     However, the language they describe is fundamentally the same.
     Making this relationship explicit using \emph{ornamentations}
     \cite{Dagand2014TransportingFunctionsAcrossOrnaments}
@@ -92,6 +92,7 @@
 
 
 \subsection{Extending the Language}
+\label{sec:further-work-extending-language}
   \paragraph{Recursive bindings}
     In a recursive let-binding, the bound variable is available in its own declaration.
     While this only requires a small change in the definition of the syntax tree,
@@ -102,7 +103,7 @@
       Capretta2005GeneralRecursion,%
       McBride2015TuringCompletenessTotallyFree,%
       Danielsson2012PartialityMonad%
-    }
+    }.
     Program analysis of recursive functions poses additional challenges
     \cite{Nielson1999PrinciplesProgramAnalysis}
     and transformations are affected as well:
@@ -114,10 +115,9 @@
     Since mutual recursion allows multiple bindings to refer to each other,
     the current approach of handling one binding at a time is not sufficient.
     Instead, there is a list of simultaneous declarations
-    where the scope of each is extended with a all of the bindings.
+    where the scope of each is extended with variables for all the declarations.
     This can be represented in the syntax tree without too much effort,
     even using the generic syntax descriptions seen before.
-    \Fixme{I have code to show it, but doesn't make sense to show it here.}
     % \begin{code}
     %   RecBindings : List I -> I -> Desc I
     %   RecBindings Delta tau = foldr (\'X Delta) (\'X Delta tau (\'# tau)) Delta
@@ -128,6 +128,7 @@
 
 
 \subsection{Other Transformations}
+\label{sec:further-work-other-transformations}
   \paragraph{Local rewrites}
     There is a number of local transformations
     that simply rewrite a specific pattern into an equivalent one.
@@ -167,5 +168,5 @@
 
     In de Bruijn representation,
     identifying identical subexpressions is challenging,
-    since their context (and thus their type) may be different.
+    since their context (and thus their type) may differ.
     This problem is avoided by co-de-Bruijn representation.
