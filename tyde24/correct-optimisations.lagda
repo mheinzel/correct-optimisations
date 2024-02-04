@@ -16,6 +16,9 @@
 \usepackage{xspace}
 \usepackage{natbib}
 
+\usepackage{todonotes}
+\newcommand{\Outline}[1]{\todo[inline,color=gray!30]{#1}}
+
 \acmConference[TyDe ’24]{Workshop on Type-Driven Development}{September 2, 2024}{Milan, Italy}
 
 \begin{document}
@@ -31,7 +34,7 @@
 \email{matthias@@well-typed.com}
 
 \begin{abstract}
-TODO
+  \Outline{abstract}
 \end{abstract}
 
 \keywords{Intrinsically Typed Syntax, Dependent Types, Agda}
@@ -39,8 +42,24 @@ TODO
 \maketitle
 
 \section{Introduction}
+\Outline{describe problem, can we do transformations correctly?}
+\Outline{describe transformations}
+\Outline{contributions/structure}
 
-TODO
+\section{Dead Binding Elimination}
+\Outline{de Bruin}
+\Outline{tracking liveness}
+\Outline{co-de-Bruin}
+% TODO: how do correctness proofs fit in? check what I have.
+
+\section{Other Transformations}
+\Outline{list others with short discussion}
+\Outline{explain challenges with let-sinking}
+
+\section{Related Work}
+
+\section{Conclusion}
+\Outline{or Discussion?}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{../correct-optimisations}{}
