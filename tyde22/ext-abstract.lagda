@@ -105,7 +105,7 @@ We can see how the context changes when introducing a new binding:
 
 \begin{code}
 data Expr (Gamma : Ctx) : (tau : U) -> Set where
-  Let   : Expr Gamma sigma -> Expr (tau ∷ Gamma) tau -> Expr Gamma tau
+  Let   : Expr Gamma sigma -> Expr (tau :: Gamma) tau -> Expr Gamma tau
   (dots)
 \end{code}
 
