@@ -29,9 +29,16 @@
 \author{Matthias Heinzel}
 \affiliation{%
   \institution{Well-Typed LLP}
-  % \city{London}
+  \city{London}
   \country{United Kingdom}}
 \email{matthias@@well-typed.com}
+
+\author{Wouter Swierstra}
+\affiliation{%
+  \institution{Utrecht University}
+  \city{Utrecht}
+  \country{Netherlands}}
+\email{w.s.swierstra@@uu.nl}
 
 \begin{abstract}
   \Outline{abstract}
@@ -43,6 +50,7 @@
 
 \section{Introduction}
 \Outline{describe problem, can we do transformations correctly?}
+\Outline{describe language}
 \Outline{describe transformations}
 \Outline{contributions/structure}
 
