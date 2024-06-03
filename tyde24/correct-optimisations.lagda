@@ -18,6 +18,7 @@
 
 \usepackage{todonotes}
 \newcommand{\Outline}[1]{\todo[inline,color=gray!30]{#1}}
+\newcommand{\Copied}[1]{{\color{gray} #1}}
 \newcommand{\TODO}[1]{\todo[inline,color=red!30]{TODO: #1}}
 
 \newcommand{\ValTrue}{\texttt{true}}
@@ -59,6 +60,7 @@
 
 \section{Introduction}
   \Outline{describe problem, can we do transformations correctly?}
+  \Copied{
     When writing a compiler for a programming language,
     an important consideration is the treatment of binders and variables.
     They are part of most languages and
@@ -110,8 +112,10 @@
     usually depends on which parts of the program make use of which binding.
     We employ several ways of providing and using variable liveness information
     for program transformations.
+  }
 
   \Outline{describe language}
+  \Copied{
     As a running example, we will consider a simple expression language
     based on the $\lambda$-calculus
     \cite{Barendregt1985LambdaCalculus}.
@@ -140,8 +144,10 @@
     recursive bindings or a fixpoint operator,
     but discuss some potential additions and their implications
     at the end (section \ref{sec:further-work-extending-language}).
+  }
 
   \Outline{describe DBE}
+  \Copied{
     We mainly consider transformations aimed at optimising functional programs.
     A large number of program analyses and optimisations are presented in the literature
     \cite{Nielson1999PrinciplesProgramAnalysis,Santos1995CompilationByTransformation}
@@ -174,7 +180,10 @@
     Alternatively, \emph{strongly live variable analysis} can achieve the same result in a single pass
     by ignoring variable occurrences in the declaration of variables
     unless that variable is live itself.
+  }
+
   \Outline{problems with transformations on de Bruijn}
+  \Copied{
     \paragraph{De Bruijn indices}
     With \emph{de Bruijn indices}
     \cite{DeBruijn1972NamelessIndices},
@@ -204,16 +213,18 @@
       &\ \ \LetB \DeBruijn{0} + 6 \In \\
       &\ \ \ \ \DeBruijn{2}\ \ \ \textit{-- incorrect, should be 1}
     \end{align*}
+  }
 
-  \Outline{high-level approach}
+  \Outline{key ideas}
     \TODO{summarise}
 
-  \Outline{contributions/structure}
+  \Outline{contributions}
 
 
 \section{Dead Binding Elimination}
 
   \Outline{briefly define de Bruijn syntax tree}
+  \Copied{
     By indexing expressions with their type and context,
     the invariants can guarantee type- and scope-correctness by construction.
     \begin{code}
@@ -227,8 +238,10 @@
     \end{code}
     Note how the context changes when introducing a new binding
     in the body of a |Lam| or |Let|.
+  }
 
   \Outline{thinnings encode liveness}
+  \Copied{
     Since the context of an expression plays such an important role for its scope-safety,
     we want some machinery for talking about how different contexts relate to each other.
     One such relation, which will prove useful soon,
@@ -256,9 +269,11 @@
       os (o' (os oz)) : (a :: c :: []) C= (a :: b :: c :: [])
     \end{code}
     \TODO{explain operations on thinnings?}
+  }
 
   \Outline{sketch: compute liveness}
-    \TODO{shorten, less detail}
+  \TODO{shorten, less detail}
+  \Copied{
     We want to compute an expression's \emph{live variables},
     i.e. the part of the context that is live.
     However, while an expression's context is just a list of sorts,
@@ -414,8 +429,10 @@
     \begin{code}
       os (o' oz) \l/ o' (o' (os oz)) = os (o' oz)
     \end{code}
+  }
 
   \Outline{describe transformation}
+  \Copied{
     To make the decision whether a binding can be removed,
     we need to find out if it is used or not.
     This can be achieved by returning liveness information
@@ -477,8 +494,10 @@
     without the binding.
     Finally, note that checking liveness \emph{after} already removing dead bindings
     from the body corresponds to \emph{strongly} live variable analysis.
+  }
 
 \section{Liveness Annotations}
+  \Copied{
     In compilers, it is a common pattern to perform
     separate analysis and transformation passes,
     for example with strictness and occurrence analysis in GHC
@@ -487,8 +506,10 @@
     without repeatedly having to compute it on the fly.
     For dead binding elimination,
     this allows us to avoid the redundant renaming of subexpressions.
+  }
 
   \Outline{define annotated syntax}
+  \Copied{
     To annotate each part of the expression with its live variables,
     we first need to define a suitable datatype of annotated expressions
     |LiveExpr tau theta|.
@@ -528,9 +549,11 @@
     The operator |_\l/_| used here
     can refer to either one of the two versions we introduced,
     but for the remainder of this thesis we will use the strongly live version.
+  }
 
   \Outline{describe analysis}
-    \TODO{less detail}
+  \TODO{less detail}
+  \Copied{
     To create such an annotated expressions, we need to perform
     strongly live variable analysis.
     As we do not know the live variables upfront,
@@ -584,8 +607,10 @@
     We will later use this to split the correctness proof into multiple small parts.
     % NOTE: If this text about evalLive ever gets removed,
     % we need to move some of it to the explanation of co-de-Bruijn evaluation.
+  }
 
   \Outline{describe transformation}
+  \Copied{
     The second pass we perform is similar to |dbe| in the direct approach,
     but with a few key differences.
     Firstly, it operates on annotated expressions |LiveExpr tau theta|
@@ -624,8 +649,10 @@
       dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
       dbe e = let _ , theta , le = analyse e in transform le oi ^ theta
     \end{code}
+  }
 
   \Outline{alternative: keeping annotations in result}
+  \Copied{
     In both transformations, we used annotated expressions for the input,
     but returned the result without annotations.
     When performing multiple different transformations in sequence
@@ -645,8 +672,10 @@
     Could a representation considering only the live variables be simpler,
     while providing the same benefits?
     The next chapter will feature such a representation.
+  }
 
 \section{co-de-Bruin}
+  \Copied{
     After showing that de Bruijn representation can be made type- and scope-correct
     by indexing expressions with their context (the variables in scope),
     we found out how useful it is to also know the live variables.
@@ -663,8 +692,10 @@
     to rename the variables.
     The bookkeeping required is relatively complex,
     but Agda's typechecker helps us maintain the invariants.
+  }
 
   \Outline{give intuition}
+  \Copied{
     The intuition that McBride gives
     (and uses to motivate the name \emph{co-de-Bruijn})
     is that de Bruijn representation keeps all introduced bindings in its context
@@ -680,9 +711,11 @@
     we also think about it in a way similar to liveness annotations:
     starting from the variables, the live variables get collected
     and turned into annotations, bottom-up.
+  }
 
   \Outline{briefly introduce constructions}
-    \TODO{much less detail}
+  \TODO{much less detail}
+  \Copied{
     \paragraph{Relevant pairs}
     The most insightful situation to consider is that of handling
     multiple subexpressions, for example with addition.
@@ -784,8 +817,10 @@
     but briefly mention that it relies on the ability to split the thinning
     that goes into |Gamma' ++ Gamma| into two parts using |_-||_|,
     as seen in section \ref{sec:de-bruijn-thinnings}.
+  }
 
   \Outline{define co-de-Bruijn syntax tree}
+  \Copied{
     Using the building blocks defined above,
     our expression language can be defined pretty concisely.
 
@@ -798,8 +833,10 @@
         Val   : (interpretU(sigma)) -> Expr sigma []
         Plus  : (Expr NAT ><R Expr NAT) Gamma -> Expr NAT Gamma
     \end{code}
+  }
 
   \Outline{describe transformation}
+  \Copied{
     Let-bindings make use of both a relevant pair and binding,
     without us having to think much about what the thinnings involved should look like.
     Since the context of the declaration is considered relevant
@@ -895,6 +932,7 @@
     Additionally inlining the smart constructors
     to show how they construct their thinnings
     would make the code even more noisy and difficult to follow.
+  }
 
 \section{Other Transformations}
 \Outline{list others with short discussion}
