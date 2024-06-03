@@ -928,9 +928,11 @@ proposed by by Allais et al. \cite{Allais2018UniverseOfSyntaxes}.
 Other work on verifying optimizations, such as that by
 \cite{Barrack2022Intrinsically}, often focuses on those
 transformations that do not change the type or context, such as
-constant folding. More recently, \cite{DeMuijnckHughes2023TypeTheory}
-has shown how to write more complex optimizations, including
-subexpression elimination, using co-De Bruijn variable binding.
+constant folding. A welcome exception is the work by Jander proving
+the correctness of closure conversion~\cite{Jander2019Verifying}.  More recently,
+\cite{DeMuijnckHughes2023TypeTheory} has shown how to write more
+complex optimizations, including subexpression elimination, using
+co-De Bruijn variable binding.
 
 \subsection{Further work}
 
