@@ -900,10 +900,55 @@
 \Outline{list others with short discussion}
 \Outline{explain challenges with let-sinking}
 
-\section{Related Work}
+\section{Discussion}
 
-\section{Conclusion}
-\Outline{or Discussion?}
+\subsection{Related work}
+There are numerous approaches to variable binding. The POPLMark
+challenge \cite{Aydemir2005POPLMark} set out to weigh the strengths
+and weaknesses of different alternatives. In our current work, we did
+not set out to compare different approaches to binding -- but rather
+focussed on how to define transformations on the intrinsically typed
+approach. In general, we expect that for simply typed approaches, such
+as De Bruijn indices~\cite{DeBruijn1972NamelessIndices} or named
+variables, these transformations are more straightforward to write,
+but also notoriously difficult to get right.
+
+The intrinsically typed approach to language syntax is certainly not
+new. Enforcing the static type safety using indexed families dates
+back at least as far as
+\cite{Augustsson1999WellTypedInterpreter}. There are numerous
+languages and interpreters that have been defined in this style,
+including the simply typed lambda calculus~\cite{McBride2005Epigram},
+mutable state~\cite{Swierstra2009Functional}, imperative programming
+languages \cite{BachPoulsen2017Definitional}, probablistic programming
+\cite{Saito2023Probablistic}, and many others. Many, if not all, of
+these languages can be described in the more general framework
+proposed by by Allais et al. \cite{Allais2018UniverseOfSyntaxes}.
+
+Other work on verifying optimizations, such as that by
+\cite{Barrack2022Intrinsically}, often focuses on those
+transformations that do not change the type or context, such as
+constant folding. More recently, \cite{DeMuijnckHughes2023TypeTheory}
+has shown how to write more complex optimizations, including
+subexpression elimination, using co-De Bruijn variable binding.
+
+\subsection{Further work}
+
+The dead binding elimination may remove, but not reorder binders. This
+is captured precisely by our use of thinnings. More generally,
+however, transformations that permute the order of bindings cannot be
+described directly in this fashion. Handling these would require a
+more general notion of reordering than the thinnings used in this
+work.
+
+The language of study has been carefully chosen to be interesting yet
+non-trivial. We have avoided many more advanced patterns of binding,
+including recursive bindings and (mutually recursive) binding
+groups. It should be possible to tackle transformations on languages
+using these binders -- although we expect that doing so would
+introduce a significant technical overhead.
+
+
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{../correct-optimisations}{}

@@ -400,3 +400,93 @@ This paper shows how one can use the coinductive partiality monad to define big-
   keywords  = {Programming Languages (cs.PL), FOS: Computer and information sciences, FOS: Computer and information sciences},
   publisher = {arXiv},
 }
+
+@article{BachPoulsen2017Definitional,
+author = {Bach Poulsen, Casper and Rouvoet, Arjen and Tolmach, Andrew and Krebbers, Robbert and Visser, Eelco},
+title = {Intrinsically-typed definitional interpreters for imperative languages},
+year = {2017},
+issue_date = {January 2018},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {2},
+number = {POPL},
+url = {https://doi.org/10.1145/3158104},
+doi = {10.1145/3158104},
+abstract = {A definitional interpreter defines the semantics of an object language in terms of the (well-known) semantics of a host language, enabling understanding and validation of the semantics through execution. Combining a definitional interpreter with a separate type system requires a separate type safety proof. An alternative approach, at least for pure object languages, is to use a dependently-typed language to encode the object language type system in the definition of the abstract syntax. Using such intrinsically-typed abstract syntax definitions allows the host language type checker to verify automatically that the interpreter satisfies type safety. Does this approach scale to larger and more realistic object languages, and in particular to languages with mutable state and objects? In this paper, we describe and demonstrate techniques and libraries in Agda that successfully scale up intrinsically-typed definitional interpreters to handle rich object languages with non-trivial binding structures and mutable state. While the resulting interpreters are certainly more complex than the simply-typed λ-calculus interpreter we start with, we claim that they still meet the goals of being concise, comprehensible, and executable, while guaranteeing type safety for more elaborate object languages. We make the following contributions: (1) A dependent-passing style technique for hiding the weakening of indexed values as they propagate through monadic code. (2) An Agda library for programming with scope graphs and frames, which provides a uniform approach to dealing with name binding in intrinsically-typed interpreters. (3) Case studies of intrinsically-typed definitional interpreters for the simply-typed λ-calculus with references (STLC+Ref) and for a large subset of Middleweight Java (MJ).},
+journal = {Proc. ACM Program. Lang.},
+month = {dec},
+articleno = {16},
+numpages = {34},
+keywords = {type safety, scope graphs, mechanized semantics, dependent types, definitional interpreters, Java, Agda}
+}
+
+
+
+
+@PhdThesis{Barrack2022Intrinsically,
+  author = 	 {Barrack, Dani},
+  title = 	 {Using Intrinsically-Typed Definitional Interpreters to Verify Compiler Optimizations in a Monadic Intermediate Language},
+  school = 	 {Portland State University},
+  year = 	 {2022},
+  doi = {https://doi.org/10.15760/etd.7794}
+}
+
+
+@InProceedings{DeMuijnckHughes2023TypeTheory,
+  author =	{de Muijnck-Hughes, Jan and Allais, Guillaume and Brady, Edwin},
+  title =	{{Type Theory as a Language Workbench}},
+  booktitle =	{Eelco Visser Commemorative Symposium (EVCS 2023)},
+  pages =	{9:1--9:13},
+  series =	{Open Access Series in Informatics (OASIcs)},
+  ISBN =	{978-3-95977-267-9},
+  ISSN =	{2190-6807},
+  year =	{2023},
+  volume =	{109},
+  editor =	{L\"{a}mmel, Ralf and Mosses, Peter D. and Steimann, Friedrich},
+  publisher =	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+  address =	{Dagstuhl, Germany},
+  URL =		{https://drops.dagstuhl.de/entities/document/10.4230/OASIcs.EVCS.2023.9},
+  URN =		{urn:nbn:de:0030-drops-177797},
+  doi =		{10.4230/OASIcs.EVCS.2023.9},
+  annote =	{Keywords: dependent types, language workbenches, idris2, dsl, edsl, intrinsically scoped, well typed, co-De Bruijn}
+}
+
+@InProceedings{Aydemir2005POPLMark,
+author="Aydemir, Brian E. and Bohannon, Aaron and Fairbairn, Matthew and Foster, J. Nathan and Pierce, Benjamin C. and Sewell, Peter and Vytiniotis, Dimitrios and Washburn, Geoffrey and Weirich, Stephanie and Zdancewic, Steve",
+editor="Hurd, Joe and Melham, Tom",
+title="Mechanized Metatheory for the Masses: The PoplMark Challenge",
+booktitle="Theorem Proving in Higher Order Logics",
+year="2005",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="50--65",
+abstract="How close are we to a world where every paper on programming languages is accompanied by an electronic appendix with machine-checked proofs?",
+isbn="978-3-540-31820-0"
+}
+
+@inproceedings{Saito2023Probablistic,
+author = {Saito, Ayumu and Affeldt, Reynald},
+title = {Experimenting with an Intrinsically-Typed Probabilistic Programming Language in Coq},
+year = {2023},
+isbn = {978-981-99-8310-0},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+url = {https://doi.org/10.1007/978-981-99-8311-7_9},
+doi = {10.1007/978-981-99-8311-7_9},
+abstract = {Although the formalization of probabilistic programs already has several applications in the fields of security proofs and artificial intelligence, formal verification experiments are still underway to support the many features of probabilistic programming. We report on the formalization in the Coq proof assistant of a syntax and a denotational semantics for a probabilistic programming language with sampling, scoring, and normalization. We use dependent types in a crucial way since our syntax is intrinsically-typed and since the semantic values are essentially dependent records. Thanks to the features of Coq, we can use notations that hide the details of type inference when writing examples. The resulting formalization is usable to reason about simple probabilistic programs.},
+booktitle = {Programming Languages and Systems: 21st Asian Symposium, APLAS 2023, Taipei, Taiwan, November 26–29, 2023, Proceedings},
+pages = {182–202},
+numpages = {21},
+location = {Taipei, Taiwan}
+}
+
+  
+@inproceedings{McBride2005Epigram,
+  title={Epigram: Practical programming with dependent types},
+  author={McBride, Conor},
+  booktitle={Advanced Functional Programming: 5th International School, AFP 2004, Tartu, Estonia, August 14--21, 2004, Revised Lectures},
+  pages={130--170},
+  year={2005},
+  organization={Springer}
+}
+
