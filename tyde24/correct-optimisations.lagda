@@ -222,10 +222,55 @@
   \paragraph{Contributions}
   \TODO{contributions}
 
-
-\section{Dead Binding Elimination}
-
+\newpage
+\section{Intrinsically Typed Dead Binding Elimination}
   \Outline{briefly define de Bruijn syntax tree}
+  \TODO{how much explanation? also, add reference?}
+  \Copied{
+    The first problem can be addressed by indexing each expression
+    with its \emph{sort} |U|, the type that it should be evaluated to.
+    \begin{code}
+      data U : Set where
+        _=>_  : U -> U -> U
+        BOOL  : U
+        NAT   : U
+
+      variable
+        sigma tau : U
+
+      interpretU_ : U -> Set
+      (interpretU(sigma => tau))  = (interpretU(sigma)) -> (interpretU(tau))
+      (interpretU(BOOL))          = Bool
+      (interpretU(NAT))           = Nat
+    \end{code}
+
+    Note that the values not only consist of natural numbers and Booleans,
+    but also functions between values,
+    introduced by $\lambda$-abstraction.
+    Sorts can further be interpreted as Agda types,
+    which we use to represent values, for example during evaluation.
+  }
+
+  \Copied{
+    Sorts help, but to know if a variable occurrence is valid,
+    one must also consider its \emph{context},
+    the (typed) bindings that are in scope.
+    We represent the context as a list of sorts:
+    One for each binding in scope, from innermost to outermost.
+    \begin{code}
+      Ctx = List U
+
+      variable
+        Gamma Delta : Ctx
+    \end{code}
+    De Bruijn indeces can then ensure that they reference an element of a specific type within the context.
+    \begin{code}
+      data Ref (sigma : U) : Ctx -> Set where
+        Top  : Ref sigma (sigma :: Gamma)
+        Pop  : Ref sigma Gamma -> Ref sigma (tau :: Gamma)
+    \end{code}
+  }
+
   \Copied{
     By indexing expressions with their type and context,
     the invariants can guarantee type- and scope-correctness by construction.
@@ -244,14 +289,27 @@
 
   \Outline{thinnings encode liveness}
   \Copied{
-    Since the context of an expression plays such an important role for its scope-safety,
-    we want some machinery for talking about how different contexts relate to each other.
-    One such relation, which will prove useful soon,
-    is that of being a subcontext,
-    or more precisely a context with an embedding into another.
-    We formalise this notion in the form of \emph{thinnings},
-    also called \emph{order-preserving embeddings} (OPE)
-    \cite{Chapman2009TypeCheckingNormalisation}.
+    We want to compute an expression's \emph{live variables},
+    i.e. the part of the context that is live.
+    However, while an expression's context is just a list of sorts,
+    a similar list is not sufficient as the result of this bottom-up analysis.
+
+    For example, knowing that two subexpressions both have a single
+    live variable of sort |NAT| is not enough to deduce whether the
+    combined expression has one or two live variables.
+    We cannot know whether the two variables are the same,
+    unless we have a way to connect them back to the context they come from.
+    Another way of thinking about variable liveness is that
+    for each variable in the context we want a binary piece of information:
+    is it live or dead?
+
+    \emph{Thinnings}, also called \emph{order-preserving embeddings} (OPE)
+    \cite{Chapman2009TypeCheckingNormalisation},
+    support both of these interpretations:
+    A thinning |Delta C= Gamma| can be used to represent the live variables |Delta|
+    together with an embedding into the context |Gamma|.
+    At the same time, looking at how it is constructed
+    reveals for each element of the context whether it is live (|os|) or dead (|o'|).
 
     We closely follow the syntactic conventions of McBride
     \cite{McBride2018EveryBodysGotToBeSomewhere},
@@ -270,70 +328,59 @@
     \begin{code}
       os (o' (os oz)) : (a :: c :: []) C= (a :: b :: c :: [])
     \end{code}
-    \TODO{explain operations on thinnings?}
   }
+  \TODO{mention |..|}
 
-  \Outline{sketch: compute liveness}
-  \TODO{shorten, less detail}
-  \Copied{
-    We want to compute an expression's \emph{live variables},
-    i.e. the part of the context that is live.
-    However, while an expression's context is just a list of sorts,
-    a similar list is not sufficient as the result of this bottom-up analysis.
-
-    For example, knowing that two subexpressions both have a single
-    live variable of sort |NAT| is not enough to deduce whether the
-    combined expression has one or two live variables.
-    We cannot know whether the two variables are the same,
-    unless we have a way to connect them back to the context they come from.
-    Another way of thinking about variable liveness is that
-    for each variable in the context we want a binary piece of information:
-    is it live or dead?
-
-    Thinnings support both of these interpretations:
-    A thinning |Delta C= Gamma| can be used to represent the live variables |Delta|
-    together with an embedding into the context |Gamma|.
-    At the same time, looking at how it is constructed
-    reveals for each element of the context whether it is live (|os|) or dead (|o'|).
-
-    We will now show for each constructor of our language
-    how to compute its live variables,
-    or rather their thinning into the context.
-
-    \paragraph{Values}
-    Starting with the most trivial case, values do not use any variables.
-    The thinning from the (empty) list of their life variables consequently drops everything.
+  \Outline{describe transformation}
+    To make the decision whether bindings can be removed,
+    DBE requires liveness information of the subexpressions involved.
+    Furthermore, \emph{the context} of the resulting expression
+    depends on the input's variable liveness.
+    Therefore, we interleave the bottom-up calculation of variable liveness
+    with the transformation itself.
+    The return type of the transformation could therefore be given using an existential
+    list of live variables |Delta|:
     \begin{code}
-      oe : [] C= Gamma
+      dbe : Expr sigma Gamma -> (Exists (Delta) (List I)) (Delta C= Gamma >< Expr sigma Delta)
     \end{code}
+    \TODO{clarify why the result needs to be in a smaller context}
 
-    \paragraph{Variables}
-    A variable occurrence trivially has one live variable.
-    To obtain a suitable thinning, we can make use of the fact that
-    thinnings from a singleton context are isomorphic to references.
+    However, it is more convenient to hide this existential using an abstraction.
     \begin{code}
-      o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
-      o-Ref Top      = os oe
-      o-Ref (Pop x)  = o' (o-Ref x)
+      dbe : Expr sigma Gamma -> Expr sigma ^^ Gamma
     \end{code}
     \begin{code}
-      Ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
-      Ref-o (o' theta)  = Pop (Ref-o theta)
-      Ref-o (os theta)  = Top
+      record _^^_ (T : List I -> Set) (Gamma : List I) : Set where
+        constructor _^_
+        field
+          {Delta} : List I
+          thing : T Delta
+          thinning : Delta C= Gamma
     \end{code}
 
-    \paragraph{Binary constructors}
-    Variables in the context are live if they are live in one of the subexpressions (i.e. some thinning is |os _|).
-    \begin{code}
-      \/-vars : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> List I
-      \/-vars                       (o' theta1)  (o' theta2)  =           \/-vars theta1 theta2
-      \/-vars {Gamma = sigma :: _}  (o' theta1)  (os theta2)  = sigma ::  \/-vars theta1 theta2
-      \/-vars {Gamma = sigma :: _}  (os theta1)  (o' theta2)  = sigma ::  \/-vars theta1 theta2
-      \/-vars {Gamma = sigma :: _}  (os theta1)  (os theta2)  = sigma ::  \/-vars theta1 theta2
-      \/-vars                       oz           oz           = []
-    \end{code}
-    To precisely describe the merged variable liveness information,
-    we then construct a thinning from these combined live variables.
+    \paragraph{Atoms}
+    Values use an empty list of variables,
+    which trivially can be embedded into any context using |oe : [] C= Gamma|.
+    For variables, which have one live variable,
+    one can obtain a suitable thinning using the fact that
+    thinnings from a singleton context are isomorphic to de Bruijn indices.
+    %\begin{code}
+    %  o-Ref : Ref sigma Gamma -> (sigma :: []) C= Gamma
+    %  o-Ref Top      = os oe
+    %  o-Ref (Pop x)  = o' (o-Ref x)
+    %\end{code}
+    %\begin{code}
+    %  Ref-o : (sigma :: []) C= Gamma -> Ref sigma Gamma
+    %  Ref-o (o' theta)  = Pop (Ref-o theta)
+    %  Ref-o (os theta)  = Top
+    %\end{code}
+
+    \paragraph{Binary Operators}
+    For binary operators, variables are live if they are live in one of the subexpressions
+    with liveness |theta1 : Delta1 C= Gamma| and |theta2 : Delta2 C= Gamma|,
+    i.e. some thinning is |os _|.
+    We denote this list of live variables as |\/-vars theta1 theta2|.
+    The liveness is then described by the following thinning:
     \begin{code}
       _\/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> \/-vars theta1 theta2 C= Gamma
       o' theta1  \/ o' theta2  = o'  (theta1 \/ theta2)
@@ -342,110 +389,11 @@
       os theta1  \/ os theta2  = os  (theta1 \/ theta2)
       oz         \/ oz         = oz
     \end{code}
-    Furthermore, we can construct the two thinnings \emph{into} the combined live variables
-    and show that this is exactly what we need to reconstruct the original thinnings.
-    \begin{code}
-      un-\/1 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta1 C= \/-vars theta1 theta2
-      un-\/2 : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) -> Delta2 C= \/-vars theta1 theta2
-    \end{code}
-    \begin{code}
-      law-\/1-inv :  (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) ->
-                     un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1
-      law-\/2-inv :  (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= Gamma) ->
-                     un-\/2 theta1 theta2 .. (theta1 \/ theta2) == theta2
-    \end{code}
+    Furthermore, there are two thinnings \emph{into} the combined live variables,
+    which allow to reconstruct the original subexpressions' thinnings,
+    e.g. |un-\/1 : Delta1 C= \/-vars theta1 theta2| with
+    |un-\/1 theta1 theta2 .. (theta1 \/ theta2) == theta1|.
 
-    \paragraph{Binders}
-    When moving up over a binder, the bound variable gets removed from the context.
-    In case it was part of the live variables, it also has to be removed there.
-    This is done using |pop|,
-    again with thinnings from and into the resulting context.
-    \begin{code}
-      pop-vars : Delta C= Gamma -> List I
-      pop-vars {Delta = Delta}       (o' theta)  = Delta
-      pop-vars {Delta = _ :: Delta}  (os theta)  = Delta
-      pop-vars                       oz          = []
-
-      pop : (theta : Delta C= (sigma :: Gamma)) -> pop-vars theta C= Gamma
-      pop (o' theta)  = theta
-      pop (os theta)  = theta
-    \end{code}
-    \begin{code}
-      un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-vars theta)
-
-      law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
-    \end{code}
-
-    \paragraph{Let-bindings}
-    For let-bindings, one option is to treat them as an immediate application
-    of a $\lambda$-abstraction, combining the methods we just saw.
-    This corresponds to weakly live variable analysis,
-    since even if the variable is dead, we end up considering other variables to be live
-    if they are used in its declaration.
-    \begin{code}
-      _\l/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-vars theta1 (pop theta2) C= Gamma
-      theta1 \l/ theta2 = theta1 \/ pop theta2
-    \end{code}
-    The other option is to do strongly live variable analysis
-    with a custom operation |_\l/_|
-    that ignores the declaration's context if it is unused in the body.
-    \begin{code}
-      \l/-vars : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
-      \l/-vars {Delta2 = Delta2}  theta1 (o' theta2)  = Delta2
-      \l/-vars                    theta1 (os theta2)  = \/-vars theta1 theta2
-
-      _\l/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \l/-vars theta1 theta2 C= Gamma
-      theta1 \l/ (o' theta2)  = theta2
-      theta1 \l/ (os theta2)  = theta1 \/ theta2
-    \end{code}
-    We do not need the composed thinnings into the live variables,
-    as we will always distinguish the two cases of |theta2| anyways
-    and can then rely on the thinnings defined for |_\/_|.
-
-    To illustrate the difference, let us return to an example shown earlier:
-    \begin{align*}
-      &\Let{x} 42 \In            & &\LetB 42 \In                       \\
-      &\ \ \Let{y} x + 6 \In     & &\ \ \LetB \DeBruijn{0} + 6 \In     \\
-      &\ \ \ \ \Let{z} y + 7 \In & &\ \ \ \ \LetB \DeBruijn{0} + 7 \In \\
-      &\ \ \ \ \ \ x             & &\ \ \ \ \ \ \DeBruijn{2}
-    \end{align*}
-    If we focus on the subexpression in the last two lines,
-    we see that in our syntax representation it is an |Expr NAT (NAT :: NAT :: [])|,
-    where the first element of the context correspondes to $y$,
-    the second to $x$.
-    \begin{code}
-      Let (Plus (Var Top) (Val 7))
-        (Var (Pop (Pop Top)))
-    \end{code}
-    In the declaration, only the innermost binding $y$ is live,
-    so we have a thinning |os (o' oz)|.
-    In the body (with an additional binding in scope),
-    we have |o' (o' (os oz))|.
-    With the weak version of |_\l/_| we get
-    \begin{code}
-      os (o' oz) \l/ o' (o' (os oz)) = os (o' oz) \/ o' (os oz) = os (os oz)
-    \end{code}
-    stating that both variables in scope are live.
-    With the strong version, on the other hand,
-    only $y$ is considered live:
-    \begin{code}
-      os (o' oz) \l/ o' (o' (os oz)) = os (o' oz)
-    \end{code}
-  }
-
-  \Outline{describe transformation}
-  \Copied{
-    To make the decision whether a binding can be removed,
-    we need to find out if it is used or not.
-    This can be achieved by returning liveness information
-    as part of the transformation's result and use that after the recursive call on the body.
-    Precisely, we return an |Expr sigma ^^ Gamma|,
-    the transformed expression in a reduced context of only its live variables,
-    together with a thinning into the original one.
-
-    The transformation proceeds bottom-up.
-    Once all subexpressions have been transformed and we know their live variables,
-    we calculate the overall live variables with their corresponding thinnings.
     Since the constructors of |Expr| require the subexpressions' context to match their own,
     we need to rename the subexpressions accordingly.
     \begin{code}
@@ -453,6 +401,7 @@
       rename-Expr  : Delta C= Gamma -> Expr sigma Delta  -> Expr sigma Gamma
     \end{code}
 
+    \Outline{important detail: inefficient! (will be fixed by annotations)}
     Each renaming traverses the expression
     and we end up renaming the same parts of the expressions repeatedly
     (at each binary constructor).
@@ -466,6 +415,60 @@
     would also require redundant traversals,
     but we will show a solution to this issue in the next section.
 
+    \paragraph{Binders}
+    When moving up over a binder, the bound variable gets removed from the context.
+    In case it was part of the live variables, it also has to be removed there.
+    This is done using
+    |pop : (theta : Delta C= (sigma :: Gamma)) -> pop-vars theta C= Gamma|,
+    again with thinnings from and into the resulting context.
+    %\begin{code}
+    %  pop-vars : Delta C= Gamma -> List I
+    %  pop-vars {Delta = Delta}       (o' theta)  = Delta
+    %  pop-vars {Delta = _ :: Delta}  (os theta)  = Delta
+    %  pop-vars                       oz          = []
+
+    %  pop : (theta : Delta C= (sigma :: Gamma)) -> pop-vars theta C= Gamma
+    %  pop (o' theta)  = theta
+    %  pop (os theta)  = theta
+    %\end{code}
+    %\begin{code}
+    %  un-pop : (theta : Delta C= (sigma :: Gamma)) -> Delta C= (sigma :: pop-vars theta)
+
+    %  law-pop-inv : (theta : Delta C= (sigma :: Gamma)) -> un-pop theta .. os (pop theta) == theta
+    %\end{code}
+
+    \paragraph{Let-bindings}
+    For let-bindings, one option is to treat them as an immediate application
+    of a $\lambda$-abstraction, combining the methods we just saw.
+    This corresponds to weakly live variable analysis,
+    since even if the variable is dead, we end up considering other variables to be live
+    if they are used in its declaration.
+    %\begin{code}
+    %  _\l/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \/-vars theta1 (pop theta2) C= Gamma
+    %  theta1 \l/ theta2 = theta1 \/ pop theta2
+    %\end{code}
+    The other option is to do strongly live variable analysis
+    with a custom operation |_\l/_|
+    that only considers variables occurrences inside the declaration if the let-binding itself is used in the body.
+    %\begin{code}
+    %  \l/-vars : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> Ctx
+    %  \l/-vars {Delta2 = Delta2}  theta1 (o' theta2)  = Delta2
+    %  \l/-vars                    theta1 (os theta2)  = \/-vars theta1 theta2
+    %\end{code}
+    \begin{code}
+      _\l/_ : (theta1 : Delta1 C= Gamma) (theta2 : Delta2 C= (sigma :: Gamma)) -> \l/-vars theta1 theta2 C= Gamma
+      theta1 \l/ (o' theta2)  = theta2
+      theta1 \l/ (os theta2)  = theta1 \/ theta2
+    \end{code}
+
+    For |Let|, we split on the binding being live or dead in |dbe e2|.
+    Only if it is dead will the typechecker allow us to return |e2'|
+    without the binding.
+    Finally, note that checking liveness \emph{after} already removing dead bindings
+    from the body corresponds to \emph{strongly} live variable analysis.
+
+  \TODO{split up cases and put next to each description? or turn whole thing into figure?}
+  \Copied{
     Most cases of the implementation keep the expression's structure unchanged,
     only manipulating the context:
     \begin{code}
@@ -491,11 +494,6 @@
       dbe (Plus e1 e2) =
         (dots)  -- just as App
     \end{code}
-    For |Let|, we split on the binding being live or dead in |dbe e2|.
-    Only if it is dead will the typechecker allow us to return |e2'|
-    without the binding.
-    Finally, note that checking liveness \emph{after} already removing dead bindings
-    from the body corresponds to \emph{strongly} live variable analysis.
   }
 
 \section{Liveness Annotations}
@@ -676,7 +674,7 @@
     The next chapter will feature such a representation.
   }
 
-\section{co-de-Bruin}
+\section{Co-de-Bruijn Representation}
   \Copied{
     After showing that de Bruijn representation can be made type- and scope-correct
     by indexing expressions with their context (the variables in scope),
