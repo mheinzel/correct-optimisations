@@ -909,7 +909,7 @@ and weaknesses of different alternatives. In our current work, we did
 not set out to compare different approaches to binding -- but rather
 focussed on how to define transformations on the intrinsically typed
 approach. In general, we expect that for simply typed approaches, such
-as De Bruijn indices~\cite{DeBruijn1972NamelessIndices} or named
+as de Bruijn indices~\cite{DeBruijn1972NamelessIndices} or named
 variables, these transformations are more straightforward to write,
 but also notoriously difficult to get right.
 
@@ -932,7 +932,7 @@ constant folding. A welcome exception is the work by Jander proving
 the correctness of closure conversion~\cite{Jander2019Verifying}.  More recently,
 \cite{DeMuijnckHughes2023TypeTheory} has shown how to write more
 complex optimizations, including subexpression elimination, using
-co-De Bruijn variable binding.
+co-de-Bruijn variable binding.
 
 \subsection{Further work}
 
