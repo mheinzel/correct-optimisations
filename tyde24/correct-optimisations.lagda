@@ -59,8 +59,7 @@
 \maketitle
 
 \section{Introduction}
-  \Outline{describe problem, can we do transformations correctly?}
-  \Copied{
+  \Outline{bindings are a challenge for compiler correctness}
     When writing a compiler for a programming language,
     an important consideration is the treatment of binders and variables.
     They are part of most languages and
@@ -96,33 +95,14 @@
     A mechanised proof of semantics preservation can further increase
     confidence in the transformation's correctness.
 
-    In return for the guarantees provided, some additional work is required.
-    Program \emph{analysis} not only needs to identify optimisation opportunities,
-    but potentially also provide a proof witness that the optimisation is safe,
-    e.g. that some dead code is indeed unused.
-    For the \emph{transformation} of the intrinsically typed program,
-    the programmer then has to convince the type checker
-    that type- and scope-correctness invariants are preserved,
-    which can be cumbersome.
-    The goal of this thesis is to understand these consequences better
-    and explore techniques for dealing with them.
-
-    A crucial aspect is that of \emph{variable liveness}.
-    Whether it is safe to apply a binding-related transformation
-    usually depends on which parts of the program make use of which binding.
-    We employ several ways of providing and using variable liveness information
-    for program transformations.
-  }
-
   \Outline{describe language}
-  \Copied{
     As a running example, we will consider a simple expression language
     based on the $\lambda$-calculus
     \cite{Barendregt1985LambdaCalculus}.
-    On top of variables with names $\{ x, y, z, a, b, c, f, g, \ldots \}$, function application and $\lambda$-abstraction,
-    we add let-bindings, primitive values $v \in \mathbb{B} \cup \mathbb{N}$ (with $\mathbb{B} = \{ \ValTrue , \ValFalse \}$) and a binary addition operator.
+    On top of variables $\{ x, y, z, a, b, c, f, g, \ldots \}$, function application and $\lambda$-abstraction,
+    it has let-bindings, primitive values $v \in \mathbb{B} \cup \mathbb{N}$ (with $\mathbb{B} = \{ \ValTrue , \ValFalse \}$) and a binary addition operator.
     Since we are primarily concerned with variables and binders,
-    the choice of possible values and primitive operations on them is mostly arbitrary and can be extended easily.
+    the choice of possible values and primitive operations on them is mostly arbitrary and can easily be extended.
     \begin{align*}
       P, Q ::=&\ x
       \\ \big||&\ P\ Q
@@ -135,31 +115,30 @@
     we give function application the highest
     and let-bindings the lowest precedence.
 
+  \Outline{why let-bindings?}
     Let-bindings allow to bind a declaration $P$ to a variable $x$.
     While any let-binding $\Let{x} P \In Q$ can be emulated
     using an immediately applied $\lambda$-abstraction $(\lambda x.\ Q)\ P$,
     they are very common and can benefit
     from transformations that target them specifically.
-    We omit further constructs such as branching operators,
-    recursive bindings or a fixpoint operator,
-    but discuss some potential additions and their implications
-    at the end (section \ref{sec:further-work-extending-language}).
-  }
+    For simplicity, we omit further constructs such as branching operators,
+    recursive bindings or a fixpoint operator.
+    % TODO: discuss extensions?
+    %but discuss some potential additions and their implications
+    %at the end (section \ref{sec:further-work-extending-language}).
 
-  \Outline{describe DBE}
-  \Copied{
-    We mainly consider transformations aimed at optimising functional programs.
+  \Outline{choice of optimisations}
+  \TODO{justify focus on functional languages?}
     A large number of program analyses and optimisations are presented in the literature
     \cite{Nielson1999PrinciplesProgramAnalysis,Santos1995CompilationByTransformation}
     and used in production compilers such as the Glorious Haskell Compiler (GHC).
-    We generally focus on transformations dealing with variable binders,
-    such as
-    \emph{inlining},
-    \emph{let-floating},
-    \emph{common subexpression elimination} and
-    \emph{dead binding elimination}.
+    As an example of a transformation dealing with variables and binders,
+    we focus on \emph{dead binding elimination} (DBE).
+    Further transformations are briefly discussed in section
+    \ref{sec:other-transformations}.
 
-    \paragraph{Dead Binding Elimination}
+  \Outline{describe DBE}
+  \Copied{
     An expression is not forced to make use of all bindings to which it has access.
     Specifically, a let-binding introduces a new variable, but it might never be used
     in the body.
@@ -171,9 +150,22 @@
       &\ \ \ \ \ \ x
     \end{align*}
     Here, the binding for $z$ is clearly unused, as the variable never occurs in the body.
+  }
+
+  \Outline{variable liveness}
+  \Copied{
     Such dead bindings can be identified by \emph{live variable analysis}
     and consequently be removed.
 
+    A crucial aspect is that of \emph{variable liveness}.
+    Whether it is safe to apply a binding-related transformation
+    usually depends on which parts of the program make use of which binding.
+    We employ several ways of providing and using variable liveness information
+    for program transformations.
+  }
+
+  \Outline{we consider strongly live variables}
+  \Copied{
     Note that $y$ is not needed either: Removing $z$ will make $y$ unused.
     Therefore, multiple iterations of live variable analysis and binding elimination
     might be required to remove as many bindings as possible.
@@ -184,7 +176,6 @@
 
   \Outline{problems with transformations on de Bruijn}
   \Copied{
-    \paragraph{De Bruijn indices}
     With \emph{de Bruijn indices}
     \cite{DeBruijn1972NamelessIndices},
     one can instead adopt a \emph{nameless} representation.
@@ -202,8 +193,8 @@
 
     This makes $\alpha$-equivalence of expressions trivial and avoids variable capture,
     but there are still opportunities for mistakes during transformations.
-    Inserting or removing a binding
-    requires us to traverse the binding's body and add or subtract 1 from all its free variables.
+    Inserting or removing a binding requires us to traverse the binding's body
+    and increase or decrease the indices of all its free variables.
     We can see this in our example when removing the innermost (unused) let-binding.
     If we naively leave the variable $\DeBruijn{2}$ untouched,
     it will not refer to the declaration $42$ anymore,
@@ -215,10 +206,21 @@
     \end{align*}
   }
 
-  \Outline{key ideas}
-    \TODO{summarise}
+  \Outline{intrinsically typed representation}
 
-  \Outline{contributions}
+  \Outline{challenges of intrinsically typed representation}
+  \Copied{
+    In return for the guarantees provided, some additional work is required.
+    For the \emph{transformation} of the intrinsically typed program,
+    the programmer then has to convince the type checker
+    that type- and scope-correctness invariants are preserved,
+    which can be cumbersome.
+  }
+
+  \Outline{other key ideas?}
+
+  \paragraph{Contributions}
+  \TODO{contributions}
 
 
 \section{Dead Binding Elimination}
